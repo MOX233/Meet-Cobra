@@ -552,7 +552,7 @@ def train_beampred_model(num_epochs, device, data_complex, best_beam_pair_index_
         if val_acc_list[-1]>best_val_acc:
             best_val_acc = val_acc_list[-1]
             best_model_state_dict = model.state_dict()
-    torch.save(best_model_state_dict, model_save_dir+f"/beampred_dimIn{model.feature_input_dim}_valAcc{max(val_acc_list):.2f}%.pth")
+    # torch.save(best_model_state_dict, model_save_dir+f"/beampred_dimIn{model.feature_input_dim}_valAcc{max(val_acc_list):.2f}%.pth")
     
     
     print("Training complete!")
@@ -709,7 +709,7 @@ def train_gainpred_model(num_epochs, device, data_complex, veh_h_torch, best_bea
         #     best_val_acc = val_acc_list[-1]
         #     best_model_state_dict = model.state_dict()
     # import ipdb;ipdb.set_trace()
-    torch.save(best_model_state_dict, model_save_dir+f"/gainpred_dimIn{model.feature_input_dim}.pth")
+    # torch.save(best_model_state_dict, model_save_dir+f"/gainpred_dimIn{model.feature_input_dim}_BBSMAE{min(train_bestBS_mae_list)}.pth")
     
     
     print("Training complete!")
@@ -839,7 +839,7 @@ def train_pospred_model(num_epochs, device, data_complex, veh_h_torch, veh_pos_t
             best_val_rmse = val_rmse_list[-1]
             best_model_state_dict = model.state_dict()
     # import ipdb;ipdb.set_trace()
-    torch.save(best_model_state_dict, model_save_dir+f"/pospred_dimIn{model.feature_input_dim}_valRMSE{min(val_rmse_list):.2f}%.pth")
+    # torch.save(best_model_state_dict, model_save_dir+f"/pospred_dimIn{model.feature_input_dim}_valRMSE{min(val_rmse_list):.2f}%.pth")
     
     
     print("Training complete!")
@@ -1033,7 +1033,7 @@ def train_gainlevelpred_model(num_epochs, device, data_complex, veh_h_torch, bes
         if val_acc_list[-1]>best_val_acc:
             best_val_acc = val_acc_list[-1]
             best_model_state_dict = model.state_dict()
-    torch.save(best_model_state_dict, model_save_dir+f"/gainlevelpred_dimIn{model.feature_input_dim}Out{model.num_dBlevel}_valAcc{max(val_acc_list):.2f}%_BBSMAE{min(val_bestBS_mae_list):.2f}.pth")
+    # torch.save(best_model_state_dict, model_save_dir+f"/gainlevelpred_dimIn{model.feature_input_dim}Out{model.num_dBlevel}_valAcc{max(val_acc_list):.2f}%_BBSMAE{min(val_bestBS_mae_list):.2f}.pth")
     print("Training complete!")
     return model, \
         train_loss_list, train_acc_list, train_mae_list, train_mse_list, \

@@ -2,3 +2,5 @@
 prepared_dataset
 old_*
 plots
+**.pyc
+**/__pycache__

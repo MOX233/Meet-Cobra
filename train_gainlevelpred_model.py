@@ -15,8 +15,8 @@ from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair,
 from utils.NN_utils import prepare_dataset, BestGainPredictionModel, train_gainpred_model, train_gainlevelpred_model
 from utils.options import args_parser
 from utils.sumo_utils import read_trajectoryInfo_timeindex
-from utils.mox_utils import setup_seed, get_prepared_dataset
-
+from utils.mox_utils import setup_seed, get_prepared_dataset, get_save_dirs, split_string, save_log
+from utils.plot_utils import plot_gainlevelpred
 
 if __name__ == "__main__":
     # 设置随机数种子
@@ -38,32 +38,24 @@ if __name__ == "__main__":
     prepared_dataset_filename, data_torch, veh_h_torch, veh_pos_torch, best_beam_pair_index_torch \
         = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, device, P_t, P_noise)
     
-    # pretrained_model_path='./models/best_model_acc89.262%.pth'
+    result_save_dir, plt_save_dir, model_save_dir, log_save_dir = get_save_dirs(prepared_dataset_filename)
+    
+    num_epochs = 1
     pretrained_model_path = None
-    result_save_dir = os.path.join('./NN_result',prepared_dataset_filename)
-    plt_save_dir = os.path.join(result_save_dir,'plots')
-    model_save_dir = os.path.join(result_save_dir,'models')
-    if os.path.exists(result_save_dir) == False:
-        os.mkdir(result_save_dir)
-        os.mkdir(plt_save_dir)
-        os.mkdir(model_save_dir)
-    num_epochs = 100
     # 运行训练
     model, train_loss_list, train_acc_list, train_mae_list, train_mse_list, \
     train_bestBS_mae_list, train_bestBS_mse_list, train_bestBS_acc_list, \
     val_loss_list, val_acc_list, val_mae_list, val_mse_list, \
     val_bestBS_mae_list, val_bestBS_mse_list, val_bestBS_acc_list = \
-            train_gainlevelpred_model(num_epochs, device, data_torch, veh_h_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path, model_save_dir)
-    # model, train_loss_list, train_acc_list, val_loss_list, val_acc_list = train_gainlevelpred_model(num_epochs, device, data_torch, veh_h_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path, model_save_dir)
-    plt.figure()
-    plt.subplot(2,1,1)
-    plt.plot(train_loss_list, label='train loss')
-    plt.plot(val_loss_list, label='val loss')
-    plt.legend()
-    plt.subplot(2,1,2)
-    plt.plot(train_acc_list, label='train Acc')
-    plt.plot(val_acc_list, label='val Acc')
-    plt.legend()
-    plt.show()
-    plt.savefig(os.path.join(plt_save_dir,f'gainlevelpred_dimIn{model.feature_input_dim}Out{model.num_dBlevel}_valAcc{max(val_acc_list):.2f}%_BBSMAE{min(val_bestBS_mae_list):.2f}.png'))
-    print(os.path.join(plt_save_dir,f'gainlevelpred_dimIn{model.feature_input_dim}Out{model.num_dBlevel}_valAcc{max(val_acc_list):.2f}%_BBSMAE{min(val_bestBS_mae_list):.2f}.png'))
+        train_gainlevelpred_model(num_epochs, device, data_torch, veh_h_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path, model_save_dir)
+    train_result_name_list = split_string("model, train_loss_list, train_acc_list, train_mae_list, train_mse_list, \
+    train_bestBS_mae_list, train_bestBS_mse_list, train_bestBS_acc_list, \
+    val_loss_list, val_acc_list, val_mae_list, val_mse_list, \
+    val_bestBS_mae_list, val_bestBS_mse_list, val_bestBS_acc_list")
+    save_name = f"gainlevelpred_dimIn{model.feature_input_dim}Out{model.num_dBlevel}_valAcc{max(val_acc_list):.2f}%_BBSMAE{min(val_bestBS_mae_list):.2f}"
+    
+    torch.save(model.state_dict(), os.path.join(model_save_dir, save_name+'.pth'))
+    
+    log_dict = save_log(locals(), train_result_name_list, os.path.join(log_save_dir,save_name+'.pkl'))
+    
+    plot_gainlevelpred(os.path.join(plt_save_dir,save_name+'.png'), log_dict)

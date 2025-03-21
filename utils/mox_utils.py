@@ -69,6 +69,17 @@ def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pi
         f_save.close()
     return prepared_dataset_filename, data_torch, veh_h_torch, veh_pos_torch, best_beam_pair_index_torch
 
+def get_save_dirs(prepared_dataset_filename):
+    result_save_dir = os.path.join('./NN_result',prepared_dataset_filename)
+    plt_save_dir = os.path.join(result_save_dir,'plots')
+    model_save_dir = os.path.join(result_save_dir,'models')
+    log_save_dir = os.path.join(result_save_dir,'logs')
+    if os.path.exists(result_save_dir) == False:
+        os.mkdir(result_save_dir)
+        os.mkdir(plt_save_dir)
+        os.mkdir(model_save_dir)
+        os.mkdir(log_save_dir)
+    return result_save_dir, plt_save_dir, model_save_dir, log_save_dir
 
 def split_string(X):
     """
@@ -85,4 +96,10 @@ def split_string(X):
     return substr_list
 
 
-    
+def save_log(local_dict, train_result_name_list, log_save_path):
+    log_dict = {}
+    for train_result_name in train_result_name_list:
+        log_dict[train_result_name] = local_dict[train_result_name]
+    with open(log_save_path, 'wb') as f:
+        pickle.dump(log_dict, f)
+    return log_dict
