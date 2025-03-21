@@ -96,6 +96,63 @@ def prepare_dataset(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound 
 
     return data_torch, best_beam_pair_index_torch, veh_pos_torch, veh_h_torch
 
+
+def prepare_dataset_numpy(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound = 1e15, P_t=1e-1, P_noise=1e-14, n_pilot=16, mode=0):
+    DFT_matrix_tx = generate_dft_codebook(M_t)
+    DFT_matrix_rx = generate_dft_codebook(M_r)
+    with open(sionna_result_filepath, 'rb') as f:
+        trajectoryInfo = pickle.load(f)
+    data_list = []
+    best_beam_pair_index_list = []
+    veh_pos_list = []
+    veh_h_list = []
+    sample_interval = int(M_t/n_pilot)
+    for frame in trajectoryInfo.keys():
+        print('prepare_dataset: ',frame)
+        for veh in trajectoryInfo[frame].keys():
+            veh_h = trajectoryInfo[frame][veh]['h']
+            veh_pos = trajectoryInfo[frame][veh]['pos']
+            # characteristics data
+            # trajectoryInfo[frame][veh]['h'].shape  (8, 4, 64)
+            
+            if mode == 0:
+                #data = veh_h.sum(axis=-1).reshape(-1)
+                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
+                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                data = (data + n).astype(np.complex64)
+            elif mode == 1:
+                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].reshape(-1)
+                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                data = (data + n).astype(np.complex64)
+            else:
+                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
+                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                data = (data + n).astype(np.complex64)
+            
+            
+            data_list.append(data) # shape = (M_t*N_bs,), dtype = np.complex
+            
+            # best_beam_pair_index for N_bs BSs
+            best_beam_pair_index = np.abs(np.matmul(np.matmul(veh_h, DFT_matrix_tx).T.conjugate(),DFT_matrix_rx).transpose([1,0,2]).reshape(N_bs,-1)).argmax(axis=-1)
+            best_beam_pair_index_list.append(best_beam_pair_index)
+
+            # vehicle h
+            veh_h_list.append(veh_h)
+            
+            # vehicle position
+            veh_pos_list.append(veh_pos)
+            if len(veh_pos_list) >= datasize_upperbound:
+                break
+        if len(veh_pos_list) >= datasize_upperbound:
+            break
+    
+    data_np = np.array(data_list)
+    best_beam_pair_index_np = np.array(best_beam_pair_index_list)
+    veh_h_np = np.array(veh_h_list)
+    veh_pos_np = np.array(veh_pos_list)
+
+    return data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np
+
 # 定义神经网络模型
 class BeamPredictionModel(nn.Module):
     def __init__(self, feature_input_dim, num_bs, num_beampair, params_norm=[20,7]):

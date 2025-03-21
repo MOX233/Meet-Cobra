@@ -4,3 +4,4 @@ old_*
 plots
 **.pyc
 **/__pycache__
+**/_tmp**

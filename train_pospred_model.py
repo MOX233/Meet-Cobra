@@ -15,7 +15,7 @@ from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair,
 from utils.NN_utils import prepare_dataset, PositionPredictionModel, train_pospred_model
 from utils.options import args_parser
 from utils.sumo_utils import read_trajectoryInfo_timeindex
-from utils.mox_utils import setup_seed, get_prepared_dataset, get_save_dirs, split_string, save_log
+from utils.mox_utils import setup_seed, get_prepared_dataset, get_prepared_dataset_numpy, get_save_dirs, split_string, save_log, np2torch
 from utils.plot_utils import plot_pospred
 
 if __name__ == "__main__":
@@ -35,8 +35,12 @@ if __name__ == "__main__":
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('Using device: ', device)
 
-    prepared_dataset_filename, data_torch, veh_h_torch, veh_pos_torch, best_beam_pair_index_torch \
-        = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, device, P_t, P_noise)
+    prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np \
+        = get_prepared_dataset_numpy(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise)
+    data_torch = np2torch(data_np,device) 
+    veh_h_torch = np2torch(veh_h_np,device) 
+    veh_pos_torch = np2torch(veh_pos_np,device) 
+    best_beam_pair_index_torch = np2torch(best_beam_pair_index_np,device)
     
     result_save_dir, plt_save_dir, model_save_dir, log_save_dir = get_save_dirs(prepared_dataset_filename)
     
