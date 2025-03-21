@@ -40,7 +40,7 @@ if __name__ == "__main__":
     
     result_save_dir, plt_save_dir, model_save_dir, log_save_dir = get_save_dirs(prepared_dataset_filename)
     
-    num_epochs = 1
+    num_epochs =  50
     pretrained_model_path = None
     # 运行训练
     model, train_loss_list, train_acc_list, train_mae_list, train_mse_list, \
@@ -52,10 +52,8 @@ if __name__ == "__main__":
     train_bestBS_mae_list, train_bestBS_mse_list, train_bestBS_acc_list, \
     val_loss_list, val_acc_list, val_mae_list, val_mse_list, \
     val_bestBS_mae_list, val_bestBS_mse_list, val_bestBS_acc_list")
+    
     save_name = f"gainlevelpred_dimIn{model.feature_input_dim}Out{model.num_dBlevel}_valAcc{max(val_acc_list):.2f}%_BBSMAE{min(val_bestBS_mae_list):.2f}"
-    
     torch.save(model.state_dict(), os.path.join(model_save_dir, save_name+'.pth'))
-    
     log_dict = save_log(locals(), train_result_name_list, os.path.join(log_save_dir,save_name+'.pkl'))
-    
     plot_gainlevelpred(os.path.join(plt_save_dir,save_name+'.png'), log_dict)

@@ -40,16 +40,14 @@ if __name__ == "__main__":
     
     result_save_dir, plt_save_dir, model_save_dir, log_save_dir = get_save_dirs(prepared_dataset_filename)
     
-    num_epochs = 1
+    num_epochs =  50
     pretrained_model_path = None
     # 运行训练
     model, train_loss_list, train_rmse_list, train_mae_list, val_loss_list, val_rmse_list, val_mae_list = \
         train_pospred_model(num_epochs, device, data_torch, veh_h_torch, veh_pos_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path, model_save_dir)
     train_result_name_list = split_string("model, train_loss_list, train_rmse_list, train_mae_list, val_loss_list, val_rmse_list, val_mae_list")
+    
     save_name = f"pospred_dimIn{model.feature_input_dim}_valRMSE{min(val_rmse_list):.2f}"
-    
     torch.save(model.state_dict(), os.path.join(model_save_dir, save_name+'.pth'))
-    
     log_dict = save_log(locals(), train_result_name_list, os.path.join(log_save_dir,save_name+'.pkl'))
-    
     plot_pospred(os.path.join(plt_save_dir,save_name+'.png'), log_dict)

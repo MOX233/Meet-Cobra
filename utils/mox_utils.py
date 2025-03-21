@@ -99,7 +99,10 @@ def split_string(X):
 def save_log(local_dict, train_result_name_list, log_save_path):
     log_dict = {}
     for train_result_name in train_result_name_list:
-        log_dict[train_result_name] = local_dict[train_result_name]
+        if train_result_name == 'model':
+            log_dict[train_result_name] = local_dict[train_result_name].state_dict()
+        else:
+            log_dict[train_result_name] = local_dict[train_result_name]
     with open(log_save_path, 'wb') as f:
         pickle.dump(log_dict, f)
     return log_dict
