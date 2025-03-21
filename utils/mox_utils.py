@@ -13,7 +13,7 @@ import re
 
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
-from utils.NN_utils import prepare_dataset, prepare_dataset_numpy, BeamPredictionModel, train_beampred_model
+from utils.NN_utils import prepare_dataset, BeamPredictionModel, train_beampred_model
 from utils.options import args_parser
 from utils.sumo_utils import read_trajectoryInfo_timeindex
 
@@ -44,32 +44,7 @@ def generate_complex_gaussian_vector(shape, scale=1.0, mean=0.0):
     complex_array = real_part + 1j * imag_part
     return complex_array
 
-def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, device, P_t, P_noise):
-    # 加载数据集
-    prepared_dataset_filename = f'{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}'
-    prepared_dataset_filepath = os.path.join('./prepared_dataset/',prepared_dataset_filename+'.pkl')
-    if os.path.exists(prepared_dataset_filepath):
-        f_read = open(prepared_dataset_filepath, 'rb')
-        prepared_dataset = pickle.load(f_read)
-        data_torch, best_beam_pair_index_torch, veh_pos_torch, veh_h_torch = \
-            prepared_dataset['data_torch'], prepared_dataset['best_beam_pair_index_torch'], prepared_dataset['veh_pos_torch'], prepared_dataset['veh_h_torch']
-        f_read.close()
-    else:
-        filepath = f'./sionna_result/trajectoryInfo_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
-        datasize_upperbound = 1e9
-        data_torch, best_beam_pair_index_torch, veh_pos_torch, veh_h_torch = \
-            prepare_dataset(filepath,M_t, M_r, N_bs,datasize_upperbound,device,P_t, P_noise, n_pilot, mode=preprocess_mode)
-        prepared_dataset = {}
-        prepared_dataset['data_torch'] = data_torch
-        prepared_dataset['best_beam_pair_index_torch'] = best_beam_pair_index_torch
-        prepared_dataset['veh_pos_torch'] = veh_pos_torch
-        prepared_dataset['veh_h_torch'] = veh_h_torch
-        f_save = open(prepared_dataset_filepath, 'wb')
-        pickle.dump(prepared_dataset, f_save)
-        f_save.close()
-    return prepared_dataset_filename, data_torch, veh_h_torch, veh_pos_torch, best_beam_pair_index_torch
-
-def get_prepared_dataset_numpy(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise):
+def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise):
     # 加载数据集
     prepared_dataset_filename = f'{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}'
     prepared_dataset_filepath = os.path.join('./prepared_dataset/',prepared_dataset_filename+'.pkl')
@@ -83,7 +58,7 @@ def get_prepared_dataset_numpy(preprocess_mode, DS_start, DS_end, M_t, M_r, freq
         filepath = f'./sionna_result/trajectoryInfo_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
         datasize_upperbound = 1e9
         data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np = \
-            prepare_dataset_numpy(filepath,M_t, M_r, N_bs,datasize_upperbound,P_t, P_noise, n_pilot, mode=preprocess_mode)
+            prepare_dataset(filepath,M_t, M_r, N_bs,datasize_upperbound,P_t, P_noise, n_pilot, mode=preprocess_mode)
         prepared_dataset = {}
         prepared_dataset['data_np'] = data_np
         prepared_dataset['best_beam_pair_index_np'] = best_beam_pair_index_np
