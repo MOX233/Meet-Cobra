@@ -110,3 +110,11 @@ def save_log(local_dict, train_result_name_list, log_save_path):
 
 def np2torch(x,device):
     return torch.tensor(x).to(device)
+
+def see_model_structure(log_addr):
+    with open(log_addr,'rb') as f:
+        log = pickle.load(f)
+    for k,v in log['model'].items():
+        if k.split('.')[-1]=='weight':
+            print(k.split('.')[:-1],v.shape[1], '->', v.shape[0])
+    return log

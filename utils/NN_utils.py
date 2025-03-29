@@ -229,6 +229,8 @@ class BestGainPredictionModel(nn.Module):
                 nn.GELU(),
                 nn.Linear(128, 128),
                 nn.GELU(),
+                nn.Linear(128, 128),
+                nn.GELU(),
                 nn.Linear(128, 1)
             ) for _ in range(num_bs)
         ])
@@ -304,9 +306,13 @@ class PositionPredictionModel(nn.Module):
             nn.GELU(),
             nn.Linear(128, 128),
             nn.GELU(),
-            nn.Linear(128, 128),
+            nn.Linear(128, 64),
             nn.GELU(),
-            nn.Linear(128, 2)
+            nn.Linear(64, 64),
+            nn.GELU(),
+            nn.Linear(64, 32),
+            nn.GELU(),
+            nn.Linear(32, 2)
         )
         
         # # 多任务输出层（添加权重初始化）
@@ -383,6 +389,8 @@ class BestGainLevelPredictionModel(nn.Module):
         
         self.output_heads = nn.ModuleList([
             nn.Sequential(
+                nn.Linear(128, 128),
+                nn.GELU(),
                 nn.Linear(128, 128),
                 nn.GELU(),
                 nn.Linear(128, 128),

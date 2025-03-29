@@ -15,7 +15,8 @@ from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair,
 from utils.NN_utils import prepare_dataset, BeamPredictionModel, train_beampred_model
 from utils.options import args_parser
 from utils.sumo_utils import read_trajectoryInfo_timeindex
-from utils.mox_utils import setup_seed, get_prepared_dataset
+from utils.mox_utils import setup_seed, get_prepared_dataset, get_save_dirs, split_string, save_log, np2torch
+from utils.plot_utils import plot_beampred
 
 def cal_beamgain(channel, bp_idx, opt_bp_idx, DFT_tx, DFT_rx):
     # channel.shape = (n_car, M_r, n_bs, M_t)
@@ -82,24 +83,25 @@ if __name__ == "__main__":
     # 设置随机数种子
     setup_seed(20)
 
-    freq = 5.9e9
-    DS_start, DS_end = 500, 700
-    preprocess_mode = 1
+    freq = 28e9
+    DS_start, DS_end = 700, 800
+    preprocess_mode = 0
     M_r, N_bs, M_t = 8, 4, 64
     P_t = 1e-1
     P_noise = 1e-14
     n_pilot = 4
     gpu = 7
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
-    # saved_model_path = "/home/ubuntu/niulab/JCBT_AEPHORA/models/model_dimIn64_valAcc83.68%.pth"
-    # saved_model_path = "/home/ubuntu/niulab/JCBT_AEPHORA/models/model_dimIn128_valAcc85.32%.pth"
-    # saved_model_path = "/home/ubuntu/niulab/JCBT_AEPHORA/models/model_dimIn256_valAcc89.03%.pth"
-    saved_model_path = "/home/ubuntu/niulab/JCBT_AEPHORA/NN_result/500_700_3Dbeam_tx(1,64)_rx(1,8)_freq5.9e+09_Np4_mode1/models/beampred_dimIn256_valAcc88.83%.pth"
+    saved_model_path = f"/home/ubuntu/niulab/JCBT_AEPHORA/NN_result/300_700_3Dbeam_tx(1,64)_rx(1,8)_freq2.8e+10_Np4_mode{preprocess_mode}/models/beampred_dimIn64_valAcc85.85%.pth"
     
     print('Using device: ', device)
 
-    prepared_dataset_filename, data_torch, veh_h_torch, veh_pos_torch, best_beam_pair_index_torch \
-        = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, device, P_t, P_noise)
+    prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np \
+        = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise)
+    data_torch = np2torch(data_np,device) 
+    veh_h_torch = np2torch(veh_h_np,device) 
+    veh_pos_torch = np2torch(veh_pos_np,device) 
+    best_beam_pair_index_torch = np2torch(best_beam_pair_index_np,device)
     
     num_beampair = M_t*M_r
     

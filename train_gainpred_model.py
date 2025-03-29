@@ -26,12 +26,12 @@ if __name__ == "__main__":
     # DS_start, DS_end = 500, 700
     freq = 28e9
     DS_start, DS_end = 300, 700
-    preprocess_mode = 1
+    preprocess_mode = 0
     M_r, N_bs, M_t = 8, 4, 64
     P_t = 1e-1
     P_noise = 1e-14
-    n_pilot = 4
-    gpu = 6
+    n_pilot = 16
+    gpu = 3
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('Using device: ', device)
     
@@ -58,6 +58,7 @@ if __name__ == "__main__":
         val_bestBS_mae_list, val_bestBS_mse_list")
     
     save_name = f"gainpred_dimIn{model.feature_input_dim}_BBSMAE{min(val_bestBS_mae_list):.2f}"
+    save_name = save_name + time.strftime('_%Y-%m-%d_%H:%M:%S', time.localtime())
     torch.save(model.state_dict(), os.path.join(model_save_dir, save_name+'.pth'))
     log_dict = save_log(locals(), train_result_name_list, os.path.join(log_save_dir,save_name+'.pkl'))
     plot_gainpred(os.path.join(plt_save_dir,save_name+'.png'), log_dict)
