@@ -5,3 +5,6 @@ plots
 **.pyc
 **/__pycache__
 **/_tmp**
+save**
+experiment/exp_results
+data4sim

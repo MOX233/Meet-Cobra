@@ -89,7 +89,7 @@ if __name__ == "__main__":
     M_r, N_bs, M_t = 8, 4, 64
     P_t = 1e-1
     P_noise = 1e-14
-    n_pilot = 4
+    n_pilot = 16
     gpu = 7
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     saved_model_path = f"/home/ubuntu/niulab/JCBT_AEPHORA/NN_result/300_700_3Dbeam_tx(1,64)_rx(1,8)_freq2.8e+10_Np4_mode{preprocess_mode}/models/beampred_dimIn64_valAcc85.85%.pth"
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     plt.close()
     
     # See topK acc
-    K_list = np.arange(1,30)
+    K_list = np.arange(1,5)
     ratio_list_topK = []
     beamgain_list_topK = []
     for i,K in enumerate(K_list):

@@ -6,16 +6,9 @@ import pickle
 import time
 import random
 import torch
-import torch.nn.init as init
-import torch.nn as nn
-import torch.optim as optim
 import re
 
-from torch.utils.data import Dataset, DataLoader, TensorDataset
-from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
-from utils.NN_utils import prepare_dataset, BeamPredictionModel, train_beampred_model
-from utils.options import args_parser
-from utils.sumo_utils import read_trajectoryInfo_timeindex
+from utils.NN_utils import prepare_dataset
 
 def setup_seed(seed):
      torch.manual_seed(seed)
@@ -118,3 +111,6 @@ def see_model_structure(log_addr):
         if k.split('.')[-1]=='weight':
             print(k.split('.')[:-1],v.shape[1], '->', v.shape[0])
     return log
+
+def lin2dB(x:np.ndarray, eps=1e-9):
+    return 10 * np.log10(x + eps)

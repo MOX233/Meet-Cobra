@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 import os
+import abc
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import time
+import copy
 import random
+import collections
 import torch
 import torch.nn.init as init
 import torch.nn as nn
@@ -94,6 +97,152 @@ def prepare_dataset(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound 
     return data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np
 
 # 定义神经网络模型
+class MLP(nn.Module):
+    def __init__(self, input_dim, hidden_dim_list, output_dim):
+        super(MLP, self).__init__()
+        self.num_fc = len(hidden_dim_list) + 1
+        self.dim_list = copy.copy(hidden_dim_list)
+        self.dim_list.insert(0, input_dim)
+        self.dim_list.append(output_dim)
+        self.network = nn.Sequential()
+        for i in range(self.num_fc):
+            self.network.add_module(
+                "fc" + str(i), nn.Linear(self.dim_list[i], self.dim_list[i + 1])
+            )
+            if i < self.num_fc - 1:
+                self.network.add_module("relu" + str(i), nn.ReLU())
+
+    def forward(self, x):
+        x = self.network(x)
+        return x
+
+class LSTM_Model_abc(nn.Module):
+    def __init__(
+        self,
+        input_dim,
+        hidden_dim,
+        layer_dim,
+        output_dim,
+        mlp_hidden_dim_list=[32, 16, 32],
+        drop_out=0.2,
+        device="cuda" if torch.cuda.is_available() else "cpu",
+    ):
+        super(LSTM_Model_abc, self).__init__()
+        self.device = device
+        self.hidden_dim = hidden_dim
+        self.layer_dim = layer_dim
+        self.mlp_hidden_dim_list = mlp_hidden_dim_list
+        self.drop_out = drop_out
+        self.rnn = nn.LSTM(  # if use nn.RNN(), it hardly learns
+            input_size=input_dim,
+            hidden_size=hidden_dim,  # rnn hidden unit
+            num_layers=layer_dim,  # number of rnn layer
+            batch_first=True,  # input & output will has batch size as 1s dimension. e.g. (batch, time_step, input_size)
+            dropout=drop_out,
+        ).to(self.device)
+        self.mlp = MLP(hidden_dim, mlp_hidden_dim_list, output_dim).to(self.device)
+        for name, param in self.rnn.named_parameters():
+            if name.startswith("weight"):
+                nn.init.xavier_normal_(param)
+            else:
+                nn.init.zeros_(param)
+        """for name, param in self.mlp.named_parameters():
+            if name.startswith("weight"):
+                nn.init.xavier_normal_(param)
+            else:
+                nn.init.zeros_(param)"""
+
+    def forward(self, x, hc=None):
+        # x shape (batch, time_step, input_size)
+        # r_out shape (batch, time_step, output_size)
+        # h_n shape (n_layers, batch, hidden_size)
+        # c_n shape (n_layers, batch, hidden_size)
+        r_out, (h_n, c_n) = self.rnn(
+            x, hc
+        )  # hc=None represents zero initial hidden state
+        # choose r_out at the last time step
+        out = self.mlp(r_out[:, -1, :])
+        return out
+
+    @abc.abstractmethod
+    def predict(self):
+        pass
+
+class LSTM_Model_Mobility(LSTM_Model_abc):
+    def __init__(
+        self,
+        input_dim,
+        hidden_dim,
+        layer_dim,
+        output_dim,
+        mlp_hidden_dim_list=[32, 16, 32],
+        drop_out=0.5,
+        device="cuda" if torch.cuda.is_available() else "cpu",
+        preprocess_params=None,
+    ):
+        super().__init__(
+            input_dim,
+            hidden_dim,
+            layer_dim,
+            output_dim,
+            mlp_hidden_dim_list,
+            drop_out,
+            device,
+        )
+        if preprocess_params is None:
+            preprocess_params = {
+                "muX": np.array(
+                    [-134.40944, -162.64276, -159.56888, -161.54985, -159.29124],
+                    dtype=np.float32,
+                ),
+                "sigmaX": np.array(
+                    [2.761759, 13.521982, 15.282211, 14.245071, 14.93797],
+                    dtype=np.float32,
+                ),
+                "muY": -23.416536,
+                "sigmaY": 221.9446,
+            }
+        self.preprocess_params = preprocess_params
+
+    def load_preprocess_params(self, preprocess_params):
+        if preprocess_params is dict or preprocess_params is collections.OrderedDict:
+            self.preprocess_params = preprocess_params
+        elif preprocess_params is str:
+            self.preprocess_params = np.load(
+                os.path.join(preprocess_params),
+                allow_pickle=True,
+            ).item()
+        else:
+            exit("load failure")
+
+    def predict(self, X):
+        self.eval()
+        assert type(X) == np.ndarray
+        # X = X[np.newaxis,...].astype(np.float32) if X.ndim == 2 else X
+        # X = X.astype(np.float32)
+        if X.ndim == 3:
+            X = X.astype(np.float32)
+            X = (
+                X - self.preprocess_params["muX"].reshape(1, 1, -1)
+            ) / self.preprocess_params["sigmaX"].reshape(1, 1, -1)
+            X = torch.from_numpy(X).to(self.device)
+            out = self.forward(X).unsqueeze(-2)
+            Y = out.detach().cpu().numpy()
+            Y = Y * self.preprocess_params["sigmaY"] + self.preprocess_params["muY"]
+        elif X.ndim == 2:
+            X = X[np.newaxis, ...].astype(np.float32)
+            X = (
+                X - self.preprocess_params["muX"].reshape(1, 1, -1)
+            ) / self.preprocess_params["sigmaX"].reshape(1, 1, -1)
+            X = torch.from_numpy(X).to(self.device)
+            out = self.forward(X).unsqueeze(-2)
+            Y = out.detach().cpu().numpy()
+            Y = Y * self.preprocess_params["sigmaY"] + self.preprocess_params["muY"]
+            Y = Y.squeeze(0)
+        else:
+            exit("X.ndim error!")
+        return Y
+
 class BeamPredictionModel(nn.Module):
     def __init__(self, feature_input_dim, num_bs, num_beampair, params_norm=[20,7]):
         super(BeamPredictionModel, self).__init__()
@@ -203,6 +352,10 @@ class BeamPredictionModel(nn.Module):
             preprocessed = torch.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
         return preprocessed
     
+    def predict(self, x_np, device, K=1):
+        x_torch = torch.tensor(x_np).to(device)
+        return self.pred_topK(x_torch,K).detach().cpu().numpy()
+    
 class BestGainPredictionModel(nn.Module):
     def __init__(self, feature_input_dim, num_bs, params_norm=[20,7]):
         super(BestGainPredictionModel, self).__init__()
@@ -283,8 +436,10 @@ class BestGainPredictionModel(nn.Module):
         else:
             preprocessed = torch.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
         return preprocessed
-
-
+    def predict(self, x_np, device):
+        x_torch = torch.tensor(x_np).to(device)
+        return self.pred(x_torch).detach().cpu().numpy()
+    
 class PositionPredictionModel(nn.Module):
     def __init__(self, feature_input_dim, num_bs, pos_scale=100, params_norm=[20,7]):
         super(PositionPredictionModel, self).__init__()
@@ -362,7 +517,11 @@ class PositionPredictionModel(nn.Module):
         else:
             preprocessed = torch.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
         return preprocessed
-
+    
+    def predict(self, x_np, device):
+        x_torch = torch.tensor(x_np).to(device)
+        return self.pred(x_torch).detach().cpu().numpy()
+    
 
 class BestGainLevelPredictionModel(nn.Module):
     def __init__(self, feature_input_dim, num_bs, num_dBlevel=64, LB_db=-110, UB_db=-20, params_norm=[20,7]):
@@ -432,9 +591,10 @@ class BestGainLevelPredictionModel(nn.Module):
         return torch.stack(outputs, dim=-2)
 
     def pred(self, x):
-        outputs = self.forward(x)
-        predicted_bestgain = self.params_norm[0]*( outputs - self.params_norm[1] )
-        return predicted_bestgain
+        pass 
+        # outputs = self.forward(x)
+        # predicted_bestgain = self.params_norm[0]*( outputs - self.params_norm[1] )
+        # return predicted_bestgain
     
     def preprocess_input(self, x, params_norm=[20,7]):
         assert (x.dtype == torch.complex64) or (x.dtype == torch.complex128)
@@ -581,7 +741,7 @@ def train_gainpred_model(num_epochs, device, data_complex, veh_h_torch, best_bea
     g_opt = np.zeros((num_car,num_bs)).astype(np.float32)
     for veh in range(num_car):
         for bs in range(num_bs):
-            g_opt[veh,bs] = np.abs(np.matmul(np.matmul(channel[veh,:,bs,:], DFT_tx[:,beamIdPair[veh,bs,0]]).T.conjugate(),DFT_rx[:,beamIdPair[veh,bs,1]]))
+            g_opt[veh,bs] = 1/np.sqrt(M_t*M_r)*np.abs(np.matmul(np.matmul(channel[veh,:,bs,:], DFT_tx[:,beamIdPair[veh,bs,0]]).T.conjugate(),DFT_rx[:,beamIdPair[veh,bs,1]]))
             g_opt[veh,bs] = 20 * np.log10(g_opt[veh,bs]+EPS) 
     g_opt_normalized = g_opt / 20 + 7
     labels = torch.tensor(g_opt_normalized).to(device)
@@ -621,8 +781,13 @@ def train_gainpred_model(num_epochs, device, data_complex, veh_h_torch, best_bea
     val_bestBS_mae_list = []
     val_bestBS_mse_list = []
     best_model_state_dict = model.state_dict()
-    
     for epoch in range(num_epochs):
+        if epoch == int(num_epochs/2):
+            print("冻结shared_layers部分的参数，训练output_heads部分的参数")
+            for name, param in model.named_parameters():
+                if "shared_layers" in name.split('.'):
+                    param.requires_grad = False
+                    print('冻结',name)
         # 训练阶段
         model.train()
         train_loss = 0
@@ -738,11 +903,6 @@ def train_pospred_model(num_epochs, device, data_complex, veh_h_torch, veh_pos_t
     
     num_car, _, num_bs, _ = veh_h_torch.shape
     channel = veh_h_torch.detach().cpu().numpy()
-    g_opt = np.zeros((num_car,num_bs)).astype(np.float32)
-    for veh in range(num_car):
-        for bs in range(num_bs):
-            g_opt[veh,bs] = np.abs(np.matmul(np.matmul(channel[veh,:,bs,:], DFT_tx[:,beamIdPair[veh,bs,0]]).T.conjugate(),DFT_rx[:,beamIdPair[veh,bs,1]]))
-            g_opt[veh,bs] = 20 * np.log10(g_opt[veh,bs]+EPS) 
     feature_input_dim = data.shape[-1]
 
     # 初始化模型
@@ -855,7 +1015,7 @@ def train_gainlevelpred_model(num_epochs, device, data_complex, veh_h_torch, bes
     num_beampair = M_t*M_r
     
     # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    data = BestGainPredictionModel.preprocess_input(None,data_complex)
+    data = BestGainLevelPredictionModel.preprocess_input(None,data_complex)
     # data = torch.concatenate(( (20*torch.log10(torch.abs(data_torch)+EPS))/20+7, torch.angle(data_torch)),axis=-1)
     
     DFT_tx = generate_dft_codebook(M_t)
@@ -868,7 +1028,7 @@ def train_gainlevelpred_model(num_epochs, device, data_complex, veh_h_torch, bes
     g_opt = np.zeros((num_car,num_bs)).astype(np.float32)
     for veh in range(num_car):
         for bs in range(num_bs):
-            g_opt[veh,bs] = np.abs(np.matmul(np.matmul(channel[veh,:,bs,:], DFT_tx[:,beamIdPair[veh,bs,0]]).T.conjugate(),DFT_rx[:,beamIdPair[veh,bs,1]]))
+            g_opt[veh,bs] = 1/np.sqrt(M_t*M_r)*np.abs(np.matmul(np.matmul(channel[veh,:,bs,:], DFT_tx[:,beamIdPair[veh,bs,0]]).T.conjugate(),DFT_rx[:,beamIdPair[veh,bs,1]]))
             g_opt[veh,bs] = 20 * np.log10(g_opt[veh,bs]+EPS) 
     labels_dB = torch.tensor(g_opt).to(device)
     
