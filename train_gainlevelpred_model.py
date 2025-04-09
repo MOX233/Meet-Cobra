@@ -26,12 +26,12 @@ if __name__ == "__main__":
     # DS_start, DS_end = 500, 700
     freq = 28e9
     DS_start, DS_end = 300, 700
-    preprocess_mode = 0
+    preprocess_mode = 2
+    n_pilot = 16
     M_r, N_bs, M_t = 8, 4, 64
     P_t = 1e-1
     P_noise = 1e-14
-    n_pilot = 16
-    gpu = 0
+    gpu = 6
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('Using device: ', device)
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     train_bestBS_mae_list, train_bestBS_mse_list, train_bestBS_acc_list, \
     val_loss_list, val_acc_list, val_mae_list, val_mse_list, \
     val_bestBS_mae_list, val_bestBS_mse_list, val_bestBS_acc_list = \
-        train_gainlevelpred_model(num_epochs, device, data_torch, veh_h_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path, model_save_dir)
+        train_gainlevelpred_model(num_epochs, device, data_torch, veh_h_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path, model_save_dir, pos_in_data=(preprocess_mode==2))
     train_result_name_list = split_string("model, train_loss_list, train_acc_list, train_mae_list, train_mse_list, \
     train_bestBS_mae_list, train_bestBS_mse_list, train_bestBS_acc_list, \
     val_loss_list, val_acc_list, val_mae_list, val_mse_list, \

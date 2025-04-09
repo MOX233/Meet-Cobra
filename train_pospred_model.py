@@ -26,12 +26,12 @@ if __name__ == "__main__":
     # DS_start, DS_end = 500, 700
     freq = 28e9
     DS_start, DS_end = 300, 700
-    preprocess_mode = 0
+    preprocess_mode = 2
+    n_pilot = 16
     M_r, N_bs, M_t = 8, 4, 64
     P_t = 1e-1
     P_noise = 1e-14
-    n_pilot = 16
-    gpu = 3
+    gpu = 5
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('Using device: ', device)
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     pretrained_model_path = None
     # 运行训练
     model, train_loss_list, train_rmse_list, train_mae_list, val_loss_list, val_rmse_list, val_mae_list = \
-        train_pospred_model(num_epochs, device, data_torch, veh_h_torch, veh_pos_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path, model_save_dir)
+        train_pospred_model(num_epochs, device, data_torch, veh_h_torch, veh_pos_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path, model_save_dir, pos_in_data=(preprocess_mode==2))
     train_result_name_list = split_string("model, train_loss_list, train_rmse_list, train_mae_list, val_loss_list, val_rmse_list, val_mae_list")
     
     save_name = f"pospred_dimIn{model.feature_input_dim}_valRMSE{min(val_rmse_list):.2f}"
