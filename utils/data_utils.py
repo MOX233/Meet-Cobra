@@ -1,6 +1,6 @@
 import os
 import sys
-
+import pickle
 sys.path.append(os.getcwd())
 import numpy as np
 from utils.sumo_utils import (
@@ -13,6 +13,114 @@ from utils.channel_utils import (
     generate_random_channel_onlyiidshd,
     cal_distance_BS_UE,
 )
+from utils.beam_utils import generate_dft_codebook
+
+def generate_complex_gaussian_vector(shape, scale=1.0, mean=0.0):
+    """
+    生成服从复高斯分布的多维向量
+    
+    参数:
+        shape (tuple) : 输出向量的形状（如 (n,) 或 (m,n)）
+        scale (float) : 标准差缩放因子（默认1.0）
+        mean (float)  : 分布的均值（默认0.0）
+    
+    返回:
+        complex_array (ndarray) : 复高斯多维向量
+    """
+    # 生成独立的高斯分布的实部和虚部
+    real_part = np.random.normal(loc=mean, scale=scale/np.sqrt(2), size=shape)
+    imag_part = np.random.normal(loc=mean, scale=scale/np.sqrt(2), size=shape)
+    
+    # 组合为复数形式
+    complex_array = real_part + 1j * imag_part
+    return complex_array
+
+def prepare_dataset(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound = 1e15, P_t=1e-1, P_noise=1e-14, n_pilot=16, mode=0, pos_std=1):
+    DFT_matrix_tx = generate_dft_codebook(M_t)
+    DFT_matrix_rx = generate_dft_codebook(M_r)
+    with open(sionna_result_filepath, 'rb') as f:
+        trajectoryInfo = pickle.load(f)
+    data_list = []
+    best_beam_pair_index_list = []
+    veh_pos_list = []
+    veh_h_list = []
+    sample_interval = int(M_t/n_pilot) if n_pilot>0 else int(1e9)
+    for frame in trajectoryInfo.keys():
+        print('prepare_dataset: ',frame)
+        for veh in trajectoryInfo[frame].keys():
+            veh_h = trajectoryInfo[frame][veh]['h']
+            veh_pos = trajectoryInfo[frame][veh]['pos']
+            # characteristics data
+            # trajectoryInfo[frame][veh]['h'].shape  (8, 4, 64)
+            
+            if mode == 0: # 所有BS同时发射pilot，一共有n_pilot个不同方向
+                #data = veh_h.sum(axis=-1).reshape(-1)
+                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
+                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                data = (data + n).astype(np.complex64)
+            elif mode == 1: # 各BS轮流发射pilot，每个BS各有n_pilot个不同方向，一共有n_bs*n_pilot个不同方向
+                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].reshape(-1)
+                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                data = (data + n).astype(np.complex64)
+            elif mode == 2: # mode0 的基础上加上了position信息
+                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
+                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                data = (data + n).astype(np.complex64)
+                data = np.concatenate([data,veh_pos+np.random.normal(loc=0, scale=pos_std/np.sqrt(2), size=(2,))])
+                # import ipdb;ipdb.set_trace()
+            else:
+                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
+                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                data = (data + n).astype(np.complex64)
+            
+            
+            data_list.append(data) # shape = (M_t*N_bs,), dtype = np.complex
+            
+            # best_beam_pair_index for N_bs BSs
+            best_beam_pair_index = np.abs(np.matmul(np.matmul(veh_h, DFT_matrix_tx).T.conjugate(),DFT_matrix_rx).transpose([1,0,2]).reshape(N_bs,-1)).argmax(axis=-1)
+            best_beam_pair_index_list.append(best_beam_pair_index)
+
+            # vehicle h
+            veh_h_list.append(veh_h)
+            
+            # vehicle position
+            veh_pos_list.append(veh_pos)
+            if len(veh_pos_list) >= datasize_upperbound:
+                break
+        if len(veh_pos_list) >= datasize_upperbound:
+            break
+    
+    data_np = np.array(data_list)
+    best_beam_pair_index_np = np.array(best_beam_pair_index_list)
+    veh_h_np = np.array(veh_h_list)
+    veh_pos_np = np.array(veh_pos_list)
+
+    return data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np
+
+def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise):
+    # 加载数据集
+    prepared_dataset_filename = f'{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}'
+    prepared_dataset_filepath = os.path.join('./prepared_dataset/',prepared_dataset_filename+'.pkl')
+    if os.path.exists(prepared_dataset_filepath):
+        f_read = open(prepared_dataset_filepath, 'rb')
+        prepared_dataset = pickle.load(f_read)
+        data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np = \
+            prepared_dataset['data_np'], prepared_dataset['best_beam_pair_index_np'], prepared_dataset['veh_pos_np'], prepared_dataset['veh_h_np']
+        f_read.close()
+    else:
+        filepath = f'./sionna_result/trajectoryInfo_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
+        datasize_upperbound = 1e9
+        data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np = \
+            prepare_dataset(filepath,M_t, M_r, N_bs,datasize_upperbound,P_t, P_noise, n_pilot, mode=preprocess_mode)
+        prepared_dataset = {}
+        prepared_dataset['data_np'] = data_np
+        prepared_dataset['best_beam_pair_index_np'] = best_beam_pair_index_np
+        prepared_dataset['veh_pos_np'] = veh_pos_np
+        prepared_dataset['veh_h_np'] = veh_h_np
+        f_save = open(prepared_dataset_filepath, 'wb')
+        pickle.dump(prepared_dataset, f_save)
+        f_save.close()
+    return prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np
 
 
 def is_car_under_BS(BS_pos, car_pos, BS_radius=300):
@@ -74,281 +182,3 @@ def preprocess_data_Zscore(dataX, dataY, muX=-220, muY=0, sigmaX=0.0784, sigmaY=
     dataX_prcsd = (dataX - muX.reshape(1, 1, -1)) / sigmaX.reshape(1, 1, -1)
     dataY_prcsd = (dataY - muY) / sigmaY
     return dataX_prcsd, dataY_prcsd
-
-
-def _prepare_dataset(
-    args,
-    BS_loc_list,
-    frames_per_sample=10,
-    slots_per_frame=100,
-    shd_sigma=0,
-    shd_crr_coeff=0,
-    fd_sigma=1,
-):
-    carline_dir_matrix = read_trajectoryInfo_carindex_matrix(args)
-    num_BS = len(BS_loc_list)
-    num_sample = 0
-    for k, v in carline_dir_matrix.items():
-        num_sample += int((len(v) - 1) / frames_per_sample)
-    traj_matrix = np.zeros((num_sample, frames_per_sample, 2))  # 记录各样本的车辆轨迹
-    dataX = np.zeros((num_sample, frames_per_sample, num_BS)).astype(
-        np.float32
-    )  # 记录各样本的UE-BS信道增益
-    dataY = np.zeros((num_sample, 2)).astype(np.float32)  # 记录各样本的最终车辆位置
-    cnt = 0
-    for k, v in carline_dir_matrix.items():
-        samples_per_veh = int((len(v) - 1) / frames_per_sample)
-        for i in range(samples_per_veh):
-            traj_matrix[cnt, :, :] = v[
-                i * frames_per_sample : (i + 1) * frames_per_sample, 1:3
-            ]
-            cnt += 1
-    for BS_idx, BS_loc in enumerate(BS_loc_list):
-        distance_BS_UE = cal_distance_BS_UE(
-            traj_matrix, BS_loc
-        )  # 计算各样本的UE-BS距离轨迹
-        # dataX[:,:,BS_idx],_ = generate_random_channel(distance_BS_UE, shd_sigma=shd_sigma, shd_crr_coeff=shd_crr_coeff, fd_sigma=fd_sigma,num_frame=frames_per_sample, slots_per_frame= slots_per_frame)
-        dataX[:, :, BS_idx] = generate_random_channel(
-            distance_BS_UE,
-            bias=args.bias,
-            beta=args.beta,
-            shd_sigma=shd_sigma,
-            shd_crr_coeff=shd_crr_coeff,
-            fd_sigma=fd_sigma,
-            num_frame=frames_per_sample,
-            slots_per_frame=slots_per_frame,
-            eps=1e-12,
-        )
-    dataY[:, :] = traj_matrix[:, -1, :]
-    muX, sigmaX = dataX.mean(), dataX.std()
-    muY, sigmaY = dataY.mean(), dataY.std()
-    dataX_prcsd, dataY_prcsd = preprocess_data_Zscore(
-        dataX, dataY, muX, muY, sigmaX, sigmaY
-    )
-    return dataX_prcsd, dataY_prcsd, dataX, dataY, muX, sigmaX, muY, sigmaY
-
-
-def prepare_dataset_onlyiidshd(
-    args,
-    BS_loc_list,
-    frames_per_sample=10,
-    shd_sigma_macro=0,
-    shd_sigma_micro=0,
-    preprocess_params=None,
-):
-    carline_dir_matrix = read_trajectoryInfo_carindex_matrix(args)
-    num_BS = len(BS_loc_list)
-    num_sample = 0
-    for k, v in carline_dir_matrix.items():
-        num_sample += int((len(v) - 1) / frames_per_sample)
-    traj_matrix = np.zeros((num_sample, frames_per_sample, 2))  # 记录各样本的车辆轨迹
-    dataX = np.zeros((num_sample, frames_per_sample, num_BS)).astype(
-        np.float32
-    )  # 记录各样本的UE-BS信道增益
-    dataY = np.zeros((num_sample, 2)).astype(np.float32)  # 记录各样本的最终车辆位置
-    cnt = 0
-    for k, v in carline_dir_matrix.items():
-        samples_per_veh = int((len(v) - 1) / frames_per_sample)
-        for i in range(samples_per_veh):
-            traj_matrix[cnt, :, :] = v[
-                i * frames_per_sample : (i + 1) * frames_per_sample, 1:3
-            ]
-            dataY[cnt, :] = v[(i + 1) * frames_per_sample, 1:3]
-            cnt += 1
-    for BS_idx, BS_loc in enumerate(BS_loc_list):
-        distance_BS_UE = cal_distance_BS_UE(
-            traj_matrix, BS_loc
-        )  # 计算各样本的UE-BS距离轨迹
-        if BS_idx == 0:
-            dataX[:, :, BS_idx] = generate_random_channel_onlyiidshd(
-                distance_BS_UE,
-                bias=args.bias_macro,
-                beta=args.beta_macro,
-                shd_sigma=shd_sigma_macro,
-                num_frame=frames_per_sample,
-            )
-        else:
-            dataX[:, :, BS_idx] = generate_random_channel_onlyiidshd(
-                distance_BS_UE,
-                bias=args.bias_micro,
-                beta=args.beta_micro,
-                shd_sigma=shd_sigma_micro,
-                num_frame=frames_per_sample,
-            )
-    if preprocess_params == None:
-        muX = dataX.mean(axis=0, keepdims=False).mean(
-            axis=0, keepdims=False
-        )  # (num_BS)
-        sigmaX = dataX.reshape(-1, len(BS_loc_list)).std(
-            axis=0, keepdims=False
-        )  # (num_BS)
-        muY, sigmaY = dataY.mean(), dataY.std()
-    else:
-        muX = preprocess_params["muX"]
-        sigmaX = preprocess_params["sigmaX"]
-        muY = preprocess_params["muY"]
-        sigmaY = preprocess_params["sigmaY"]
-    dataX_prcsd, dataY_prcsd = preprocess_data_Zscore(
-        dataX, dataY, muX, muY, sigmaX, sigmaY
-    )
-    return dataX_prcsd, dataY_prcsd, dataX, dataY, muX, sigmaX, muY, sigmaY
-
-
-def prepare_dataset_multipoint_onlyiidshd(
-    args,
-    BS_loc_list,
-    ioframes_per_sample=10,
-    sample_interval=1,
-    shd_sigma_macro=0,
-    shd_sigma_micro=0,
-    preprocess_params=None,
-):
-    carline_dir_matrix = read_trajectoryInfo_carindex_matrix(args)
-    num_BS = len(BS_loc_list)
-    num_sample = 0
-    # 每个样本包含ioframes_per_sample长的输入和ioframes_per_sample长的输出，因此每个样本包含2*ioframes_per_sample个frame
-    for k, v in carline_dir_matrix.items():
-        num_sample += max(0, int((len(v) - 2 * ioframes_per_sample) / sample_interval))
-    traj_matrix = np.zeros(
-        (num_sample, ioframes_per_sample, 2)
-    )  # 记录各样本的历史车辆轨迹
-    dataX = np.zeros((num_sample, ioframes_per_sample, num_BS)).astype(
-        np.float32
-    )  # 记录各样本的UE-BS信道增益
-    dataY = np.zeros((num_sample, ioframes_per_sample, 2)).astype(
-        np.float32
-    )  # 记录各样本的未来车辆轨迹
-    cnt = 0
-    for k, v in carline_dir_matrix.items():
-        samples_per_veh = max(
-            0, int((len(v) - 2 * ioframes_per_sample) / sample_interval)
-        )
-        for i in range(samples_per_veh):
-            traj_matrix[cnt, :, :] = v[
-                i * sample_interval : i * sample_interval + ioframes_per_sample, 1:3
-            ]
-            dataY[cnt, :, :] = v[
-                i * sample_interval
-                + ioframes_per_sample : i * sample_interval
-                + 2 * ioframes_per_sample,
-                1:3,
-            ]
-            cnt += 1
-    for BS_idx, BS_loc in enumerate(BS_loc_list):
-        distance_BS_UE = cal_distance_BS_UE(
-            traj_matrix, BS_loc
-        )  # 计算各样本的UE-BS距离轨迹
-        if BS_idx == 0:
-            dataX[:, :, BS_idx] = generate_random_channel_onlyiidshd(
-                distance_BS_UE,
-                bias=args.bias_macro,
-                beta=args.beta_macro,
-                shd_sigma=shd_sigma_macro,
-                num_frame=ioframes_per_sample,
-            )
-        else:
-            dataX[:, :, BS_idx] = generate_random_channel_onlyiidshd(
-                distance_BS_UE,
-                bias=args.bias_micro,
-                beta=args.beta_micro,
-                shd_sigma=shd_sigma_micro,
-                num_frame=ioframes_per_sample,
-            )
-    if preprocess_params == None:
-        muX = dataX.mean(axis=0, keepdims=False).mean(
-            axis=0, keepdims=False
-        )  # (num_BS)
-        sigmaX = dataX.reshape(-1, len(BS_loc_list)).std(
-            axis=0, keepdims=False
-        )  # (num_BS)
-        muY, sigmaY = dataY.mean(), dataY.std()
-    else:
-        muX = preprocess_params["muX"]
-        sigmaX = preprocess_params["sigmaX"]
-        muY = preprocess_params["muY"]
-        sigmaY = preprocess_params["sigmaY"]
-    dataX_prcsd, dataY_prcsd = preprocess_data_Zscore(
-        dataX, dataY, muX, muY, sigmaX, sigmaY
-    )
-    return dataX_prcsd, dataY_prcsd, dataX, dataY, muX, sigmaX, muY, sigmaY
-
-
-def prepare_dataset_onlyiidshd_v2(
-    args,
-    BS_loc_list,
-    ifps=10,
-    ofps=10,
-    sample_interval=1,
-    shd_sigma_macro=0,
-    shd_sigma_micro=0,
-    preprocess_params=None,
-):
-    carline_dir_matrix = read_trajectoryInfo_carindex_matrix(args)
-    num_BS = len(BS_loc_list)
-    num_sample = 0
-    # 每个样本包含ioframes_per_sample长的输入和ioframes_per_sample长的输出，因此每个样本包含2*ioframes_per_sample个frame
-    for k, v in carline_dir_matrix.items():
-        num_sample += max(0, int((len(v) - (ifps + ofps)) / sample_interval))
-    traj_matrix = np.zeros((num_sample, ifps, 2))  # 记录各样本的历史车辆轨迹
-    dataX = np.zeros((num_sample, ifps, num_BS)).astype(
-        np.float32
-    )  # 记录各样本的UE-BS信道增益
-    dataY = np.zeros((num_sample, ofps, 2)).astype(
-        np.float32
-    )  # 记录各样本的未来车辆轨迹
-    cnt = 0
-    for k, v in carline_dir_matrix.items():
-        samples_per_veh = max(0, int((len(v) - (ifps + ofps)) / sample_interval))
-        for i in range(samples_per_veh):
-            traj_matrix[cnt, :, :] = v[
-                i * sample_interval : i * sample_interval + ifps, 1:3
-            ]
-            dataY[cnt, :, :] = v[
-                i * sample_interval + ifps : i * sample_interval + ifps + ofps,
-                1:3,
-            ]
-            cnt += 1
-    distance_BS_UE_list = []
-    for BS_idx, BS_loc in enumerate(BS_loc_list):
-        distance_BS_UE = cal_distance_BS_UE(
-            traj_matrix, BS_loc
-        )  # 计算各样本的UE-BS距离轨迹
-        if BS_idx == 0:
-            dataX[:, :, BS_idx] = generate_random_channel_onlyiidshd(
-                distance_BS_UE,
-                bias=args.bias_macro,
-                beta=args.beta_macro,
-                shd_sigma=shd_sigma_macro,
-                num_frame=ifps,
-            )
-        else:
-            dataX[:, :, BS_idx] = generate_random_channel_onlyiidshd(
-                distance_BS_UE,
-                bias=args.bias_micro,
-                beta=args.beta_micro,
-                shd_sigma=shd_sigma_micro,
-                num_frame=ifps,
-            )
-        distance_BS_UE_list.append(distance_BS_UE)
-    distance_BS_UE_matrix = np.stack(distance_BS_UE_list, axis=-1)
-    """import ipdb
-
-    ipdb.set_trace()"""
-    # distance_BS_UE_matrix.min(axis=-1).mean() -> 93
-    if preprocess_params == None:
-        muX = dataX.mean(axis=0, keepdims=False).mean(
-            axis=0, keepdims=False
-        )  # (num_BS)
-        sigmaX = dataX.reshape(-1, len(BS_loc_list)).std(
-            axis=0, keepdims=False
-        )  # (num_BS)
-        muY, sigmaY = dataY.mean(), dataY.std()
-    else:
-        muX = preprocess_params["muX"]
-        sigmaX = preprocess_params["sigmaX"]
-        muY = preprocess_params["muY"]
-        sigmaY = preprocess_params["sigmaY"]
-    dataX_prcsd, dataY_prcsd = preprocess_data_Zscore(
-        dataX, dataY, muX, muY, sigmaX, sigmaY
-    )
-    return dataX_prcsd, dataY_prcsd, dataX, dataY, muX, sigmaX, muY, sigmaY

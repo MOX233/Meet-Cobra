@@ -12,7 +12,7 @@ def args_parser():
         "-f",
         type=str,
         default=1,
-        help="No use for jupyter",
+        help="Useless. Just for jupyter!",
     )
     parser.add_argument(
         "--seed",
@@ -34,6 +34,26 @@ def args_parser():
         help="The upper bound of the delay slot number, default (10)",
     )
 
+    # MIMO arguments
+    parser.add_argument(
+        "--M_t",
+        type=int,
+        default=64,
+        help="number of transmit antennas (default: 64)",
+    )
+    parser.add_argument(
+        "--M_r",
+        type=int,
+        default=8,
+        help="number of receive antennas (default: 8)",
+    )
+    parser.add_argument(
+        "--N_bs",
+        type=int,
+        default=4,
+        help="number of micro BSs (default: 4)",
+    )
+    
     # channel arguments
     parser.add_argument(
         "--K_rician",
@@ -111,7 +131,7 @@ def args_parser():
     parser.add_argument(
         "--p_micro",
         type=float,
-        default=0.02,
+        default=0.1,
         help="the transmission power of the micro cell per RB (W per RB)",
     )
     parser.add_argument(

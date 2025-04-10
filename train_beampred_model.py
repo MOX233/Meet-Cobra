@@ -6,18 +6,12 @@ import pickle
 import time
 import random
 import torch
-import torch.nn.init as init
-import torch.nn as nn
-import torch.optim as optim
 
-from torch.utils.data import Dataset, DataLoader, TensorDataset
-from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
-from utils.NN_utils import prepare_dataset, BeamPredictionModel, train_beampred_model
+from utils.NN_utils import BeamPredictionModel, train_beampred_model
 from utils.options import args_parser
-from utils.sumo_utils import read_trajectoryInfo_timeindex
-from utils.mox_utils import setup_seed, get_prepared_dataset, get_save_dirs, split_string, save_log, np2torch
+from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch
 from utils.plot_utils import plot_beampred
-
+from utils.data_utils import get_prepared_dataset, prepare_dataset
 
 if __name__ == "__main__":
     # 设置随机数种子
@@ -31,7 +25,7 @@ if __name__ == "__main__":
     n_pilot = 0
     M_r, N_bs, M_t = 8, 4, 64
     P_t = 1e-1
-    P_noise = 1e-14
+    P_noise = 1e-14 # -174dBm/Hz * 1.8MHz = 7.165929069962946e-15 W
     gpu = 0
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('Using device: ', device)

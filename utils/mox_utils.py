@@ -8,60 +8,12 @@ import random
 import torch
 import re
 
-from utils.NN_utils import prepare_dataset
-
 def setup_seed(seed):
      torch.manual_seed(seed)
      torch.cuda.manual_seed_all(seed)
      np.random.seed(seed)
      random.seed(seed)
      torch.backends.cudnn.deterministic = True
-
-def generate_complex_gaussian_vector(shape, scale=1.0, mean=0.0):
-    """
-    生成服从复高斯分布的多维向量
-    
-    参数:
-        shape (tuple) : 输出向量的形状（如 (n,) 或 (m,n)）
-        scale (float) : 标准差缩放因子（默认1.0）
-        mean (float)  : 分布的均值（默认0.0）
-    
-    返回:
-        complex_array (ndarray) : 复高斯多维向量
-    """
-    # 生成独立的高斯分布的实部和虚部
-    real_part = np.random.normal(loc=mean, scale=scale/np.sqrt(2), size=shape)
-    imag_part = np.random.normal(loc=mean, scale=scale/np.sqrt(2), size=shape)
-    
-    # 组合为复数形式
-    complex_array = real_part + 1j * imag_part
-    return complex_array
-
-def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise):
-    # 加载数据集
-    prepared_dataset_filename = f'{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}'
-    prepared_dataset_filepath = os.path.join('./prepared_dataset/',prepared_dataset_filename+'.pkl')
-    if os.path.exists(prepared_dataset_filepath):
-        f_read = open(prepared_dataset_filepath, 'rb')
-        prepared_dataset = pickle.load(f_read)
-        data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np = \
-            prepared_dataset['data_np'], prepared_dataset['best_beam_pair_index_np'], prepared_dataset['veh_pos_np'], prepared_dataset['veh_h_np']
-        f_read.close()
-    else:
-        filepath = f'./sionna_result/trajectoryInfo_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
-        datasize_upperbound = 1e9
-        data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np = \
-            prepare_dataset(filepath,M_t, M_r, N_bs,datasize_upperbound,P_t, P_noise, n_pilot, mode=preprocess_mode)
-        prepared_dataset = {}
-        prepared_dataset['data_np'] = data_np
-        prepared_dataset['best_beam_pair_index_np'] = best_beam_pair_index_np
-        prepared_dataset['veh_pos_np'] = veh_pos_np
-        prepared_dataset['veh_h_np'] = veh_h_np
-        f_save = open(prepared_dataset_filepath, 'wb')
-        pickle.dump(prepared_dataset, f_save)
-        f_save.close()
-    return prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np
-
 
 def get_save_dirs(prepared_dataset_filename):
     result_save_dir = os.path.join('./NN_result',prepared_dataset_filename)

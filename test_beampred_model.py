@@ -12,11 +12,12 @@ import torch.optim as optim
 
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
-from utils.NN_utils import prepare_dataset, BeamPredictionModel, train_beampred_model
+from utils.NN_utils import BeamPredictionModel, train_beampred_model
 from utils.options import args_parser
 from utils.sumo_utils import read_trajectoryInfo_timeindex
-from utils.mox_utils import setup_seed, get_prepared_dataset, get_save_dirs, split_string, save_log, np2torch
+from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch
 from utils.plot_utils import plot_beampred
+from utils.data_utils import get_prepared_dataset, prepare_dataset
 
 def cal_beamgain(channel, bp_idx, opt_bp_idx, DFT_tx, DFT_rx):
     # channel.shape = (n_car, M_r, n_bs, M_t)

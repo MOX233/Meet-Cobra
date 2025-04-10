@@ -1,11 +1,12 @@
-*_result
-prepared_dataset
-old_*
-plots
 **.pyc
 **/__pycache__
+.ipynb_checkpoints
+
 **/_tmp**
 save**
 experiment/exp_results
 data4sim
-.ipynb_checkpoints
+*_result
+prepared_dataset
+old_*
+plots

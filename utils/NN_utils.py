@@ -20,88 +20,6 @@ import numpy as np
 
 EPS = 1e-9
 
-def generate_complex_gaussian_vector(shape, scale=1.0, mean=0.0):
-    """
-    生成服从复高斯分布的多维向量
-    
-    参数:
-        shape (tuple) : 输出向量的形状（如 (n,) 或 (m,n)）
-        scale (float) : 标准差缩放因子（默认1.0）
-        mean (float)  : 分布的均值（默认0.0）
-    
-    返回:
-        complex_array (ndarray) : 复高斯多维向量
-    """
-    # 生成独立的高斯分布的实部和虚部
-    real_part = np.random.normal(loc=mean, scale=scale/np.sqrt(2), size=shape)
-    imag_part = np.random.normal(loc=mean, scale=scale/np.sqrt(2), size=shape)
-    
-    # 组合为复数形式
-    complex_array = real_part + 1j * imag_part
-    return complex_array
-
-def prepare_dataset(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound = 1e15, P_t=1e-1, P_noise=1e-14, n_pilot=16, mode=0, pos_std=1):
-    DFT_matrix_tx = generate_dft_codebook(M_t)
-    DFT_matrix_rx = generate_dft_codebook(M_r)
-    with open(sionna_result_filepath, 'rb') as f:
-        trajectoryInfo = pickle.load(f)
-    data_list = []
-    best_beam_pair_index_list = []
-    veh_pos_list = []
-    veh_h_list = []
-    sample_interval = int(M_t/n_pilot) if n_pilot>0 else int(1e9)
-    for frame in trajectoryInfo.keys():
-        print('prepare_dataset: ',frame)
-        for veh in trajectoryInfo[frame].keys():
-            veh_h = trajectoryInfo[frame][veh]['h']
-            veh_pos = trajectoryInfo[frame][veh]['pos']
-            # characteristics data
-            # trajectoryInfo[frame][veh]['h'].shape  (8, 4, 64)
-            
-            if mode == 0: # 所有BS同时发射pilot，一共有n_pilot个不同方向
-                #data = veh_h.sum(axis=-1).reshape(-1)
-                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
-                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
-                data = (data + n).astype(np.complex64)
-            elif mode == 1: # 各BS轮流发射pilot，每个BS各有n_pilot个不同方向，一共有n_bs*n_pilot个不同方向
-                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].reshape(-1)
-                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
-                data = (data + n).astype(np.complex64)
-            elif mode == 2: # mode0 的基础上加上了position信息
-                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
-                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
-                data = (data + n).astype(np.complex64)
-                data = np.concatenate([data,veh_pos+np.random.normal(loc=0, scale=pos_std/np.sqrt(2), size=(2,))])
-                # import ipdb;ipdb.set_trace()
-            else:
-                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
-                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
-                data = (data + n).astype(np.complex64)
-            
-            
-            data_list.append(data) # shape = (M_t*N_bs,), dtype = np.complex
-            
-            # best_beam_pair_index for N_bs BSs
-            best_beam_pair_index = np.abs(np.matmul(np.matmul(veh_h, DFT_matrix_tx).T.conjugate(),DFT_matrix_rx).transpose([1,0,2]).reshape(N_bs,-1)).argmax(axis=-1)
-            best_beam_pair_index_list.append(best_beam_pair_index)
-
-            # vehicle h
-            veh_h_list.append(veh_h)
-            
-            # vehicle position
-            veh_pos_list.append(veh_pos)
-            if len(veh_pos_list) >= datasize_upperbound:
-                break
-        if len(veh_pos_list) >= datasize_upperbound:
-            break
-    
-    data_np = np.array(data_list)
-    best_beam_pair_index_np = np.array(best_beam_pair_index_list)
-    veh_h_np = np.array(veh_h_list)
-    veh_pos_np = np.array(veh_pos_list)
-
-    return data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np
-
 # 定义神经网络模型
 class MLP(nn.Module):
     def __init__(self, input_dim, hidden_dim_list, output_dim):
@@ -249,69 +167,31 @@ class LSTM_Model_Mobility(LSTM_Model_abc):
             exit("X.ndim error!")
         return Y
 
-class BeamPredictionModel(nn.Module):
-    def __init__(self, feature_input_dim, num_bs, num_beampair, params_norm=[20,7]):
-        super(BeamPredictionModel, self).__init__()
-        self.num_bs = num_bs
-        self.num_classes = num_beampair  # num_beampair = M_t*M_r
+class BasePredictionModel(nn.Module):
+    def __init__(self, feature_input_dim, num_bs, params_norm=[20,7]):
+        super().__init__()
         self.feature_input_dim = feature_input_dim
+        self.num_bs = num_bs
         self.params_norm = params_norm
         
-        # 共享特征提取层
-        self.shared_layers = nn.Sequential(
-            nn.Linear(feature_input_dim, 128),
-            # nn.ReLU(),
-            nn.GELU(),
-            nn.Linear(128, 64),
-            nn.GELU(),
-            nn.Linear(64, 32),
-            nn.GELU(),
-            nn.Linear(32, 64),
-            # nn.ReLU(),
-            nn.GELU(),
-            nn.Linear(64, 128),
-            # nn.ReLU()
-            nn.GELU(),
-        )
-        
-        # # 共享特征提取层（增强版）
-        # self.shared_layers = nn.Sequential(
-        #     nn.Linear(feature_input_dim, 256),
-        #     nn.BatchNorm1d(256),  # 添加批量归一化
-        #     nn.ReLU(),
-        #     nn.Dropout(0.3),      # 添加Dropout
-            
-        #     nn.Linear(256, 256),
-        #     nn.BatchNorm1d(256),
-        #     nn.ReLU(),
-        #     nn.Dropout(0.3),
-            
-        #     nn.Linear(256, 128),
-        #     nn.BatchNorm1d(128),
-        #     nn.ReLU(),
-        #     nn.Dropout(0.2)       # 最后一层使用较小的Dropout
-        # )
-        
-        # 多任务输出层（每个基站一个输出头）
-        # self.output_heads = nn.ModuleList([
-        #     nn.Linear(128, self.num_classes) for _ in range(num_bs)
-        # ])
-        self.output_heads = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(128, 128),
-                nn.GELU(),
-                nn.Linear(128, self.num_classes)
-            ) for _ in range(num_bs)
-        ])
-        
-        # # 多任务输出层（添加权重初始化）
-        # self.output_heads = nn.ModuleList([
-        #     self._create_output_head(128, self.num_classes) for _ in range(num_bs)
-        # ])
-        
-        # # 初始化权重
-        # self._initialize_weights()
-        
+    def _build_shared_layers(self, layer_dim_list):
+        shared_layers = nn.Sequential()
+        for i in range(len(layer_dim_list)-1):
+            shared_layers.append(nn.Linear(layer_dim_list[i], layer_dim_list[i+1]))
+            shared_layers.append(nn.GELU())
+        return shared_layers
+
+    def _build_output_heads(self, num_head, layer_dim_list):
+        output_heads = nn.ModuleList()
+        for _ in range(num_head):
+            head = nn.Sequential()
+            for i in range(len(layer_dim_list)-1):
+                head.append(nn.Linear(layer_dim_list[i], layer_dim_list[i+1]))
+                head.append(nn.GELU())
+            head.pop(-1)
+            output_heads.append(head)
+        return output_heads
+
     def _create_output_head(self, in_dim, out_dim):
         """创建带有初始化的输出头"""
         layer = nn.Sequential(
@@ -330,6 +210,34 @@ class BeamPredictionModel(nn.Module):
             elif isinstance(m, nn.BatchNorm1d):
                 init.constant_(m.weight, 1)
                 init.constant_(m.bias, 0)
+    
+    def preprocess_input(self, x, params_norm=[20,7]):
+        assert (x.dtype == torch.complex64) or (x.dtype == torch.complex128)
+        # 将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
+        amplitude = torch.abs(x)
+        dB = 20*torch.log10(amplitude+EPS)
+        phase = torch.angle(x)
+        if self != None:
+            preprocessed = torch.concatenate(((dB/self.params_norm[0]+self.params_norm[1], phase)),axis=-1)
+        else:
+            preprocessed = torch.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
+        return preprocessed
+
+
+class BeamPredictionModel(BasePredictionModel):
+    def __init__(self, feature_input_dim, num_bs, num_beampair, params_norm=[20,7]):
+        super().__init__(feature_input_dim, num_bs, params_norm)
+        self.num_class = num_beampair  # num_beampair = M_t*M_r
+        
+        # 共享特征提取层
+        self.shared_layers = self._build_shared_layers(
+            layer_dim_list=[feature_input_dim, 128, 64, 32, 64, 128]
+        )
+        
+        # 多任务输出层（每个基站一个输出头）
+        self.output_heads = self._build_output_heads(
+            num_head=self.num_bs, layer_dim_list=[128, 128, self.num_class]
+        )
     
     def forward(self, x):
         shared_features = self.shared_layers(x)
@@ -346,105 +254,26 @@ class BeamPredictionModel(nn.Module):
         _, predicted = torch.topk(outputs, k=K, dim=-1, largest=True)
         return predicted
     
-    def preprocess_input(self, x, params_norm=[20,7]):
-        assert (x.dtype == torch.complex64) or (x.dtype == torch.complex128)
-        # 将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-        amplitude = torch.abs(x)
-        dB = 20*torch.log10(amplitude+EPS)
-        phase = torch.angle(x)
-        if self != None:
-            preprocessed = torch.concatenate(((dB/self.params_norm[0]+self.params_norm[1], phase)),axis=-1)
-        else:
-            preprocessed = torch.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
-        return preprocessed
-    
     def predict(self, x_np, device, K=1):
         x_torch = torch.tensor(x_np).to(device)
         return self.pred_topK(x_torch,K).detach().cpu().numpy()
 
 
-class BlockPredictionModel(nn.Module):
+class BlockPredictionModel(BasePredictionModel):
     def __init__(self, feature_input_dim, num_bs, num_beampair, params_norm=[20,7]):
-        super(BlockPredictionModel, self).__init__()
-        self.num_bs = num_bs
-        self.num_classes = 2
-        self.feature_input_dim = feature_input_dim
-        self.params_norm = params_norm
+        super().__init__(feature_input_dim, num_bs, params_norm)
+        self.num_class = 2
         
         # 共享特征提取层
-        self.shared_layers = nn.Sequential(
-            nn.Linear(feature_input_dim, 128),
-            # nn.ReLU(),
-            nn.GELU(),
-            nn.Linear(128, 64),
-            nn.GELU(),
-            nn.Linear(64, 32),
-            nn.GELU(),
-            nn.Linear(32, 64),
-            # nn.ReLU(),
-            nn.GELU(),
-            nn.Linear(64, 128),
-            # nn.ReLU()
-            nn.GELU(),
+        self.shared_layers = self._build_shared_layers(
+            layer_dim_list=[feature_input_dim, 128, 64, 32, 64, 128]
         )
-        
-        # # 共享特征提取层（增强版）
-        # self.shared_layers = nn.Sequential(
-        #     nn.Linear(feature_input_dim, 256),
-        #     nn.BatchNorm1d(256),  # 添加批量归一化
-        #     nn.ReLU(),
-        #     nn.Dropout(0.3),      # 添加Dropout
-            
-        #     nn.Linear(256, 256),
-        #     nn.BatchNorm1d(256),
-        #     nn.ReLU(),
-        #     nn.Dropout(0.3),
-            
-        #     nn.Linear(256, 128),
-        #     nn.BatchNorm1d(128),
-        #     nn.ReLU(),
-        #     nn.Dropout(0.2)       # 最后一层使用较小的Dropout
-        # )
         
         # 多任务输出层（每个基站一个输出头）
-        # self.output_heads = nn.ModuleList([
-        #     nn.Linear(128, self.num_classes) for _ in range(num_bs)
-        # ])
-        self.output_heads = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(128, 128),
-                nn.GELU(),
-                nn.Linear(128, self.num_classes)
-            ) for _ in range(num_bs)
-        ])
-        
-        # # 多任务输出层（添加权重初始化）
-        # self.output_heads = nn.ModuleList([
-        #     self._create_output_head(128, self.num_classes) for _ in range(num_bs)
-        # ])
-        
-        # # 初始化权重
-        # self._initialize_weights()
-        
-    def _create_output_head(self, in_dim, out_dim):
-        """创建带有初始化的输出头"""
-        layer = nn.Sequential(
-            nn.Linear(in_dim, out_dim),
-            nn.BatchNorm1d(out_dim)
+        self.output_heads = self._build_output_heads(
+            num_head=self.num_bs, layer_dim_list=[128, 128, self.num_class]
         )
-        return layer
-    
-    def _initialize_weights(self):
-        """Xavier初始化所有层"""
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                init.xavier_normal_(m.weight)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm1d):
-                init.constant_(m.weight, 1)
-                init.constant_(m.bias, 0)
-    
+        
     def forward(self, x):
         shared_features = self.shared_layers(x)
         outputs = [head(shared_features) for head in self.output_heads]
@@ -455,82 +284,24 @@ class BlockPredictionModel(nn.Module):
         _, predicted = torch.max(outputs, -1)
         return predicted
 
-
-    def preprocess_input(self, x, params_norm=[20,7]):
-        assert (x.dtype == torch.complex64) or (x.dtype == torch.complex128)
-        # 将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-        amplitude = torch.abs(x)
-        dB = 20*torch.log10(amplitude+EPS)
-        phase = torch.angle(x)
-        if self != None:
-            preprocessed = torch.concatenate(((dB/self.params_norm[0]+self.params_norm[1], phase)),axis=-1)
-        else:
-            preprocessed = torch.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
-        return preprocessed
-    
     def predict(self, x_np, device):
         x_torch = torch.tensor(x_np).to(device)
         return self.pred(x_torch).detach().cpu().numpy()
 
     
-class BestGainPredictionModel(nn.Module):
+class BestGainPredictionModel(BasePredictionModel):
     def __init__(self, feature_input_dim, num_bs, params_norm=[20,7]):
-        super(BestGainPredictionModel, self).__init__()
-        self.num_bs = num_bs
-        self.feature_input_dim = feature_input_dim
-        self.params_norm = params_norm
+        super().__init__(feature_input_dim, num_bs, params_norm)
         
         # 共享特征提取层
-        self.shared_layers = nn.Sequential(
-            nn.Linear(feature_input_dim, 256),
-            # nn.ReLU(),
-            nn.GELU(),
-            nn.Linear(256, 256),
-            # nn.ReLU(),
-            nn.GELU(),
-            nn.Linear(256, 128),
-            # nn.ReLU()
-            nn.GELU(),
+        self.shared_layers = self._build_shared_layers(
+            layer_dim_list=[feature_input_dim, 256, 256, 128]
         )
         
-        self.output_heads = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(128, 128),
-                nn.GELU(),
-                nn.Linear(128, 128),
-                nn.GELU(),
-                nn.Linear(128, 128),
-                nn.GELU(),
-                nn.Linear(128, 1)
-            ) for _ in range(num_bs)
-        ])
-        
-        # # 多任务输出层（添加权重初始化）
-        # self.output_heads = nn.ModuleList([
-        #     self._create_output_head(128, self.num_classes) for _ in range(num_bs)
-        # ])
-        
-        # # 初始化权重
-        # self._initialize_weights()
-        
-    def _create_output_head(self, in_dim, out_dim):
-        """创建带有初始化的输出头"""
-        layer = nn.Sequential(
-            nn.Linear(in_dim, out_dim),
-            nn.BatchNorm1d(out_dim)
+        # 多任务输出层（每个基站一个输出头）
+        self.output_heads = self._build_output_heads(
+            num_head=self.num_bs, layer_dim_list=[128, 128, 128, 128, 1]
         )
-        return layer
-    
-    def _initialize_weights(self):
-        """Xavier初始化所有层"""
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                init.xavier_normal_(m.weight)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm1d):
-                init.constant_(m.weight, 1)
-                init.constant_(m.bias, 0)
     
     def forward(self, x):
         shared_features = self.shared_layers(x)
@@ -542,78 +313,20 @@ class BestGainPredictionModel(nn.Module):
         predicted_bestgain = self.params_norm[0]*( outputs - self.params_norm[1] )
         return predicted_bestgain
     
-    def preprocess_input(self, x, params_norm=[20,7]):
-        assert (x.dtype == torch.complex64) or (x.dtype == torch.complex128)
-        # 将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-        amplitude = torch.abs(x)
-        dB = 20*torch.log10(amplitude+EPS)
-        phase = torch.angle(x)
-        if self != None:
-            preprocessed = torch.concatenate(((dB/self.params_norm[0]+self.params_norm[1], phase)),axis=-1)
-        else:
-            preprocessed = torch.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
-        return preprocessed
     def predict(self, x_np, device):
         x_torch = torch.tensor(x_np).to(device)
         return self.pred(x_torch).detach().cpu().numpy()
     
     
-class PositionPredictionModel(nn.Module):
+class PositionPredictionModel(BasePredictionModel):
     def __init__(self, feature_input_dim, num_bs, pos_scale=100, params_norm=[20,7]):
-        super(PositionPredictionModel, self).__init__()
-        self.num_bs = num_bs
-        self.feature_input_dim = feature_input_dim
-        self.params_norm = params_norm
+        super().__init__(feature_input_dim, num_bs, params_norm)
         self.pos_scale = pos_scale
         
         # 共享特征提取层
-        self.shared_layers = nn.Sequential(
-            nn.Linear(feature_input_dim, 256),
-            # nn.ReLU(),
-            nn.GELU(),
-            nn.Linear(256, 256),
-            # nn.ReLU(),
-            nn.GELU(),
-            nn.Linear(256, 128),
-            # nn.ReLU()
-            nn.GELU(),
-            nn.Linear(128, 128),
-            nn.GELU(),
-            nn.Linear(128, 64),
-            nn.GELU(),
-            nn.Linear(64, 64),
-            nn.GELU(),
-            nn.Linear(64, 32),
-            nn.GELU(),
-            nn.Linear(32, 2)
+        self.shared_layers = self._build_shared_layers(
+            layer_dim_list=[feature_input_dim, 256, 256, 128, 128, 64, 64, 32, 2]
         )
-        
-        # # 多任务输出层（添加权重初始化）
-        # self.output_heads = nn.ModuleList([
-        #     self._create_output_head(128, self.num_classes) for _ in range(num_bs)
-        # ])
-        
-        # # 初始化权重
-        # self._initialize_weights()
-        
-    def _create_output_head(self, in_dim, out_dim):
-        """创建带有初始化的输出头"""
-        layer = nn.Sequential(
-            nn.Linear(in_dim, out_dim),
-            nn.BatchNorm1d(out_dim)
-        )
-        return layer
-    
-    def _initialize_weights(self):
-        """Xavier初始化所有层"""
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                init.xavier_normal_(m.weight)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm1d):
-                init.constant_(m.weight, 1)
-                init.constant_(m.bias, 0)
     
     def forward(self, x):
         outputs = self.shared_layers(x)
@@ -624,84 +337,27 @@ class PositionPredictionModel(nn.Module):
         predicted_pos = outputs * self.pos_scale
         return predicted_pos
     
-    def preprocess_input(self, x, params_norm=[20,7]):
-        assert (x.dtype == torch.complex64) or (x.dtype == torch.complex128)
-        # 将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-        amplitude = torch.abs(x)
-        dB = 20*torch.log10(amplitude+EPS)
-        phase = torch.angle(x)
-        if self != None:
-            preprocessed = torch.concatenate(((dB/self.params_norm[0]+self.params_norm[1], phase)),axis=-1)
-        else:
-            preprocessed = torch.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
-        return preprocessed
-    
     def predict(self, x_np, device):
         x_torch = torch.tensor(x_np).to(device)
         return self.pred(x_torch).detach().cpu().numpy()
     
 
-class BestGainLevelPredictionModel(nn.Module):
+class BestGainLevelPredictionModel(BasePredictionModel):
     def __init__(self, feature_input_dim, num_bs, num_dBlevel=64, LB_db=-110, UB_db=-20, params_norm=[20,7]):
-        super(BestGainLevelPredictionModel, self).__init__()
-        self.num_bs = num_bs
-        self.feature_input_dim = feature_input_dim
-        self.params_norm = params_norm
+        super().__init__(feature_input_dim, num_bs, params_norm)
         self.num_dBlevel = num_dBlevel
         self.LB_db = LB_db
         self.UB_db = UB_db
         
         # 共享特征提取层
-        self.shared_layers = nn.Sequential(
-            nn.Linear(feature_input_dim, 256),
-            # nn.ReLU(),
-            nn.GELU(),
-            nn.Linear(256, 256),
-            # nn.ReLU(),
-            nn.GELU(),
-            nn.Linear(256, 128),
-            # nn.ReLU()
-            nn.GELU(),
+        self.shared_layers = self._build_shared_layers(
+            layer_dim_list=[feature_input_dim, 256, 256, 128]
         )
         
-        self.output_heads = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(128, 128),
-                nn.GELU(),
-                nn.Linear(128, 128),
-                nn.GELU(),
-                nn.Linear(128, 128),
-                nn.GELU(),
-                nn.Linear(128, self.num_dBlevel)
-            ) for _ in range(num_bs)
-        ])
-        
-        # # 多任务输出层（添加权重初始化）
-        # self.output_heads = nn.ModuleList([
-        #     self._create_output_head(128, self.num_classes) for _ in range(num_bs)
-        # ])
-        
-        # # 初始化权重
-        # self._initialize_weights()
-        
-    def _create_output_head(self, in_dim, out_dim):
-        """创建带有初始化的输出头"""
-        layer = nn.Sequential(
-            nn.Linear(in_dim, out_dim),
-            nn.BatchNorm1d(out_dim)
+        # 多任务输出层（每个基站一个输出头）
+        self.output_heads = self._build_output_heads(
+            num_head=self.num_bs, layer_dim_list=[128, 128, 128, 128, self.num_dBlevel]
         )
-        return layer
-    
-    def _initialize_weights(self):
-        """Xavier初始化所有层"""
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                init.xavier_normal_(m.weight)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm1d):
-                init.constant_(m.weight, 1)
-                init.constant_(m.bias, 0)
     
     def forward(self, x):
         shared_features = self.shared_layers(x)
@@ -714,18 +370,6 @@ class BestGainLevelPredictionModel(nn.Module):
         # predicted_bestgain = self.params_norm[0]*( outputs - self.params_norm[1] )
         # return predicted_bestgain
     
-    def preprocess_input(self, x, params_norm=[20,7]):
-        assert (x.dtype == torch.complex64) or (x.dtype == torch.complex128)
-        # 将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-        amplitude = torch.abs(x)
-        dB = 20*torch.log10(amplitude+EPS)
-        phase = torch.angle(x)
-        if self != None:
-            preprocessed = torch.concatenate(((dB/self.params_norm[0]+self.params_norm[1], phase)),axis=-1)
-        else:
-            preprocessed = torch.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
-        return preprocessed
-    
     def trans_dB_to_dBLevel(self, dB, num_dBlevel=64, LB_db=-110, UB_db=-20):
         if self != None:
             dBlevel = (dB > self.LB_db) * np.ceil((dB - self.LB_db) / (self.UB_db - self.LB_db) * (self.num_dBlevel-1))
@@ -735,20 +379,77 @@ class BestGainLevelPredictionModel(nn.Module):
             dBlevel = dBlevel.astype(np.int64)
         return dBlevel
         
-  
+
+def preprocess_data(data_complex,pos_in_data):
+    # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
+    if pos_in_data:
+        data_csi = BasePredictionModel.preprocess_input(None,data_complex[...,:-2])
+        data_pos = torch.abs(data_complex[...,-2:]/100)
+        data = torch.concat([data_csi,data_pos],axis=-1).to(torch.float)
+    else:
+        data = BasePredictionModel.preprocess_input(None,data_complex)
+    return data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # 训练函数
 def train_beampred_model(num_epochs, device, data_complex, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path=None, model_save_dir=None, pos_in_data=False):
     num_beampair = M_t*M_r
     
     # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    if pos_in_data:
-        data_csi = BeamPredictionModel.preprocess_input(None,data_complex[...,:-2])
-        data_pos = torch.abs(data_complex[...,-2:]/100)
-        data = torch.concat([data_csi,data_pos],axis=-1).to(torch.float)
-        # import ipdb;ipdb.set_trace()
-    else:
-        data = BeamPredictionModel.preprocess_input(None,data_complex)
-    # data = torch.concatenate(( (20*torch.log10(torch.abs(data_torch)+EPS))/20+7, torch.angle(data_torch)),axis=-1)
+    data = preprocess_data(data_complex,pos_in_data)
     labels = best_beam_pair_index_torch.to(device)
     num_bs = labels.shape[-1]
     feature_input_dim = data.shape[-1]
@@ -792,7 +493,7 @@ def train_beampred_model(num_epochs, device, data_complex, best_beam_pair_index_
         for inputs, labels in train_loader:
             optimizer.zero_grad()
             
-            outputs = model(inputs)  # [batch_size, num_bs, num_classes]
+            outputs = model(inputs)  # [batch_size, num_bs, num_class]
             loss = criterion(outputs.view(-1, num_beampair), 
                             labels.view(-1))
             
@@ -834,16 +535,10 @@ def train_beampred_model(num_epochs, device, data_complex, best_beam_pair_index_
               f"Train Acc: {train_acc_list[-1]:.2f}% | "
               f"Val Loss: {val_loss/len(val_loader):.4f} | "
               f"Val Acc: {val_acc_list[-1]:.2f}%")
-        
-        
-        
         # 保存最佳模型
         if val_acc_list[-1]>best_val_acc:
             best_val_acc = val_acc_list[-1]
             best_model_state_dict = model.state_dict()
-    # torch.save(best_model_state_dict, model_save_dir+f"/beampred_dimIn{model.feature_input_dim}_valAcc{max(val_acc_list):.2f}%.pth")
-    
-    
     print("Training complete!")
     return model, train_loss_list, train_acc_list, val_loss_list, val_acc_list
 
@@ -851,14 +546,7 @@ def train_blockpred_model(num_epochs, device, data_complex, veh_h_torch, M_t, M_
     num_beampair = M_t*M_r
     
     # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    if pos_in_data:
-        data_csi = BlockPredictionModel.preprocess_input(None,data_complex[...,:-2])
-        data_pos = torch.abs(data_complex[...,-2:]/100)
-        data = torch.concat([data_csi,data_pos],axis=-1).to(torch.float)
-        # import ipdb;ipdb.set_trace()
-    else:
-        data = BlockPredictionModel.preprocess_input(None,data_complex)
-    # data = torch.concatenate(( (20*torch.log10(torch.abs(data_torch)+EPS))/20+7, torch.angle(data_torch)),axis=-1)
+    data = preprocess_data(data_complex,pos_in_data)
     labels = (veh_h_torch[:,0,:,0]==0).long().to(device)
     num_bs = labels.shape[-1]
     feature_input_dim = data.shape[-1]
@@ -944,34 +632,18 @@ def train_blockpred_model(num_epochs, device, data_complex, veh_h_torch, M_t, M_
               f"Train Acc: {train_acc_list[-1]:.2f}% | "
               f"Val Loss: {val_loss/len(val_loader):.4f} | "
               f"Val Acc: {val_acc_list[-1]:.2f}%")
-        
-        
-        
         # 保存最佳模型
         if val_acc_list[-1]>best_val_acc:
             best_val_acc = val_acc_list[-1]
             best_model_state_dict = model.state_dict()
-    # torch.save(best_model_state_dict, model_save_dir+f"/beampred_dimIn{model.feature_input_dim}_valAcc{max(val_acc_list):.2f}%.pth")
-    
-    
     print("Training complete!")
     return model, train_loss_list, train_acc_list, val_loss_list, val_acc_list
-
 
 def train_gainpred_model(num_epochs, device, data_complex, veh_h_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path=None, model_save_dir=None, pos_in_data=False):
     num_beampair = M_t*M_r
     
     # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    if pos_in_data:
-        data_csi = BestGainPredictionModel.preprocess_input(None,data_complex[...,:-2])
-        data_pos = torch.abs(data_complex[...,-2:]/100)
-        data = torch.concat([data_csi,data_pos],axis=-1).to(torch.float)
-        # import ipdb;ipdb.set_trace()
-    else:
-        data = BestGainPredictionModel.preprocess_input(None,data_complex)
-    
-    # data = torch.concatenate(( (20*torch.log10(torch.abs(data_torch)+EPS))/20+7, torch.angle(data_torch)),axis=-1)
-    
+    data = preprocess_data(data_complex,pos_in_data)
     DFT_tx = generate_dft_codebook(M_t)
     DFT_rx = generate_dft_codebook(M_r)
     beamPairId = best_beam_pair_index_torch.detach().cpu().numpy()
@@ -1112,17 +784,10 @@ def train_gainpred_model(num_epochs, device, data_complex, veh_h_torch, best_bea
               f"BestBS MAE: {train_bestBS_mae_list[-1]:.2f} / {val_bestBS_mae_list[-1]:.2f} | "
               f"BestBS MSE: {train_bestBS_mse_list[-1]:.2f} / {val_bestBS_mse_list[-1]:.2f} | "
               )
-        
-        
-        
         # 保存最佳模型
         # if val_acc_list[-1]>best_val_acc:
         #     best_val_acc = val_acc_list[-1]
         #     best_model_state_dict = model.state_dict()
-    # import ipdb;ipdb.set_trace()
-    # torch.save(best_model_state_dict, model_save_dir+f"/gainpred_dimIn{model.feature_input_dim}_BBSMAE{min(train_bestBS_mae_list)}.pth")
-    
-    
     print("Training complete!")
     return model, \
         train_loss_list, train_mae_list, train_mse_list, \
@@ -1134,15 +799,7 @@ def train_pospred_model(num_epochs, device, data_complex, veh_h_torch, veh_pos_t
     num_beampair = M_t*M_r
     
     # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    if pos_in_data:
-        data_csi = PositionPredictionModel.preprocess_input(None,data_complex[...,:-2])
-        data_pos = torch.abs(data_complex[...,-2:]/100)
-        data = torch.concat([data_csi,data_pos],axis=-1).to(torch.float)
-        # import ipdb;ipdb.set_trace()
-    else:
-        data = PositionPredictionModel.preprocess_input(None,data_complex)
-    # data = torch.concatenate(( (20*torch.log10(torch.abs(data_torch)+EPS))/20+7, torch.angle(data_torch)),axis=-1)
-    
+    data = preprocess_data(data_complex,pos_in_data)
     DFT_tx = generate_dft_codebook(M_t)
     DFT_rx = generate_dft_codebook(M_r)
     beamPairId = best_beam_pair_index_torch.detach().cpu().numpy()
@@ -1245,32 +902,18 @@ def train_pospred_model(num_epochs, device, data_complex, veh_h_torch, veh_pos_t
               f"RMSE: {train_rmse_list[-1]:.4f} / {val_rmse_list[-1]:.4f} | "
               f"MAE: {train_mae_list[-1]:.4f} / {val_mae_list[-1]:.4f} | "
               )
-        
         # 保存最佳模型
         if val_rmse_list[-1]>best_val_rmse:
             best_val_rmse = val_rmse_list[-1]
             best_model_state_dict = model.state_dict()
-    # import ipdb;ipdb.set_trace()
-    # torch.save(best_model_state_dict, model_save_dir+f"/pospred_dimIn{model.feature_input_dim}_valRMSE{min(val_rmse_list):.2f}%.pth")
-    
-    
     print("Training complete!")
     return model, train_loss_list, train_rmse_list, train_mae_list, val_loss_list, val_rmse_list, val_mae_list
-
 
 def train_gainlevelpred_model(num_epochs, device, data_complex, veh_h_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path=None, model_save_dir=None, pos_in_data=False):
     num_beampair = M_t*M_r
     
     # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    if pos_in_data:
-        data_csi = BestGainLevelPredictionModel.preprocess_input(None,data_complex[...,:-2])
-        data_pos = torch.abs(data_complex[...,-2:]/100)
-        data = torch.concat([data_csi,data_pos],axis=-1).to(torch.float)
-        # import ipdb;ipdb.set_trace()
-    else:
-        data = BestGainLevelPredictionModel.preprocess_input(None,data_complex)
-    # data = torch.concatenate(( (20*torch.log10(torch.abs(data_torch)+EPS))/20+7, torch.angle(data_torch)),axis=-1)
-    
+    data = preprocess_data(data_complex,pos_in_data)
     DFT_tx = generate_dft_codebook(M_t)
     DFT_rx = generate_dft_codebook(M_r)
     beamPairId = best_beam_pair_index_torch.detach().cpu().numpy()
@@ -1446,12 +1089,10 @@ def train_gainlevelpred_model(num_epochs, device, data_complex, veh_h_torch, bes
               f"BestBS MSE: {train_bestBS_mse_list[-1]:.2f} / {val_bestBS_mse_list[-1]:.2f} | "
               f"BestBS Acc: {train_bestBS_acc_list[-1]:.2f}% / {val_bestBS_acc_list[-1]:.2f}% | "
               )
-        
         # 保存最佳模型
         if val_acc_list[-1]>best_val_acc:
             best_val_acc = val_acc_list[-1]
             best_model_state_dict = model.state_dict()
-    # torch.save(best_model_state_dict, model_save_dir+f"/gainlevelpred_dimIn{model.feature_input_dim}Out{model.num_dBlevel}_valAcc{max(val_acc_list):.2f}%_BBSMAE{min(val_bestBS_mae_list):.2f}.pth")
     print("Training complete!")
     return model, \
         train_loss_list, train_acc_list, train_mae_list, train_mse_list, \

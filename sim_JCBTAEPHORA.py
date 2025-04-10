@@ -13,7 +13,7 @@ sys.path.append(os.getcwd())
 import numpy as np
 from utils.sim_utils import run_sim
 from utils.options import args_parser
-from utils.NN_utils import generate_complex_gaussian_vector, LSTM_Model_Mobility, BeamPredictionModel, \
+from utils.NN_utils import LSTM_Model_Mobility, BeamPredictionModel, \
     BestGainLevelPredictionModel, BestGainPredictionModel, PositionPredictionModel
 from utils.alg_utils import (
     RA_Lyapunov,
@@ -34,8 +34,9 @@ from utils.sumo_utils import (
     read_trajectoryInfo_carindex_matrix,
     read_trajectoryInfo_timeindex,
 )
-from utils.mox_utils import setup_seed, get_prepared_dataset, get_save_dirs, split_string, save_log, np2torch, lin2dB
+from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch, lin2dB
 from utils.plot_utils import plot_beampred
+from utils.data_utils import get_prepared_dataset, generate_complex_gaussian_vector
 from utils.beam_utils import generate_dft_codebook, beamPairId_to_beamIdPair
 
 def preprocess_input_np(x, params_norm=[20,7], EPS=1e-9):

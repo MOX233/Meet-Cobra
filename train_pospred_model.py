@@ -6,17 +6,12 @@ import pickle
 import time
 import random
 import torch
-import torch.nn.init as init
-import torch.nn as nn
-import torch.optim as optim
 
-from torch.utils.data import Dataset, DataLoader, TensorDataset
-from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
-from utils.NN_utils import prepare_dataset, PositionPredictionModel, train_pospred_model
+from utils.NN_utils import PositionPredictionModel, train_pospred_model
 from utils.options import args_parser
-from utils.sumo_utils import read_trajectoryInfo_timeindex
-from utils.mox_utils import setup_seed, get_prepared_dataset, get_save_dirs, split_string, save_log, np2torch
+from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch
 from utils.plot_utils import plot_pospred
+from utils.data_utils import get_prepared_dataset, prepare_dataset
 
 if __name__ == "__main__":
     # 设置随机数种子
