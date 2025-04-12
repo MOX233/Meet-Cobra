@@ -53,7 +53,7 @@ if __name__ == "__main__":
     val_bestBS_mae_list, val_bestBS_mse_list, val_bestBS_acc_list")
     
     save_name = f"gainlevelpred_dimIn{model.feature_input_dim}Out{model.num_dBlevel}_valAcc{max(val_acc_list):.2f}%_BBSMAE{min(val_bestBS_mae_list):.2f}"
-    save_name = save_name + time.strftime('_%Y-%m-%d_%H:%M:%S', time.localtime())
+    save_name = save_name + time.strftime('_%Y-%m-%d_%H:%M:%S', time.gmtime(time.time() + 8 * 3600))
     torch.save(model.state_dict(), os.path.join(model_save_dir, save_name+'.pth'))
     log_dict = save_log(locals(), train_result_name_list, os.path.join(log_save_dir,save_name+'.pkl'))
     plot_gainlevelpred(os.path.join(plt_save_dir,save_name+'.png'), log_dict)

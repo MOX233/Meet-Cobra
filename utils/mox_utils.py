@@ -8,6 +8,8 @@ import random
 import torch
 import re
 
+from utils.plot_utils import plot_record_metrics
+
 def setup_seed(seed):
      torch.manual_seed(seed)
      torch.cuda.manual_seed_all(seed)
@@ -15,8 +17,8 @@ def setup_seed(seed):
      random.seed(seed)
      torch.backends.cudnn.deterministic = True
 
-def get_save_dirs(prepared_dataset_filename):
-    result_save_dir = os.path.join('./NN_result',prepared_dataset_filename)
+def get_save_dirs(save_dir_name):
+    result_save_dir = os.path.join('./NN_result',save_dir_name)
     plt_save_dir = os.path.join(result_save_dir,'plots')
     model_save_dir = os.path.join(result_save_dir,'models')
     log_save_dir = os.path.join(result_save_dir,'logs')
@@ -26,6 +28,15 @@ def get_save_dirs(prepared_dataset_filename):
         os.mkdir(model_save_dir)
         os.mkdir(log_save_dir)
     return result_save_dir, plt_save_dir, model_save_dir, log_save_dir
+
+def save_NN_results(prepared_dataset_filename, save_file_name, best_model_weights, record_metrics):
+    result_save_dir, plt_save_dir, model_save_dir, log_save_dir = get_save_dirs(prepared_dataset_filename)
+    torch.save(best_model_weights, os.path.join(model_save_dir, save_file_name+'.pth'))
+    log_dict = {'best_model_weights':best_model_weights, 'record_metrics':record_metrics}
+    with open(os.path.join(log_save_dir,save_file_name+'.pkl'), 'wb') as f:
+        pickle.dump(log_dict, f)
+    plot_record_metrics(record_metrics, plt_save_dir, save_file_name)    
+
 
 def split_string(X):
     """

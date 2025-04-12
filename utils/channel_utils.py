@@ -114,7 +114,7 @@ def generate_CSI_oneUE_multiBS_onlyiidshd(
     return CSI_oneUE_multiBS
 
 
-def update_CSI_onlyiidshd(
+def update_CSI(
     args,
     veh_set_remain,
     veh_set_in,

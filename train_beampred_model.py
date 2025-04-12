@@ -22,11 +22,11 @@ if __name__ == "__main__":
     freq = 28e9
     DS_start, DS_end = 300, 700
     preprocess_mode = 2
-    n_pilot = 0
+    n_pilot = 16
     M_r, N_bs, M_t = 8, 4, 64
     P_t = 1e-1
     P_noise = 1e-14 # -174dBm/Hz * 1.8MHz = 7.165929069962946e-15 W
-    gpu = 0
+    gpu = 4
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('Using device: ', device)
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     train_result_name_list = split_string("model, train_loss_list, train_acc_list, val_loss_list, val_acc_list")
     
     save_name = f"beampred_dimIn{model.feature_input_dim}_valAcc{max(val_acc_list):.2f}%"
-    save_name = save_name + time.strftime('_%Y-%m-%d_%H:%M:%S', time.localtime())
+    save_name = save_name + time.strftime('_%Y-%m-%d_%H:%M:%S', time.gmtime(time.time() + 8 * 3600))
     torch.save(model.state_dict(), os.path.join(model_save_dir, save_name+'.pth'))
     log_dict = save_log(locals(), train_result_name_list, os.path.join(log_save_dir,save_name+'.pkl'))
     plot_beampred(os.path.join(plt_save_dir,save_name+'.png'), log_dict)

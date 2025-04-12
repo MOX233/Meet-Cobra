@@ -18,7 +18,7 @@ from utils.sumo_utils import (
 )
 from utils.channel_utils import (
     generate_CSI_oneUE_multiBS_onlyiidshd,
-    update_CSI_onlyiidshd,
+    update_CSI,
 )
 from utils.queue_utils import (
     init_vehset_backlog_queue,
@@ -119,7 +119,7 @@ def run_sim(
             Q_th=int(Q_ub / 2),
             slots_per_frame=args.slots_per_frame,
         )
-        CSI_dict_cur = update_CSI_onlyiidshd(
+        CSI_dict_cur = update_CSI(
             args,
             veh_set_remain,
             veh_set_in,

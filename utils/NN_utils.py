@@ -13,7 +13,9 @@ import torch
 import torch.nn.init as init
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 
+from collections import defaultdict
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
 import numpy as np
@@ -327,6 +329,7 @@ class PositionPredictionModel(BasePredictionModel):
         self.shared_layers = self._build_shared_layers(
             layer_dim_list=[feature_input_dim, 256, 256, 128, 128, 64, 64, 32, 2]
         )
+        self.shared_layers.pop(-1)
     
     def forward(self, x):
         outputs = self.shared_layers(x)
@@ -384,7 +387,7 @@ def preprocess_data(data_complex,pos_in_data):
     # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
     if pos_in_data:
         data_csi = BasePredictionModel.preprocess_input(None,data_complex[...,:-2])
-        data_pos = torch.abs(data_complex[...,-2:]/100)
+        data_pos = (data_complex[...,-2:]/100).real
         data = torch.concat([data_csi,data_pos],axis=-1).to(torch.float)
     else:
         data = BasePredictionModel.preprocess_input(None,data_complex)
@@ -854,11 +857,8 @@ def train_pospred_model(num_epochs, device, data_complex, veh_h_torch, veh_pos_t
         train_rmse = 0
         train_mae = 0
         total = 0
-        # if epoch == 20:
-        #     import ipdb;ipdb.set_trace()
         for inputs, labels in train_loader:
             optimizer.zero_grad()
-            # import ipdb;ipdb.set_trace()
             outputs = model(inputs)  # [batch_size, num_bs]
             loss = distance_lossfunc(outputs, labels)
             # loss = distance_lossfunc(outputs, labels) - weight_dist_angle*torch.abs(angle_lossfunc(outputs, labels)).mean()
@@ -866,11 +866,11 @@ def train_pospred_model(num_epochs, device, data_complex, veh_h_torch, veh_pos_t
             optimizer.step()
             train_loss += loss.item()
             total += len(labels)
-            train_rmse += torch.square(outputs-labels).sum(-1).sqrt().sum().item()
-            train_mae += torch.abs(outputs-labels).sum(-1).sum().item()
+            train_rmse += torch.square(outputs-labels).sum(-1).sum().item()
+            train_mae += torch.square(outputs-labels).sum(-1).sqrt().sum().item()
             
         train_loss_list.append(train_loss/len(train_loader))
-        train_rmse_list.append(train_rmse/total*model.pos_scale)
+        train_rmse_list.append((train_rmse/total).sqrt()*model.pos_scale)
         train_mae_list.append(train_mae/total*model.pos_scale)
         # train_acc_list.append(100*train_acc/total)
         
@@ -887,10 +887,10 @@ def train_pospred_model(num_epochs, device, data_complex, veh_h_torch, veh_pos_t
                 # loss = distance_lossfunc(outputs, labels) - weight_dist_angle*torch.abs(angle_lossfunc(outputs, labels)).mean()
                 val_loss += loss.item()
                 total += len(labels)
-                val_rmse += torch.square(outputs-labels).sum(-1).sqrt().sum().item()
-                val_mae += torch.abs(outputs-labels).sum(-1).sum().item()
+                val_rmse += torch.square(outputs-labels).sum(-1).sum().item()
+                val_mae += torch.square(outputs-labels).sum(-1).sqrt().sum().item()
         val_loss_list.append(val_loss/len(val_loader))
-        val_rmse_list.append(val_rmse/total*model.pos_scale)
+        val_rmse_list.append((val_rmse/total).sqrt()*model.pos_scale)
         val_mae_list.append(val_mae/total*model.pos_scale)
         
         # 调整学习率
@@ -1033,7 +1033,6 @@ def train_gainlevelpred_model(num_epochs, device, data_complex, veh_h_torch, bes
         val_bestBS_acc = 0
         total = 0
         with torch.no_grad():
-            #import ipdb;ipdb.set_trace()
             for (inputs, dBlevel_labels), (inputs2, dB_labels) in zip(val_loader,val_loader2):
                 outputs = model(inputs)
                 criterion(outputs.view(-1, model.num_dBlevel), dBlevel_labels.view(-1))

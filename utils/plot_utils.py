@@ -1,20 +1,32 @@
 #!/usr/bin/env python
 import os
-import sys
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
-import time
-import random
-import torch
-import torch.nn.init as init
-import torch.nn as nn
-import torch.optim as optim
 
-from torch.utils.data import Dataset, DataLoader, TensorDataset
-from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
-import numpy as np
-
+def plot_record_metrics(record_metrics, plt_save_dir, save_name):
+        """Plot the training and validation loss and accuracy."""
+        train_record_metrics = dict()
+        val_record_metrics = dict()
+        for k,v in record_metrics.items():
+            if 'train' in k:
+                train_record_metrics[k.split('train_')[-1]] = v
+            elif 'val' in k:
+                val_record_metrics[k.split('val_')[-1]] = v
+        num_metrics = len(train_record_metrics)
+        plt.figure(figsize=(8, 5*num_metrics))
+        for i, (k, v) in enumerate(train_record_metrics.items()):
+            plt.subplot(num_metrics, 1, 1+i)
+            plt.plot(v, label='train')
+            plt.plot(val_record_metrics[k], label='val')
+            plt.legend()
+            plt.title(k)
+            plt.xlabel('epoch')
+            plt.ylabel(k)
+        # plt.tight_layout()
+        plt.show()
+        plt.savefig(os.path.join(plt_save_dir, save_name+'.png'))
+        plt.close()
+        
 def plot_beampred(save_path, log_dict):
     train_loss_list = log_dict['train_loss_list']
     val_loss_list = log_dict['val_loss_list']
