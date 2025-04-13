@@ -44,26 +44,11 @@ N_r_V = 8
 
 
 args = args_parser()
-# args.slots_per_frame = 100
-# args.beta_macro = 3
-# args.beta_micro = 4
-# args.bias_macro = -60
-# args.bias_micro = -60
-# args.shd_sigma_macro = 0
-# args.shd_sigma_micro = 0
-# args.num_RB_macro = 100
-# args.num_RB_micro = 100
-# args.RB_intervel_macro = 0.18 * 1e6
-# args.RB_intervel_micro = 1.8 * 1e6
-# args.p_macro = 1
-# args.p_micro = 0.1
-# args.data_rate = 0.7 * 1e6
-args.trajectoryInfo_path = '/home/ubuntu/niulab/Sionna/sumo_result/trajectory_Lbd0.10.csv'
+args.trajectoryInfo_path = './sumo_data/trajectory_Lbd0.10.csv'
 start_time=700
 end_time=800
-# pattern = "tr38901"
-frequency = 5.9e9
-pattern = "iso"
+frequency = 28e9 # 5.9e9
+pattern = "iso" # "tr38901"
 h_rx = 3
 h_tx = 30
 
@@ -77,7 +62,7 @@ channel_gains_list = []
 #for scene_time in 500+0.1*np.array(list(range(10))):
 for scene_time in trajectoryInfo.keys():
     _time = time.time()
-    scene = sionna.rt.load_scene('scene_self_defined_v2.xml')
+    scene = sionna.rt.load_scene('scene_from_sionna.xml')
     # scene = sionna.rt.load_scene('scene_NoBuildings.xml')
     car_positions = []
     car_velocities = []

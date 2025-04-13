@@ -7,6 +7,8 @@ save**
 experiment/exp_results
 data4sim
 *_result
+trajectory*
+sumo_data
 prepared_dataset
 old_*
 plots
