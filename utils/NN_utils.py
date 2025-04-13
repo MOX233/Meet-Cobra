@@ -420,681 +420,238 @@ def preprocess_data(data_complex,pos_in_data):
 
 
 
+# TODO
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# 训练函数
-def train_beampred_model(num_epochs, device, data_complex, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path=None, model_save_dir=None, pos_in_data=False):
-    num_beampair = M_t*M_r
-    
-    # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    data = preprocess_data(data_complex,pos_in_data)
-    labels = best_beam_pair_index_torch.to(device)
-    num_bs = labels.shape[-1]
-    feature_input_dim = data.shape[-1]
-    
-    # 初始化模型
-    model = BeamPredictionModel(feature_input_dim, num_bs, num_beampair).to(device)
-    
-    # 划分训练集和验证集（示例比例）
-    dataset = TensorDataset(data, labels)
-    train_size = int(0.7 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
-    
-    # 创建数据加载器
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=256)
-    
-    
-    if pretrained_model_path != None:
-        model.load_state_dict(torch.load(pretrained_model_path, map_location=device, weights_only=True))
-    
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
-    
-    # 训练循环
-    best_val_loss = float('inf')
-    best_val_acc = 0
-    train_loss_list = []
-    train_acc_list = []
-    val_loss_list = []
-    val_acc_list = []
-    best_model_state_dict = model.state_dict()
-    
-    for epoch in range(num_epochs):
-        # 训练阶段
-        model.train()
-        train_loss = 0
-        train_acc = 0
-        total = 0
-        for inputs, labels in train_loader:
-            optimizer.zero_grad()
-            
-            outputs = model(inputs)  # [batch_size, num_bs, num_class]
-            loss = criterion(outputs.view(-1, num_beampair), 
-                            labels.view(-1))
-            
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-            
-            # 计算准确率
-            _, predicted = torch.max(outputs.view(-1, num_beampair), 1)
-            total += labels.numel()
-            train_acc += (predicted == labels.view(-1)).sum().item()
-        train_loss_list.append(train_loss/len(train_loader))
-        train_acc_list.append(100*train_acc/total)
+class GenericTrainer:
+    def __init__(self, config):
+        self.device = config['device']
+        self.model = config['model_class'](**config['model_args']).to(self.device)
+        self.criterion = config['criterion']
+        self.optimizer = config['optimizer'](self.model.parameters(), **config['optim_args'])
+        self.scheduler = config.get('scheduler', None)
+        self.metrics = config['metrics']
         
-        # 验证阶段
-        model.eval()
-        val_loss = 0
-        val_acc = 0
-        total = 0
-        with torch.no_grad():
-            for inputs, labels in val_loader:
-                outputs = model(inputs)
-                loss = criterion(outputs.view(-1, num_beampair), 
-                                labels.view(-1))
-                val_loss += loss.item()
+        # 数据相关配置
+        self.train_loader = config['train_loader']
+        self.val_loader = config.get('val_loader', None)
+        
+        # 回调函数
+        self.preprocess_data = config.get('preprocess_data', lambda x: x)
+        self.on_epoch_start = config.get('on_epoch_start', lambda *x: None)
+        
+    def _compute_metrics(self, outputs, labels, phase='train'):
+        """动态计算所有注册的指标"""
+        results = {}
+        for name, func in self.metrics.items():
+            results[f"{phase}_{name}"] = func(outputs, labels)
+        return results
+        
+    def run_epoch(self, loader, phase='train'):
+        is_train = phase == 'train'
+        self.model.train(is_train)
+        
+        total_loss = 0
+        metric_sums = defaultdict(float)
+        total_samples = 0
+        
+        with torch.set_grad_enabled(is_train):
+            for inputs, labels in loader:
+                # inputs, labels = self.preprocess_data(inputs), labels.to(self.device)
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
                 
-                # 计算准确率
-                _, predicted = torch.max(outputs.view(-1, num_beampair), 1)
-                total += labels.numel()
-                val_acc += (predicted == labels.view(-1)).sum().item()
-        val_loss_list.append(val_loss/len(val_loader))
-        val_acc_list.append(100*val_acc/total)
-        # 调整学习率
-        # scheduler.step(val_loss)
-        
-        # 打印统计信息
-        print(f"Epoch [{epoch+1}/{num_epochs}]")
-        print(f"Train Loss: {train_loss/len(train_loader):.4f} | "
-              f"Train Acc: {train_acc_list[-1]:.2f}% | "
-              f"Val Loss: {val_loss/len(val_loader):.4f} | "
-              f"Val Acc: {val_acc_list[-1]:.2f}%")
-        # 保存最佳模型
-        if val_acc_list[-1]>best_val_acc:
-            best_val_acc = val_acc_list[-1]
-            best_model_state_dict = model.state_dict()
-    print("Training complete!")
-    return model, train_loss_list, train_acc_list, val_loss_list, val_acc_list
-
-def train_blockpred_model(num_epochs, device, data_complex, veh_h_torch, M_t, M_r, pretrained_model_path=None, model_save_dir=None, pos_in_data=False):
-    num_beampair = M_t*M_r
-    
-    # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    data = preprocess_data(data_complex,pos_in_data)
-    labels = (veh_h_torch[:,0,:,0]==0).long().to(device)
-    num_bs = labels.shape[-1]
-    feature_input_dim = data.shape[-1]
-    
-    # 初始化模型
-    model = BlockPredictionModel(feature_input_dim, num_bs, num_beampair).to(device)
-    
-    # 划分训练集和验证集（示例比例）
-    dataset = TensorDataset(data, labels)
-    train_size = int(0.7 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
-    
-    # 创建数据加载器
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=256)
-    
-    
-    if pretrained_model_path != None:
-        model.load_state_dict(torch.load(pretrained_model_path, map_location=device, weights_only=True))
-    
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
-    
-    # 训练循环
-    best_val_loss = float('inf')
-    best_val_acc = 0
-    train_loss_list = []
-    train_acc_list = []
-    val_loss_list = []
-    val_acc_list = []
-    best_model_state_dict = model.state_dict()
-    
-    for epoch in range(num_epochs):
-        # 训练阶段
-        model.train()
-        train_loss = 0
-        train_acc = 0
-        total = 0
-        for inputs, labels in train_loader:
-            optimizer.zero_grad()
-            
-            outputs = model(inputs)  # [batch_size, num_bs, 2]
-            loss = criterion(outputs.view(-1, 2), 
-                            labels.view(-1))
-            
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-            
-            # 计算准确率
-            _, predicted = torch.max(outputs.view(-1, 2), 1)
-            total += labels.numel()
-            train_acc += (predicted == labels.view(-1)).sum().item()
-        train_loss_list.append(train_loss/len(train_loader))
-        train_acc_list.append(100*train_acc/total)
-        
-        # 验证阶段
-        model.eval()
-        val_loss = 0
-        val_acc = 0
-        total = 0
-        with torch.no_grad():
-            for inputs, labels in val_loader:
-                outputs = model(inputs)
-                loss = criterion(outputs.view(-1, 2), 
-                                labels.view(-1))
-                val_loss += loss.item()
+                if is_train:
+                    self.optimizer.zero_grad()
+                    
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, labels)
+                #loss = self.criterion(outputs.view(-1,outputs.size(-1)), labels.view(-1))
+                if is_train:
+                    loss.backward()
+                    self.optimizer.step()
                 
-                # 计算准确率
-                _, predicted = torch.max(outputs.view(-1, 2), 1)
-                total += labels.numel()
-                val_acc += (predicted == labels.view(-1)).sum().item()
-        val_loss_list.append(val_loss/len(val_loader))
-        val_acc_list.append(100*val_acc/total)
-        # 调整学习率
-        # scheduler.step(val_loss)
+                # 更新统计量
+                total_loss += loss.item() * inputs.size(0)
+                metrics = self._compute_metrics(outputs, labels, phase)
+                for k, v in metrics.items():
+                    metric_sums[k] += v * inputs.size(0)
+                total_samples += inputs.size(0)
         
-        # 打印统计信息
-        print(f"Epoch [{epoch+1}/{num_epochs}]")
-        print(f"Train Loss: {train_loss/len(train_loader):.4f} | "
-              f"Train Acc: {train_acc_list[-1]:.2f}% | "
-              f"Val Loss: {val_loss/len(val_loader):.4f} | "
-              f"Val Acc: {val_acc_list[-1]:.2f}%")
-        # 保存最佳模型
-        if val_acc_list[-1]>best_val_acc:
-            best_val_acc = val_acc_list[-1]
-            best_model_state_dict = model.state_dict()
-    print("Training complete!")
-    return model, train_loss_list, train_acc_list, val_loss_list, val_acc_list
+        avg_metrics = {f'{phase}_loss': total_loss / total_samples}
+        for k, v in metric_sums.items():
+            avg_metrics[k] = v / total_samples
+        # 计算平均损失和各评价指标
+        return avg_metrics
+    
+    def train(self, num_epochs):
+        best_metrics = {}
+        best_model_weights = self.model.state_dict()
+        record_metrics = defaultdict(list)
+        for epoch in range(num_epochs):
+            self.on_epoch_start(self, epoch)  # 触发回调
+            
+            train_metrics = self.run_epoch(self.train_loader, 'train')
+            val_metrics = self.run_epoch(self.val_loader, 'val') if self.val_loader else {}
+            
+            # 合并指标并打印
+            epoch_metrics = {**train_metrics, **val_metrics}
+            for k, v in epoch_metrics.items():
+                record_metrics[k].append(v)
+            print(f"Epoch {epoch+1}/{num_epochs}")
+            # print(' | '.join([f"{k}: {v:.4f}" for k, v in epoch_metrics.items()]))
+            print(' | '.join([f"{k1.split('train_')[-1]}: {v1:.4f}/{v2:.4f}" for (k1,v1),(k2,v2) in zip(train_metrics.items(),val_metrics.items())]))
+            
+            # 保存最佳模型逻辑
+            if 'val_loss' in epoch_metrics and epoch_metrics['val_loss'] < best_metrics.get('val_loss', float('inf')):
+                best_metrics = epoch_metrics
+                best_model_weights = self.model.state_dict()
+        
+        return best_model_weights, record_metrics
 
-def train_gainpred_model(num_epochs, device, data_complex, veh_h_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path=None, model_save_dir=None, pos_in_data=False):
-    num_beampair = M_t*M_r
+def create_loaders(dataset, split_ratio=0.7, train_batch=128, val_batch=256, seed=20):
+    """通用数据集划分和加载器创建"""
+    # 固定随机种子保证可复现性
+    generator = torch.Generator().manual_seed(seed) if seed else None
     
-    # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    data = preprocess_data(data_complex,pos_in_data)
-    DFT_tx = generate_dft_codebook(M_t)
-    DFT_rx = generate_dft_codebook(M_r)
-    beamPairId = best_beam_pair_index_torch.detach().cpu().numpy()
-    beamIdPair = beamPairId_to_beamIdPair(beamPairId,M_t,M_r)
-    
-    num_car, _, num_bs, _ = veh_h_torch.shape
-    channel = veh_h_torch.detach().cpu().numpy()
-    g_opt = np.zeros((num_car,num_bs)).astype(np.float32)
-    for veh in range(num_car):
-        for bs in range(num_bs):
-            g_opt[veh,bs] = 1/np.sqrt(M_t*M_r)*np.abs(np.matmul(np.matmul(channel[veh,:,bs,:], DFT_tx[:,beamIdPair[veh,bs,0]]).T.conjugate(),DFT_rx[:,beamIdPair[veh,bs,1]]))
-            g_opt[veh,bs] = 20 * np.log10(g_opt[veh,bs]+EPS) 
-    g_opt_normalized = g_opt / 20 + 7
-    labels = torch.tensor(g_opt_normalized).to(device)
-    feature_input_dim = data.shape[-1]
-
-    # 初始化模型
-    model = BestGainPredictionModel(feature_input_dim, num_bs).to(device)
-    
-    # 划分训练集和验证集（示例比例）
-    dataset = TensorDataset(data, labels)
-    train_size = int(0.5 * len(dataset))
+    # 划分训练/验证集
+    train_size = int(len(dataset) * split_ratio)
     val_size = len(dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
-    
-    # 创建数据加载器
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=256)
-    
-    
-    if pretrained_model_path != None:
-        model.load_state_dict(torch.load(pretrained_model_path, map_location=device, weights_only=True))
-    
-    criterion = nn.MSELoss()
-    optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
-    
-    # 训练循环
-    best_val_loss = float('inf')
-    train_loss_list = []
-    train_mae_list = []
-    train_mse_list = []
-    train_bestBS_mae_list = []
-    train_bestBS_mse_list = []
-    val_loss_list = []
-    val_mae_list = []
-    val_mse_list = []
-    val_bestBS_mae_list = []
-    val_bestBS_mse_list = []
-    best_model_state_dict = model.state_dict()
-    for epoch in range(num_epochs):
-        if epoch == int(num_epochs/2):
-            print("冻结shared_layers部分的参数，训练output_heads部分的参数")
-            for name, param in model.named_parameters():
-                if "shared_layers" in name.split('.'):
-                    param.requires_grad = False
-                    print('冻结',name)
-        # 训练阶段
-        model.train()
-        train_loss = 0
-        train_mae = 0
-        train_mse = 0
-        train_bestBS_mae = 0
-        train_bestBS_mse = 0
-        total = 0
-        for inputs, labels in train_loader:
-            optimizer.zero_grad()
-            outputs = model(inputs)  # [batch_size, num_bs]
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-            
-            total += labels.numel()
-            dB_predicted = (outputs-7)*20
-            dB_labels = (labels-7)*20
-            train_mae += torch.abs((dB_predicted - dB_labels)).sum().item()
-            train_mse += torch.square((dB_predicted - dB_labels)).sum().item()
-            dB_bestBS, indices_bestBS = dB_labels.max(axis=-1)
-            dB_bestBS_predicted, indices_bestBS_predicted = dB_predicted.max(axis=-1)
-            train_bestBS_mae += torch.abs(dB_predicted[range(len(dB_labels)),indices_bestBS] - dB_labels[range(len(dB_labels)),indices_bestBS]).sum().item()
-            train_bestBS_mse += torch.square(dB_predicted[range(len(dB_labels)),indices_bestBS] - dB_labels[range(len(dB_labels)),indices_bestBS]).sum().item()
-            
-            # 计算准确率
-            # _, predicted = torch.max(outputs.view(-1, num_beampair), 1)
-            # total += labels.numel()
-            # train_acc += (predicted == labels.view(-1)).sum().item()
-        train_loss_list.append(train_loss/len(train_loader))
-        train_mae_list.append(train_mae/total)
-        train_mse_list.append(train_mse/total)
-        train_bestBS_mae_list.append(train_bestBS_mae/total*model.num_bs)
-        train_bestBS_mse_list.append(train_bestBS_mse/total*model.num_bs)
-        
-        # 验证阶段
-        model.eval()
-        val_loss = 0
-        val_mae = 0
-        val_mse = 0
-        val_bestBS_mae = 0
-        val_bestBS_mse = 0
-        total = 0
-        with torch.no_grad():
-            for inputs, labels in val_loader:
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
-                val_loss += loss.item()
-                
-                total += labels.numel()
-                dB_predicted = (outputs-7)*20
-                dB_labels = (labels-7)*20
-                val_mae += torch.abs((dB_predicted - dB_labels)).sum().item()
-                val_mse += torch.square((dB_predicted - dB_labels)).sum().item()
-                dB_bestBS, indices_bestBS = dB_labels.max(axis=-1)
-                dB_bestBS_predicted, indices_bestBS_predicted = dB_predicted.max(axis=-1)
-                val_bestBS_mae += torch.abs(dB_predicted[range(len(dB_labels)),indices_bestBS] - dB_labels[range(len(dB_labels)),indices_bestBS]).sum().item()
-                val_bestBS_mse += torch.square(dB_predicted[range(len(dB_labels)),indices_bestBS] - dB_labels[range(len(dB_labels)),indices_bestBS]).sum().item() 
-        val_loss_list.append(val_loss/len(val_loader))
-        val_mae_list.append(val_mae/total)
-        val_mse_list.append(val_mse/total)
-        val_bestBS_mae_list.append(val_bestBS_mae/total*model.num_bs)
-        val_bestBS_mse_list.append(val_bestBS_mse/total*model.num_bs)
-        
-        # 调整学习率
-        # scheduler.step(val_loss)
-        
-        # 打印统计信息
-        print(f"Epoch [{epoch+1}/{num_epochs}]")
-        
-        """print(f"Train Loss: {train_loss/len(train_loader):.4f} | "
-              # f"Train Acc: {train_acc_list[-1]:.2f}% | "
-              f"Val Loss: {val_loss/len(val_loader):.4f} | "
-              # f"Val Acc: {val_acc_list[-1]:.2f}%"
-              )"""
-              
-        print(f"Loss: {train_loss/len(train_loader):.4f} / {val_loss/len(val_loader):.4f} | "
-              f"MAE: {train_mae_list[-1]:.2f} / {val_mae_list[-1]:.2f} | "
-              f"MSE: {train_mse_list[-1]:.2f} / {val_mse_list[-1]:.2f} | "
-              f"BestBS MAE: {train_bestBS_mae_list[-1]:.2f} / {val_bestBS_mae_list[-1]:.2f} | "
-              f"BestBS MSE: {train_bestBS_mse_list[-1]:.2f} / {val_bestBS_mse_list[-1]:.2f} | "
-              )
-        # 保存最佳模型
-        # if val_acc_list[-1]>best_val_acc:
-        #     best_val_acc = val_acc_list[-1]
-        #     best_model_state_dict = model.state_dict()
-    print("Training complete!")
-    return model, \
-        train_loss_list, train_mae_list, train_mse_list, \
-        train_bestBS_mae_list, train_bestBS_mse_list, \
-        val_loss_list, val_mae_list, val_mse_list, \
-        val_bestBS_mae_list, val_bestBS_mse_list
+    train_set, val_set = torch.utils.data.random_split(
+        dataset, 
+        [train_size, val_size],
+        generator=generator
+    )
 
-def train_pospred_model(num_epochs, device, data_complex, veh_h_torch, veh_pos_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path=None, model_save_dir=None, pos_in_data=False):
-    num_beampair = M_t*M_r
-    
-    # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    data = preprocess_data(data_complex,pos_in_data)
-    DFT_tx = generate_dft_codebook(M_t)
-    DFT_rx = generate_dft_codebook(M_r)
-    beamPairId = best_beam_pair_index_torch.detach().cpu().numpy()
-    beamIdPair = beamPairId_to_beamIdPair(beamPairId,M_t,M_r)
-    
-    num_car, _, num_bs, _ = veh_h_torch.shape
-    channel = veh_h_torch.detach().cpu().numpy()
-    feature_input_dim = data.shape[-1]
+    # 创建加载器
+    train_loader = DataLoader(
+        train_set, 
+        batch_size=train_batch, 
+        shuffle=True, # shuffle=(seed is None),  # 有种子时不shuffle
+        generator=generator
+    )
+    val_loader = DataLoader(val_set, batch_size=val_batch)
+    return train_loader, val_loader
 
-    # 初始化模型
-    model = PositionPredictionModel(feature_input_dim, num_bs).to(device)
-    labels = (veh_pos_torch / model.pos_scale).float().to(device)
+def build_trainer(task_config):
+    # 数据预处理封装
+    def preprocess_wrapper(func):
+        return lambda data: func(data, task_config['pos_in_data'])
     
-    # 划分训练集和验证集（示例比例）
-    dataset = TensorDataset(data, labels)
-    train_size = int(0.5 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
+    # 构建数据加载器
+    dataset = TensorDataset(
+        preprocess_data(task_config['data_complex'], task_config['pos_in_data']),
+        task_config['labels']
+    )
+    train_loader, val_loader = create_loaders(dataset, task_config['split_ratio'])
     
-    # 创建数据加载器
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=256)
+    # 完整配置
+    config = {
+        'device': task_config['device'],
+        'model_class': task_config['model_class'],
+        'model_args': task_config.get('model_args', {}),
+        'criterion': task_config['loss_func'],
+        'optimizer': optim.AdamW,
+        'optim_args': {'lr': 1e-3, 'weight_decay': 1e-4},
+        'metrics': task_config.get('metrics', {}),
+        'train_loader': train_loader,
+        'val_loader': val_loader,
+        'preprocess_data': preprocess_wrapper(preprocess_data)
+    }
     
+    # 特殊回调示例
+    if task_config.get('freeze_layers', False):
+        def freeze_callback(trainer, epoch):
+            if epoch == task_config['freeze_epoch']:
+                for name, param in trainer.model.named_parameters():  # 使用传入的 trainer 实例
+                    if "shared" in name:
+                        param.requires_grad = False
+        config['on_epoch_start'] = freeze_callback
     
-    if pretrained_model_path != None:
-        model.load_state_dict(torch.load(pretrained_model_path, map_location=device, weights_only=True))
-    
-    distance_lossfunc = nn.MSELoss()  # 坐标损失
-    angle_lossfunc = nn.CosineSimilarity()  # 方向一致性损失（可选）
-    optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
-    
-    # 训练循环
-    best_val_loss = float('inf')
-    best_val_rmse = np.inf
-    train_loss_list = []
-    train_acc_list = []
-    train_mae_list = []
-    train_rmse_list = []
-    val_loss_list = []
-    val_acc_list = []
-    val_mae_list = []
-    val_rmse_list = []
-    best_model_state_dict = model.state_dict()
-    
-    weight_dist_angle = 0.5
-    
-    for epoch in range(num_epochs):
-        # 训练阶段
-        model.train()
-        train_loss = 0
-        train_rmse = 0
-        train_mae = 0
-        total = 0
-        for inputs, labels in train_loader:
-            optimizer.zero_grad()
-            outputs = model(inputs)  # [batch_size, num_bs]
-            loss = distance_lossfunc(outputs, labels)
-            # loss = distance_lossfunc(outputs, labels) - weight_dist_angle*torch.abs(angle_lossfunc(outputs, labels)).mean()
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-            total += len(labels)
-            train_rmse += torch.square(outputs-labels).sum(-1).sum().item()
-            train_mae += torch.square(outputs-labels).sum(-1).sqrt().sum().item()
-            
-        train_loss_list.append(train_loss/len(train_loader))
-        train_rmse_list.append((train_rmse/total).sqrt()*model.pos_scale)
-        train_mae_list.append(train_mae/total*model.pos_scale)
-        # train_acc_list.append(100*train_acc/total)
-        
-        # 验证阶段
-        model.eval()
-        val_loss = 0
-        val_rmse = 0
-        val_mae = 0
-        total = 0
-        with torch.no_grad():
-            for inputs, labels in val_loader:
-                outputs = model(inputs)
-                loss = distance_lossfunc(outputs, labels)
-                # loss = distance_lossfunc(outputs, labels) - weight_dist_angle*torch.abs(angle_lossfunc(outputs, labels)).mean()
-                val_loss += loss.item()
-                total += len(labels)
-                val_rmse += torch.square(outputs-labels).sum(-1).sum().item()
-                val_mae += torch.square(outputs-labels).sum(-1).sqrt().sum().item()
-        val_loss_list.append(val_loss/len(val_loader))
-        val_rmse_list.append((val_rmse/total).sqrt()*model.pos_scale)
-        val_mae_list.append(val_mae/total*model.pos_scale)
-        
-        # 调整学习率
-        # scheduler.step(val_loss)
-        
-        # 打印统计信息
-        print(f"Epoch [{epoch+1}/{num_epochs}]")
-        print(f"Loss: {train_loss_list[-1]:.4f} / {val_loss_list[-1]:.4f} | "
-              f"RMSE: {train_rmse_list[-1]:.4f} / {val_rmse_list[-1]:.4f} | "
-              f"MAE: {train_mae_list[-1]:.4f} / {val_mae_list[-1]:.4f} | "
-              )
-        # 保存最佳模型
-        if val_rmse_list[-1]>best_val_rmse:
-            best_val_rmse = val_rmse_list[-1]
-            best_model_state_dict = model.state_dict()
-    print("Training complete!")
-    return model, train_loss_list, train_rmse_list, train_mae_list, val_loss_list, val_rmse_list, val_mae_list
+    return GenericTrainer(config)
 
-def train_gainlevelpred_model(num_epochs, device, data_complex, veh_h_torch, best_beam_pair_index_torch, M_t, M_r, pretrained_model_path=None, model_save_dir=None, pos_in_data=False):
-    num_beampair = M_t*M_r
-    
-    # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
-    data = preprocess_data(data_complex,pos_in_data)
-    DFT_tx = generate_dft_codebook(M_t)
-    DFT_rx = generate_dft_codebook(M_r)
-    beamPairId = best_beam_pair_index_torch.detach().cpu().numpy()
-    beamIdPair = beamPairId_to_beamIdPair(beamPairId,M_t,M_r)
-    
-    num_car, _, num_bs, _ = veh_h_torch.shape
-    channel = veh_h_torch.detach().cpu().numpy()
-    g_opt = np.zeros((num_car,num_bs)).astype(np.float32)
-    for veh in range(num_car):
-        for bs in range(num_bs):
-            g_opt[veh,bs] = 1/np.sqrt(M_t*M_r)*np.abs(np.matmul(np.matmul(channel[veh,:,bs,:], DFT_tx[:,beamIdPair[veh,bs,0]]).T.conjugate(),DFT_rx[:,beamIdPair[veh,bs,1]]))
-            g_opt[veh,bs] = 20 * np.log10(g_opt[veh,bs]+EPS) 
-    labels_dB = torch.tensor(g_opt).to(device)
-    
-    feature_input_dim = data.shape[-1]
 
-    LB_db, UB_db = -110, -20
-    num_dBlevel = 64
-    
-    # 初始化模型
-    model = BestGainLevelPredictionModel(feature_input_dim, num_bs, num_dBlevel=num_dBlevel, LB_db=LB_db, UB_db=UB_db).to(device)
-    dBlevel = BestGainLevelPredictionModel.trans_dB_to_dBLevel(model,g_opt)
-    labels_dBlevel = torch.tensor(dBlevel).to(device)
-    
-    # 划分训练集和验证集（示例比例）
-    dataset = TensorDataset(data, labels_dBlevel)
-    train_size = int(0.5 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size], generator=torch.Generator().manual_seed(20))
-    
-    dataset2 = TensorDataset(data, labels_dB)
-    train_dataset2, val_dataset2 = torch.utils.data.random_split(dataset2, [train_size, val_size], generator=torch.Generator().manual_seed(20))
-    
-    
-    # 创建数据加载器
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, generator=torch.Generator().manual_seed(20))
-    val_loader = DataLoader(val_dataset, batch_size=256, shuffle=False)
-    train_loader2 = DataLoader(train_dataset2, batch_size=128, shuffle=True, generator=torch.Generator().manual_seed(20))
-    val_loader2 = DataLoader(val_dataset2, batch_size=256, shuffle=False)
-    
-    if pretrained_model_path != None:
-        model.load_state_dict(torch.load(pretrained_model_path, map_location=device, weights_only=True))
-    
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
-    
-    # 训练循环
-    best_val_loss = float('inf')
-    best_val_acc = 0
-    train_loss_list = []
-    train_acc_list = []
-    train_mae_list = []
-    train_mse_list = []
-    train_bestBS_mae_list = []
-    train_bestBS_mse_list = []
-    train_bestBS_acc_list = []
-    val_loss_list = []
-    val_acc_list = []
-    val_mae_list = []
-    val_mse_list = []
-    val_bestBS_mae_list = []
-    val_bestBS_mse_list = []
-    val_bestBS_acc_list = []
-    best_model_state_dict = model.state_dict()
-    
-    for epoch in range(num_epochs):
-        # 训练阶段
-        model.train()
-        train_loss = 0
-        train_acc = 0
-        train_mae = 0
-        train_mse = 0
-        train_bestBS_mae = 0
-        train_bestBS_mse = 0
-        train_bestBS_acc = 0
-        total = 0
-        for (inputs, dBlevel_labels), (inputs2, dB_labels) in zip(train_loader,train_loader2):
-        # for inputs, dBlevel_labels in train_loader:
-            optimizer.zero_grad()
-            outputs = model(inputs)  # [batch_size, num_bs]
-            loss = criterion(outputs.view(-1, model.num_dBlevel), dBlevel_labels.view(-1))
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
-            
-            # 计算准确率
-            _, dBlevel_predicted = torch.max(outputs.view(-1, model.num_dBlevel), 1)
-            dB_predicted = (dBlevel_predicted==0)*(-240) + (dBlevel_predicted!=0)*((dBlevel_predicted-0.5)/(model.num_dBlevel-1)*(model.UB_db-model.LB_db)+model.LB_db)
-            total += dBlevel_labels.numel()
-            train_acc += (dBlevel_predicted == dBlevel_labels.view(-1)).sum().item()
-            train_mae += torch.abs((dB_predicted - dB_labels.view(-1))).sum().item()
-            train_mse += torch.square((dB_predicted - dB_labels.view(-1))).sum().item()
-            
-            dB_bestBS, indices_bestBS = dB_labels.max(axis=-1)
-            dB_bestBS_predicted, indices_bestBS_predicted = dB_predicted.view_as(dB_labels).max(axis=-1)
-            train_bestBS_mae += torch.abs(dB_predicted.view_as(dB_labels)[range(len(dB_labels)),indices_bestBS] - dB_labels[range(len(dB_labels)),indices_bestBS]).sum().item()
-            train_bestBS_mse += torch.square(dB_predicted.view_as(dB_labels)[range(len(dB_labels)),indices_bestBS] - dB_labels[range(len(dB_labels)),indices_bestBS]).sum().item()
-            train_bestBS_acc += (indices_bestBS_predicted==indices_bestBS).view(-1).sum()
-            
-        train_loss_list.append(train_loss/len(train_loader))
-        train_acc_list.append(100*train_acc/total)
-        train_mae_list.append(train_mae/total)
-        train_mse_list.append(train_mse/total)
-        train_bestBS_mae_list.append(train_bestBS_mae/total*model.num_bs)
-        train_bestBS_mse_list.append(train_bestBS_mse/total*model.num_bs)
-        train_bestBS_acc_list.append(100*train_bestBS_acc/total*model.num_bs)
-        
-        # 验证阶段
-        model.eval()
-        val_loss = 0
-        val_acc = 0
-        val_mae = 0
-        val_mse = 0
-        val_bestBS_mae = 0
-        val_bestBS_mse = 0
-        val_bestBS_acc = 0
-        total = 0
-        with torch.no_grad():
-            for (inputs, dBlevel_labels), (inputs2, dB_labels) in zip(val_loader,val_loader2):
-                outputs = model(inputs)
-                criterion(outputs.view(-1, model.num_dBlevel), dBlevel_labels.view(-1))
-                val_loss += loss.item()
-                
-                # 计算准确率
-                _, dBlevel_predicted = torch.max(outputs.view(-1, model.num_dBlevel), 1)
-                dB_predicted = (dBlevel_predicted==0)*(-240) + (dBlevel_predicted!=0)*((dBlevel_predicted-0.5)/(model.num_dBlevel-1)*(model.UB_db-model.LB_db)+model.LB_db)
-                total += dBlevel_labels.numel()
-                val_acc += (dBlevel_predicted == dBlevel_labels.view(-1)).sum().item()
-                val_mae += torch.abs((dB_predicted - dB_labels.view(-1))).sum().item()
-                val_mse += torch.square((dB_predicted - dB_labels.view(-1))).sum().item()
-                
-                dB_bestBS, indices_bestBS = dB_labels.max(axis=-1)
-                dB_bestBS_predicted, indices_bestBS_predicted = dB_predicted.view_as(dB_labels).max(axis=-1)
-                val_bestBS_mae += torch.abs(dB_predicted.view_as(dB_labels)[range(len(dB_labels)),indices_bestBS] - dB_labels[range(len(dB_labels)),indices_bestBS]).sum().item()
-                val_bestBS_mse += torch.square(dB_predicted.view_as(dB_labels)[range(len(dB_labels)),indices_bestBS] - dB_labels[range(len(dB_labels)),indices_bestBS]).sum().item()
-                val_bestBS_acc += (indices_bestBS_predicted==indices_bestBS).view(-1).sum()
-        
-        val_loss_list.append(val_loss/len(val_loader))
-        val_acc_list.append(100*val_acc/total)
-        val_mae_list.append(val_mae/total)
-        val_mse_list.append(val_mse/total)
-        val_bestBS_mae_list.append(val_bestBS_mae/total*model.num_bs)
-        val_bestBS_mse_list.append(val_bestBS_mse/total*model.num_bs)
-        val_bestBS_acc_list.append(100*val_bestBS_acc/total*model.num_bs)
-        
-        # 调整学习率
-        # scheduler.step(val_loss)
-        
-        # 打印统计信息
-        print(f"num_dBlevel={num_dBlevel}: Epoch [{epoch+1}/{num_epochs}] ")
-        
-        """print(f"Train Loss: {train_loss/len(train_loader):.4f} | "
-              f"Train Acc: {train_acc_list[-1]:.2f}% | "
-              f"Train MAE: {train_mae_list[-1]:.2f} | "
-              f"Train MSE: {train_mse_list[-1]:.2f} | "
-              f"Train BestBS MAE: {train_bestBS_mae_list[-1]:.2f} | "
-              f"Train BestBS MSE: {train_bestBS_mse_list[-1]:.2f} | "
-              f"Val Loss: {val_loss/len(val_loader):.4f} | "
-              f"Val Acc: {val_acc_list[-1]:.2f}% | "
-              f"Val MAE: {val_mae_list[-1]:.2f} | "
-              f"Val MSE: {val_mse_list[-1]:.2f} | "
-              f"Val BestBS MAE: {val_bestBS_mae_list[-1]:.2f} | "
-              f"Val BestBS MSE: {val_bestBS_mse_list[-1]:.2f} | "
-              )"""
-        
-        print(f"Loss: {train_loss/len(train_loader):.4f} / {val_loss/len(val_loader):.4f} | "
-              f"Acc: {train_acc_list[-1]:.2f}% / {val_acc_list[-1]:.2f}% | "
-              f"MAE: {train_mae_list[-1]:.2f} / {val_mae_list[-1]:.2f} | "
-              f"MSE: {train_mse_list[-1]:.2f} / {val_mse_list[-1]:.2f} | "
-              f"BestBS MAE: {train_bestBS_mae_list[-1]:.2f} / {val_bestBS_mae_list[-1]:.2f} | "
-              f"BestBS MSE: {train_bestBS_mse_list[-1]:.2f} / {val_bestBS_mse_list[-1]:.2f} | "
-              f"BestBS Acc: {train_bestBS_acc_list[-1]:.2f}% / {val_bestBS_acc_list[-1]:.2f}% | "
-              )
-        # 保存最佳模型
-        if val_acc_list[-1]>best_val_acc:
-            best_val_acc = val_acc_list[-1]
-            best_model_state_dict = model.state_dict()
-    print("Training complete!")
-    return model, \
-        train_loss_list, train_acc_list, train_mae_list, train_mse_list, \
-        train_bestBS_mae_list, train_bestBS_mse_list, train_bestBS_acc_list, \
-        val_loss_list, val_acc_list, val_mae_list, val_mse_list, \
-        val_bestBS_mae_list, val_bestBS_mse_list, val_bestBS_acc_list
+def train_beampred_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
+    config = {
+        'device': device,
+        'data_complex': data_complex,
+        'labels': labels,
+        'model_class': BeamPredictionModel,
+        'pos_in_data': pos_in_data,
+        'model_args': {
+            'feature_input_dim': data_complex.shape[-1] * 2 - pos_in_data * 2,  # 复数转实数的维度
+            'num_bs': labels.shape[-1],
+            'num_beampair': M_t * M_r
+        },
+        'metrics': {
+            'acc': lambda o, l: (o.argmax(-1) == l).float().mean().item(),
+            'top3_acc': lambda o, l: (o.topk(3, dim=-1).indices == l.unsqueeze(-1)).any(-1).float().mean().item(),
+        },
+        'loss_func': lambda o, l: nn.CrossEntropyLoss()(o.view(-1,o.size(-1)), l.view(-1)),
+        'split_ratio': 0.7,
+    }
+    trainer = build_trainer(config)
+    return trainer.train(num_epochs)
+
+
+def train_gainpred_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
+    config = {
+        'device': device,
+        'data_complex': data_complex,
+        'labels': labels,
+        'model_class': BestGainPredictionModel,
+        'pos_in_data': pos_in_data,
+        'model_args': {
+            'feature_input_dim': data_complex.shape[-1] * 2 - pos_in_data * 2,  # 复数转实数的维度
+            'num_bs': labels.shape[-1]
+        },
+        'metrics': {
+            'mae': lambda o, l: (o - l).abs().mean().item()*20,
+            'mse': lambda o, l: ((o - l) ** 2).mean().item()*400,
+            'rmse': lambda o, l: ((o - l) ** 2).mean().sqrt().item()*20,
+        },
+        'loss_func': nn.MSELoss(),
+        'split_ratio': 0.7,
+    }
+    trainer = build_trainer(config)
+    return trainer.train(num_epochs)
+
+def train_blockpred_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
+    config = {
+        'device': device,
+        'data_complex': data_complex,
+        'labels': labels,
+        'model_class': BlockPredictionModel,
+        'pos_in_data': pos_in_data,
+        'model_args': {
+            'feature_input_dim': data_complex.shape[-1] * 2 - pos_in_data * 2,  # 复数转实数的维度
+            'num_bs': labels.shape[-1],
+            'num_beampair': M_t * M_r
+        },
+        'metrics': {
+            'acc': lambda o, l: (o.argmax(-1) == l).float().mean().item(),
+        },
+        'loss_func': lambda o, l: nn.CrossEntropyLoss()(o.view(-1,o.size(-1)), l.view(-1)),
+        'split_ratio': 0.7,
+    }
+    trainer = build_trainer(config)
+    return trainer.train(num_epochs)
+
+def train_pospred_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
+    config = {
+        'device': device,
+        'data_complex': data_complex,
+        'labels': labels,
+        'model_class': PositionPredictionModel,
+        'pos_in_data': pos_in_data,
+        'model_args': {
+            'feature_input_dim': data_complex.shape[-1] * 2 - pos_in_data * 2,  # 复数转实数的维度
+            'num_bs': labels.shape[-1]
+        },
+        'metrics': {
+            'mae': lambda o, l: (o - l).square().sum(-1).sqrt().mean().item()*100,
+            'rmse': lambda o, l: (o - l).square().sum(-1).mean().sqrt().item()*100,
+        },
+        'loss_func': nn.MSELoss(),
+        'split_ratio': 0.7,
+    }
+    trainer = build_trainer(config)
+    return trainer.train(num_epochs)
