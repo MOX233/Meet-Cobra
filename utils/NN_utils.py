@@ -175,6 +175,16 @@ class BasePredictionModel(nn.Module):
         self.feature_input_dim = feature_input_dim
         self.num_bs = num_bs
         self.params_norm = params_norm
+    
+    def _build_LSTM_layers(self, input_dim, hidden_dim, layer_dim, dropout):
+        lstm_layers = nn.LSTM(
+            input_size=input_dim,
+            hidden_size=hidden_dim,
+            num_layers=layer_dim,
+            batch_first=True,
+            dropout=dropout
+        )
+        return lstm_layers
         
     def _build_shared_layers(self, layer_dim_list):
         shared_layers = nn.Sequential()
@@ -225,6 +235,7 @@ class BasePredictionModel(nn.Module):
             preprocessed = torch.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
         return preprocessed
 
+### DNN Models ###
 
 class BeamPredictionModel(BasePredictionModel):
     def __init__(self, feature_input_dim, num_bs, num_beampair, params_norm=[20,7]):
@@ -262,7 +273,7 @@ class BeamPredictionModel(BasePredictionModel):
 
 
 class BlockPredictionModel(BasePredictionModel):
-    def __init__(self, feature_input_dim, num_bs, num_beampair, params_norm=[20,7]):
+    def __init__(self, feature_input_dim, num_bs, params_norm=[20,7]):
         super().__init__(feature_input_dim, num_bs, params_norm)
         self.num_class = 2
         
@@ -381,7 +392,110 @@ class BestGainLevelPredictionModel(BasePredictionModel):
             dBlevel = (dB > LB_db) * np.ceil((dB - LB_db) / (UB_db - LB_db) * (num_dBlevel-1))
             dBlevel = dBlevel.astype(np.int64)
         return dBlevel
+
+
+### LSTM Models ###
+
+class BeamPredictionLSTMModel(BasePredictionModel):
+    def __init__(self, feature_input_dim, num_bs, num_beampair, params_norm=[20,7]):
+        super().__init__(feature_input_dim, num_bs, params_norm)
+        self.num_class = num_beampair  # num_beampair = M_t*M_r
         
+        self.lstm_layers = self._build_LSTM_layers(
+            input_dim=feature_input_dim,
+            hidden_dim=128,
+            layer_dim=1,
+            dropout=0
+        )
+        
+        # 多任务输出层（每个基站一个输出头）
+        self.output_heads = self._build_output_heads(
+            num_head=self.num_bs, layer_dim_list=[128, 64, 32, 64, 128, self.num_class]
+        )
+    
+    def forward(self, x, hc=None):
+        shared_features, (h_c, c_n) = self.lstm_layers(x, hc)
+        outputs = [head(shared_features[...,-1,:]) for head in self.output_heads]
+        return torch.stack(outputs, dim=-2)
+
+    def pred(self, x):
+        outputs = self.forward(x)
+        _, predicted = torch.max(outputs, -1)
+        return predicted
+
+    def pred_topK(self, x, K=1):
+        outputs = self.forward(x)
+        _, predicted = torch.topk(outputs, k=K, dim=-1, largest=True)
+        return predicted
+    
+    def predict(self, x_np, device, K=1):
+        x_torch = torch.tensor(x_np).to(device)
+        return self.pred_topK(x_torch,K).detach().cpu().numpy()
+      
+        
+class BlockPredictionLSTMModel(BasePredictionModel):
+    def __init__(self, feature_input_dim, num_bs, params_norm=[20,7]):
+        super().__init__(feature_input_dim, num_bs, params_norm)
+        
+        # 共享特征提取层
+        self.lstm_layers = self._build_LSTM_layers(
+            input_dim=feature_input_dim,
+            hidden_dim=128,
+            layer_dim=1,
+            dropout=0
+        )
+        
+        # 多任务输出层（每个基站一个输出头）
+        self.output_heads = self._build_output_heads(
+            num_head=self.num_bs, layer_dim_list=[128, 64, 32, 64, 128, 2]
+        )
+    
+    def forward(self, x, hc=None):
+        shared_features, (h_c, c_n) = self.lstm_layers(x, hc)
+        outputs = [head(shared_features[...,-1,:]) for head in self.output_heads]
+        return torch.stack(outputs, dim=-2)
+
+    def pred(self, x):
+        outputs = self.forward(x)
+        _, predicted = torch.max(outputs, -1)
+        return predicted
+
+    def predict(self, x_np, device):
+        x_torch = torch.tensor(x_np).to(device)
+        return self.pred(x_torch).detach().cpu().numpy()
+   
+     
+class BestGainPredictionLSTMModel(BasePredictionModel):
+    def __init__(self, feature_input_dim, num_bs, params_norm=[20,7]):
+        super().__init__(feature_input_dim, num_bs, params_norm)
+        
+        # 共享特征提取层
+        self.lstm_layers = self._build_LSTM_layers(
+            input_dim=feature_input_dim,
+            hidden_dim=128,
+            layer_dim=1,
+            dropout=0
+        )
+        
+        # 多任务输出层（每个基站一个输出头）
+        self.output_heads = self._build_output_heads(
+            num_head=self.num_bs, layer_dim_list=[128, 64, 64, 32, 1]
+        )
+    
+    def forward(self, x, hc=None):
+        shared_features, (h_c, c_n) = self.lstm_layers(x, hc)
+        outputs = [head(shared_features[...,-1,:]) for head in self.output_heads]
+        return torch.concat(outputs, dim=-1)
+
+    def pred(self, x):
+        outputs = self.forward(x)
+        predicted_bestgain = self.params_norm[0]*( outputs - self.params_norm[1] )
+        return predicted_bestgain
+    
+    def predict(self, x_np, device):
+        x_torch = torch.tensor(x_np).to(device)
+        return self.pred(x_torch).detach().cpu().numpy()
+       
 
 def preprocess_data(data_complex,pos_in_data):
     # 预处理数据：将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
@@ -456,7 +570,6 @@ class GenericTrainer:
         
         with torch.set_grad_enabled(is_train):
             for inputs, labels in loader:
-                # inputs, labels = self.preprocess_data(inputs), labels.to(self.device)
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
                 
                 if is_train:
@@ -464,7 +577,6 @@ class GenericTrainer:
                     
                 outputs = self.model(inputs)
                 loss = self.criterion(outputs, labels)
-                #loss = self.criterion(outputs.view(-1,outputs.size(-1)), labels.view(-1))
                 if is_train:
                     loss.backward()
                     self.optimizer.step()
@@ -623,8 +735,7 @@ def train_blockpred_model(num_epochs, device, data_complex, labels, M_t, M_r, po
         'pos_in_data': pos_in_data,
         'model_args': {
             'feature_input_dim': data_complex.shape[-1] * 2 - pos_in_data * 2,  # 复数转实数的维度
-            'num_bs': labels.shape[-1],
-            'num_beampair': M_t * M_r
+            'num_bs': labels.shape[-1]
         },
         'metrics': {
             'acc': lambda o, l: (o.argmax(-1) == l).float().mean().item(),
@@ -649,6 +760,73 @@ def train_pospred_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_
         'metrics': {
             'mae': lambda o, l: (o - l).square().sum(-1).sqrt().mean().item()*100,
             'rmse': lambda o, l: (o - l).square().sum(-1).mean().sqrt().item()*100,
+        },
+        'loss_func': nn.MSELoss(),
+        'split_ratio': 0.7,
+    }
+    trainer = build_trainer(config)
+    return trainer.train(num_epochs)
+
+
+
+# 序列预测
+def train_beampred_lstm_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
+    config = {
+        'device': device,
+        'data_complex': data_complex,
+        'labels': labels,
+        'model_class': BeamPredictionLSTMModel,
+        'pos_in_data': pos_in_data,
+        'model_args': {
+            'feature_input_dim': data_complex.shape[-1] * 2 - pos_in_data * 2,  # 复数转实数的维度
+            'num_bs': labels.shape[-1],
+            'num_beampair': M_t * M_r
+        },
+        'metrics': {
+            'acc': lambda o, l: (o.argmax(-1) == l).float().mean().item(),
+            'top3_acc': lambda o, l: (o.topk(3, dim=-1).indices == l.unsqueeze(-1)).any(-1).float().mean().item(),
+        },
+        'loss_func': lambda o, l: nn.CrossEntropyLoss()(o.view(-1,o.size(-1)), l.view(-1)),
+        'split_ratio': 0.7,
+    }
+    trainer = build_trainer(config)
+    return trainer.train(num_epochs)
+
+def train_blockpred_lstm_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
+    config = {
+        'device': device,
+        'data_complex': data_complex,
+        'labels': labels,
+        'model_class': BlockPredictionLSTMModel,
+        'pos_in_data': pos_in_data,
+        'model_args': {
+            'feature_input_dim': data_complex.shape[-1] * 2 - pos_in_data * 2,  # 复数转实数的维度
+            'num_bs': labels.shape[-1]
+        },
+        'metrics': {
+            'acc': lambda o, l: (o.argmax(-1) == l).float().mean().item(),
+        },
+        'loss_func': lambda o, l: nn.CrossEntropyLoss()(o.view(-1,o.size(-1)), l.view(-1)),
+        'split_ratio': 0.7,
+    }
+    trainer = build_trainer(config)
+    return trainer.train(num_epochs)
+
+def train_gainpred_lstm_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
+    config = {
+        'device': device,
+        'data_complex': data_complex,
+        'labels': labels,
+        'model_class': BestGainPredictionLSTMModel,
+        'pos_in_data': pos_in_data,
+        'model_args': {
+            'feature_input_dim': data_complex.shape[-1] * 2 - pos_in_data * 2,  # 复数转实数的维度
+            'num_bs': labels.shape[-1]
+        },
+        'metrics': {
+            'mae': lambda o, l: (o - l).abs().mean().item()*20,
+            'mse': lambda o, l: ((o - l) ** 2).mean().item()*400,
+            'rmse': lambda o, l: ((o - l) ** 2).mean().sqrt().item()*20,
         },
         'loss_func': nn.MSELoss(),
         'split_ratio': 0.7,

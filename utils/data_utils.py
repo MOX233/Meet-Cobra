@@ -35,7 +35,8 @@ def generate_complex_gaussian_vector(shape, scale=1.0, mean=0.0):
     complex_array = real_part + 1j * imag_part
     return complex_array
 
-def prepare_dataset(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound = 1e15, P_t=1e-1, P_noise=1e-14, n_pilot=16, mode=0, pos_std=1):
+def prepare_dataset(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound = 1e15, P_t=1e-1, P_noise=1e-14, n_pilot=16, mode=0, pos_std=1, look_ahead_len=0):
+    assert look_ahead_len >= 0
     DFT_matrix_tx = generate_dft_codebook(M_t)
     DFT_matrix_rx = generate_dft_codebook(M_r)
     with open(sionna_result_filepath, 'rb') as f:
@@ -45,46 +46,78 @@ def prepare_dataset(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound 
     veh_pos_list = []
     veh_h_list = []
     sample_interval = int(M_t/n_pilot) if n_pilot>0 else int(1e9)
-    for frame in trajectoryInfo.keys():
-        print('prepare_dataset: ',frame)
+    
+    frame_list = list(trajectoryInfo.keys())
+    num_frame = len(frame_list) - look_ahead_len
+    # 遍历每一帧
+    # trajectoryInfo.keys() 代表每一帧的索引
+    # trajectoryInfo[frame].keys() 代表每一帧中所有车辆的索引
+    # trajectoryInfo[frame][veh]['h'] 代表每一帧中每辆车的信道矩阵 shape  (8, 4, 64)
+    # trajectoryInfo[frame][veh]['pos'] 代表每一帧中每辆车的位置 shape  (2,)
+    
+    for i in range(num_frame):
+        frame, look_ahead_frame = frame_list[i], frame_list[i+look_ahead_len]
+        print(f'prepare_dataset {i+1}/{num_frame} : frame {frame}') 
         for veh in trajectoryInfo[frame].keys():
-            veh_h = trajectoryInfo[frame][veh]['h']
-            veh_pos = trajectoryInfo[frame][veh]['pos']
-            # characteristics data
-            # trajectoryInfo[frame][veh]['h'].shape  (8, 4, 64)
-            
-            if mode == 0: # 所有BS同时发射pilot，一共有n_pilot个不同方向
-                #data = veh_h.sum(axis=-1).reshape(-1)
-                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
-                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
-                data = (data + n).astype(np.complex64)
-            elif mode == 1: # 各BS轮流发射pilot，每个BS各有n_pilot个不同方向，一共有n_bs*n_pilot个不同方向
-                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].reshape(-1)
-                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
-                data = (data + n).astype(np.complex64)
-            elif mode == 2: # mode0 的基础上加上了position信息
-                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
-                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
-                data = (data + n).astype(np.complex64)
-                data = np.concatenate([data,veh_pos+np.random.normal(loc=0, scale=pos_std/np.sqrt(2), size=(2,))])
-                # import ipdb;ipdb.set_trace()
+            if look_ahead_len == 0:
+                veh_h = trajectoryInfo[frame][veh]['h']
+                veh_pos = trajectoryInfo[frame][veh]['pos']
+                # characteristics data
+                # trajectoryInfo[frame][veh]['h'].shape  (8, 4, 64)
+                if mode == 0: # 所有BS同时发射pilot，一共有n_pilot个不同方向
+                    #data = veh_h.sum(axis=-1).reshape(-1)
+                    data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
+                    n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                    data = (data + n).astype(np.complex64)
+                elif mode == 1: # 各BS轮流发射pilot，每个BS各有n_pilot个不同方向，一共有n_bs*n_pilot个不同方向
+                    data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].reshape(-1)
+                    n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                    data = (data + n).astype(np.complex64)
+                elif mode == 2: # mode0 的基础上加上了position信息
+                    data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
+                    n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                    data = (data + n).astype(np.complex64)
+                    data = np.concatenate([data,veh_pos+np.random.normal(loc=0, scale=pos_std/np.sqrt(2), size=(2,))])
+                    # import ipdb;ipdb.set_trace()
+                else:
+                    raise ValueError("mode should be 0, 1 or 2")
+                # best_beam_pair_index for N_bs BSs
+                best_beam_pair_index = np.abs(np.matmul(np.matmul(veh_h, DFT_matrix_tx).T.conjugate(),DFT_matrix_rx).transpose([1,0,2]).reshape(N_bs,-1)).argmax(axis=-1)
             else:
-                data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
-                n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
-                data = (data + n).astype(np.complex64)
-            
-            
-            data_list.append(data) # shape = (M_t*N_bs,), dtype = np.complex
-            
-            # best_beam_pair_index for N_bs BSs
-            best_beam_pair_index = np.abs(np.matmul(np.matmul(veh_h, DFT_matrix_tx).T.conjugate(),DFT_matrix_rx).transpose([1,0,2]).reshape(N_bs,-1)).argmax(axis=-1)
+                if veh not in trajectoryInfo[look_ahead_frame].keys():
+                    continue
+                # 车辆在look_ahead_frame中也存在
+                veh_h = np.stack([trajectoryInfo[frame_list[j]][veh]['h'] for j in range(i, i+look_ahead_len+1)], axis=0)
+                veh_pos = np.stack([trajectoryInfo[frame_list[j]][veh]['pos'] for j in range(i, i+look_ahead_len+1)], axis=0)
+                if mode == 0: # 所有BS同时发射pilot，一共有n_pilot个不同方向
+                    #data = veh_h.sum(axis=-1).reshape(-1)
+                    data = np.stack([np.sqrt(P_t)*np.matmul(veh_h[j], DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1) for j in range(look_ahead_len+1)], axis=0)
+                    # data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
+                    n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                    data = (data + n).astype(np.complex64)
+                elif mode == 1: # 各BS轮流发射pilot，每个BS各有n_pilot个不同方向，一共有n_bs*n_pilot个不同方向
+                    data = np.stack([np.sqrt(P_t)*np.matmul(veh_h[j], DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].reshape(-1) for j in range(look_ahead_len+1)], axis=0)
+                    # data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].reshape(-1)
+                    n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                    data = (data + n).astype(np.complex64)
+                elif mode == 2: # mode0 的基础上加上了position信息
+                    data = np.stack([np.sqrt(P_t)*np.matmul(veh_h[j], DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1) for j in range(look_ahead_len+1)], axis=0)
+                    # data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
+                    n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
+                    data = (data + n).astype(np.complex64)
+                    data = np.concatenate([data,veh_pos+np.random.normal(loc=0, scale=pos_std/np.sqrt(2), size=(look_ahead_len+1,2))], axis=-1)
+                    # data = np.concatenate([data,veh_pos+np.random.normal(loc=0, scale=pos_std/np.sqrt(2), size=(2,))])
+                    # import ipdb;ipdb.set_trace()
+                else:
+                    raise ValueError("mode should be 0, 1 or 2")
+                # best_beam_pair_index for N_bs BSs
+                best_beam_pair_index = np.stack([np.abs(np.matmul(np.matmul(veh_h[j], DFT_matrix_tx).T.conjugate(),DFT_matrix_rx).transpose([1,0,2]).reshape(N_bs,-1)).argmax(axis=-1) for j in range(look_ahead_len+1)], axis=0)
+                
+            data_list.append(data)
             best_beam_pair_index_list.append(best_beam_pair_index)
-
-            # vehicle h
             veh_h_list.append(veh_h)
-            
-            # vehicle position
             veh_pos_list.append(veh_pos)
+                
             if len(veh_pos_list) >= datasize_upperbound:
                 break
         if len(veh_pos_list) >= datasize_upperbound:
@@ -97,9 +130,12 @@ def prepare_dataset(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound 
 
     return data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np
 
-def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise):
+def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise, look_ahead_len=0, datasize_upperbound = 1e9):
     # 加载数据集
-    prepared_dataset_filename = f'{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}'
+    if look_ahead_len == 0:
+        prepared_dataset_filename = f'{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}'
+    else:
+        prepared_dataset_filename = f'{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}_lookahead{look_ahead_len}'
     prepared_dataset_filepath = os.path.join('./prepared_dataset/',prepared_dataset_filename+'.pkl')
     if os.path.exists(prepared_dataset_filepath):
         f_read = open(prepared_dataset_filepath, 'rb')
@@ -109,9 +145,8 @@ def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pi
         f_read.close()
     else:
         filepath = f'./sionna_result/trajectoryInfo_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
-        datasize_upperbound = 1e9
         data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np = \
-            prepare_dataset(filepath,M_t, M_r, N_bs,datasize_upperbound,P_t, P_noise, n_pilot, mode=preprocess_mode)
+            prepare_dataset(filepath,M_t, M_r, N_bs,datasize_upperbound,P_t, P_noise, n_pilot, mode=preprocess_mode, look_ahead_len=look_ahead_len)
         prepared_dataset = {}
         prepared_dataset['data_np'] = data_np
         prepared_dataset['best_beam_pair_index_np'] = best_beam_pair_index_np

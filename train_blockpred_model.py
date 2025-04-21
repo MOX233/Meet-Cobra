@@ -19,20 +19,25 @@ if __name__ == "__main__":
     freq = 28e9
     DS_start, DS_end = 300, 700
     preprocess_mode = 2
+    look_ahead_len = 1
     n_pilot = 16
     M_r, N_bs, M_t = 8, 4, 64
     P_t = 1e-1
     P_noise = 1e-14 # -174dBm/Hz * 1.8MHz = 7.165929069962946e-15 W
-    gpu = 7
+    gpu = 2
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('Using device: ', device)
 
     prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np \
-        = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise)
-    data_torch = np2torch(data_np,device) 
-    veh_h_torch = np2torch(veh_h_np,device) 
-    veh_pos_torch = np2torch(veh_pos_np,device) 
-    best_beam_pair_index_torch = np2torch(best_beam_pair_index_np,device)
+        = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise, look_ahead_len)
+    # data_torch = np2torch(data_np,device) 
+    # veh_h_torch = np2torch(veh_h_np,device) 
+    # veh_pos_torch = np2torch(veh_pos_np,device) 
+    # best_beam_pair_index_torch = np2torch(best_beam_pair_index_np,device)
+    data_torch = np2torch(data_np[:,0,...],device) 
+    veh_h_torch = np2torch(veh_h_np[:,-1,...],device) 
+    veh_pos_torch = np2torch(veh_pos_np[:,-1,...],device) 
+    best_beam_pair_index_torch = np2torch(best_beam_pair_index_np[:,-1,...],device)
     block_labels = (veh_h_torch[:,0,:,0]==0).long().to(device)
     
     num_epochs =  50
