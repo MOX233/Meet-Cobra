@@ -18,7 +18,7 @@ if __name__ == "__main__":
     # 设置随机数种子
     setup_seed(20)
     freq = 28e9
-    DS_start, DS_end = 300, 700
+    DS_start, DS_end = 400, 800
     preprocess_mode = 2
     look_ahead_len = 3
     n_pilot = 16

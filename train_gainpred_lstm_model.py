@@ -18,7 +18,7 @@ if __name__ == "__main__":
     # 设置随机数种子
     setup_seed(20)
     freq = 28e9
-    DS_start, DS_end = 300, 700
+    DS_start, DS_end = 400, 800
     preprocess_mode = 2
     look_ahead_len = 3
     n_pilot = 16
@@ -31,10 +31,6 @@ if __name__ == "__main__":
 
     prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np \
         = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise, look_ahead_len)
-    # data_torch = np2torch(data_np,device) 
-    # veh_h_torch = np2torch(veh_h_np,device) 
-    # veh_pos_torch = np2torch(veh_pos_np,device) 
-    # best_beam_pair_index_torch = np2torch(best_beam_pair_index_np,device)
     data_torch = np2torch(data_np[:,:-1,...],device) 
     veh_h_torch = np2torch(veh_h_np[:,-1,...],device) 
     veh_pos_torch = np2torch(veh_pos_np[:,-1,...],device) 

@@ -1,182 +1,141 @@
+import os
+import shutil
 import time
+import subprocess
+import threading
+import collections
 import pickle
-import matplotlib.pyplot as plt
-import drjit as dr
-import mitsuba as mi
 import numpy as np
-# Import or install Sionna
-try:
-    import sionna.rt
-except ImportError as e:
-    import os
-    os.system("pip install sionna-rt")
-    import sionna.rt
+from concurrent.futures import ThreadPoolExecutor
 
-no_preview = True # Toggle to False to use the preview widget
-                  # instead of rendering for scene visualization
-
-from sionna.rt import load_scene, PlanarArray, Transmitter, Receiver, Camera,\
-                      PathSolver, ITURadioMaterial, SceneObject, subcarrier_frequencies
-
-from utils.options import args_parser
-from utils.sumo_utils import read_trajectoryInfo_timeindex
-
-# 设置参数
-N_t_H = 1  
-N_t_V = 64  
-
-N_r_H = 1   
-N_r_V = 8   
-
-
-args = args_parser()
-args.trajectoryInfo_path = './sumo_data/trajectory_Lbd0.10.csv'
-start_time=400
-end_time=800
-frequency = 28e9 # 5.9e9
-pattern = "iso" # "tr38901"
-h_car = 1.6
-h_rx = 3
-h_tx = 30
-
-trajectoryInfo = read_trajectoryInfo_timeindex(
-    args,
-    start_time=start_time,
-    end_time=end_time,
-    display_intervel=0.05,
-)
-channel_gains_list = []
-
-car_material = ITURadioMaterial("car-material",
-                                "metal",
-                                thickness=0.01,
-                                color=(0.8, 0.1, 0.1))
-#for scene_time in 500+0.1*np.array(list(range(10))):
-scene = load_scene('scene_from_sionna.xml',merge_shapes=False)
-
-Road_horizontal1 = scene.get('Road_horizontal1')
-Road_horizontal1.radio_material = 'itu_concrete'
-Road_horizontal2 = scene.get('Road_horizontal2')
-Road_horizontal2.radio_material = 'itu_concrete'
-Road_vertical1 = scene.get('Road_vertical1')
-Road_vertical1.radio_material = 'itu_concrete'
-Road_vertical2 = scene.get('Road_vertical2')
-Road_vertical2.radio_material = 'itu_concrete'
-
-# Configure antenna array for all transmitters
-scene.tx_array = PlanarArray(num_rows=N_t_H,
-                            num_cols=N_t_V,
-                            vertical_spacing=0.5,
-                            horizontal_spacing=0.5,
-                            pattern=pattern,
-                            polarization="V")
-
-# Configure antenna array for all receivers
-scene.rx_array = PlanarArray(num_rows=N_r_H,
-                            num_cols=N_r_V,
-                            vertical_spacing=0.5,
-                            horizontal_spacing=0.5,
-                            pattern=pattern,
-                            polarization="V")
-
-# Create transmitter
-tx1 = Transmitter(name="tx_1",
-                position=[300,300,h_tx])
-tx2 = Transmitter(name="tx_2",
-                position=[-300,300,h_tx])
-tx3 = Transmitter(name="tx_3",
-                position=[300,-300,h_tx])
-tx4 = Transmitter(name="tx_4",
-                position=[-300,-300,h_tx])
-tx1.look_at(mi.Point3f(0,0,0))
-tx2.look_at(mi.Point3f(0,0,0))
-tx3.look_at(mi.Point3f(0,0,0))
-tx4.look_at(mi.Point3f(0,0,0))
-
-# Add transmitter instance to scene
-scene.add(tx1)
-scene.add(tx2)
-scene.add(tx3)
-scene.add(tx4)
-
-for scene_time in trajectoryInfo.keys():
-    _time = time.time()
-    # for name, obj in scene.objects.items():
-    #     print(f'{name:<15}{obj.radio_material.name}')
-    car_positions = []
-    car_velocities = []
-    rx_positions = []
-    rx_velocities = []
+def run_subprocess(params, timeout):
+    """
+    执行子进程的线程函数
+    :param params: 参数字典
+    :param timeout: 子进程超时时间（秒）
+    """
+    # 构建命令行参数
+    cmd = ["python", "generate_data_3Dbeam_subprocess.py"]
+    for k, v in params.items():
+        cmd.append(f"--{k}={v}")
     
-    num_cars = len(trajectoryInfo[scene_time])
-    cars = [SceneObject(fname=sionna.rt.scene.low_poly_car, # Simple mesh of a car
-                    name=f"car_{i+1}",
-                    radio_material=car_material)
-        for i in range(num_cars)]
-    scene.edit(add=cars)
-    
-    for i,v in enumerate(trajectoryInfo[scene_time].values()):
-        car = cars[i]
-        x, y = v['pos']
-        v, angle = v['v'], v['angle']
-        v_x, v_y = v*np.cos(angle), v*np.sin(angle)
+    try:
+        # 执行子进程并捕获输出
+        result = subprocess.run(
+            cmd,
+            check=True,
+            timeout=timeout,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
         
-        car.position = mi.Point3f(x.item(), y.item(), h_car)
-        car.velocity = mi.Point3f(v_x.item(), v_y.item(), 0)
-        car.orientation = mi.Point3f((angle/180+0.5)*np.pi, 0, 0)
-        car_positions.append(car.position)
-        car_velocities.append(car.velocity)
-        rx_positions.append([x.item(),y.item(),h_rx])
-        rx_velocities.append(car.velocity)
+        # 记录执行结果
+        log = f"""
+        Task {params['sionna_start_time']:.1f}-{params['sionna_end_time']:.1f} completed!
+        """
+        print(log)
         
-        # Create a receiver
-        # rx = Receiver(name=f"rx_{i+1}",
-        #             position=car.position,
-        #             orientation=car.orientation,
-        #             display_radius=0.5,)
-        rx = Receiver(name=f"rx_{i+1}",
-                    position=rx_positions[i],
-                    orientation=[(angle/180-0.5)*np.pi,0,0],
-                    display_radius=0.5,)
-        # Add receiver instance to scene
-        scene.add(rx)
-    
+    except subprocess.TimeoutExpired:
+        print(f"ERROR: Task {params['sionna_start_time']:.1f}-{params['sionna_end_time']:.1f} timed out after {timeout}s")
+    except subprocess.CalledProcessError as e:
+        error_msg = f"""
+        ERROR in Task {params['sionna_start_time']:.1f}-{params['sionna_end_time']:.1f}:
+        Exit code: {e.returncode}
+        Error output: {e.stderr[:5000]}...
+        """
+        print(error_msg)
 
-    scene.frequency = frequency # in Hz; implicitly updates RadioMaterials
-
-    scene.synthetic_array = True # If set to False, ray tracing will be done per antenna element (slower for large arrays)
+def main(
+    start_time, 
+    end_time, 
+    subprocess_time=1, 
+    max_workers=3, # 最大线程数
+    timeout=3600, # 子进程超时时间（秒）
+    gpu=7, # GPU编号
+    sumo_traj_path="./sumo_data/trajectory_Lbd0.10.csv",
+    freq=28e9, # 28e9 or 5.9e9
+    antenna_pattern="iso", # "iso" or "tr38901"
+    N_t_H=1,
+    N_t_V=64,
+    N_r_H=1,
+    N_r_V=64,
+    h_car=1.6,
+    h_rx=3,
+    h_tx=30,
+    ):
     
-    # Compute propagation paths
-    p_solver = PathSolver()
-    paths = p_solver(scene, max_depth=5)
+    sionna_result_file_save_path = f"./sionna_result/trajectoryInfo_{start_time}_{end_time}_3Dbeam_tx({N_t_H},{N_t_V})_rx({N_r_H},{N_r_V})_freq{freq:.1e}.pkl"
+    sionna_result_tmp_dir = f"./sionna_result/_tmp_({start_time:.1f},{end_time:.1f})" + time.strftime("_%Y-%m-%d_%H:%M:%S", time.gmtime(time.time() + 8 * 3600)) 
     
-    # a, tau = paths.cir(normalize_delays=True, out_type="numpy")
-    
-    
-    # OFDM system parameters
-    num_subcarriers = 1024
-    subcarrier_spacing=30e3
-
-    # Compute frequencies of subcarriers relative to the carrier frequency
-    frequencies = subcarrier_frequencies(num_subcarriers, subcarrier_spacing)
-    h_freq = paths.cfr(frequencies=frequencies,
-                   normalize=False,
-                   normalize_delays=True,
-                   out_type="numpy")
-    
-    channel_gains = h_freq[:,:,:,:,0,0]
-    channel_gains_list.append(channel_gains)
-    
-    for i,k in enumerate(trajectoryInfo[scene_time].keys()):
-        trajectoryInfo[scene_time][k]['h'] = channel_gains[i,:,:]
-
-    scene.edit(remove=cars)
-    for i,v in enumerate(trajectoryInfo[scene_time].values()):
-        scene.remove(f"rx_{i+1}")
-        scene.remove(f"car_{i+1}")
+    # 设置子进程参数列表
+    PARAMETERS = []
+    for subprocess_start_time in np.arange(start_time, end_time, subprocess_time):
+        subprocess_end_time = min(subprocess_start_time + subprocess_time, end_time)
+        PARAMETERS.append({
+            "sionna_start_time": subprocess_start_time, 
+            "sionna_end_time": subprocess_end_time,
+            "sionna_result_tmp_dir": sionna_result_tmp_dir,
+            "gpu": gpu,
+            "trajectoryInfo_path": sumo_traj_path,
+            "freq": freq,
+            "antenna_pattern": antenna_pattern,
+            "N_t_H": N_t_H,
+            "N_t_V": N_t_V,
+            "N_r_H": N_r_H,
+            "N_r_V": N_r_V,
+            "h_car": h_car,
+            "h_rx": h_rx,
+            "h_tx": h_tx,
+            })
+    # 多线程执行子进程
+    with ThreadPoolExecutor(max_workers) as executor:
+        futures = []
+        for params in PARAMETERS:
+            future = executor.submit(run_subprocess, params, timeout)
+            futures.append(future)
+        # 等待所有任务完成
+        for future in futures:
+            try:
+                future.result()  # 获取执行结果（自动处理异常）
+            except Exception as e:
+                print(f"Unexpected error: {str(e)}")
+    # 合并结果
+    main_trajectoryInfo = collections.OrderedDict()
+    for params in PARAMETERS:
+        subprocess_start_time = params["sionna_start_time"]
+        subprocess_end_time = params["sionna_end_time"]
+        with open(os.path.join(sionna_result_tmp_dir, f"time({subprocess_start_time:.1f},{subprocess_end_time:.1f})_tx({N_t_H},{N_t_V})_rx({N_r_H},{N_r_V})_freq{freq:.1e}.pkl"), "rb") as tf:
+            sub_trajectoryInfo = pickle.load(tf)
+            main_trajectoryInfo.update(sub_trajectoryInfo)
+    # 保存结果
+    with open(sionna_result_file_save_path, "wb") as tf:
+        pickle.dump(main_trajectoryInfo,tf)
+        print("successfully save trajectoryInfo to file ",sionna_result_file_save_path)
+    # 删除临时文件
+    if os.path.exists(sionna_result_tmp_dir):
+        shutil.rmtree(sionna_result_tmp_dir)
+        print(f"Temporary directory {sionna_result_tmp_dir} deleted.")
+    else:
+        print(f"Temporary directory {sionna_result_tmp_dir} does not exist.")
         
-    print('loaded scene_time=',scene_time, ' process time=',time.time()-_time, ' s')
-# 保存文件
-with open(f"./sionna_result/trajectoryInfo_{start_time}_{end_time}_3Dbeam_tx({N_t_H},{N_t_V})_rx({N_r_H},{N_r_V})_freq{frequency:.1e}.pkl", "wb") as tf:
-    pickle.dump(trajectoryInfo,tf)
-    print('successfully save trajectoryInfo to file')
+if __name__ == "__main__":
+    main(
+    start_time=400, 
+    end_time=401.5, 
+    subprocess_time=1, 
+    max_workers=10, # 最大线程数
+    timeout=3600, # 子进程超时时间（秒）
+    gpu=7, # GPU编号
+    sumo_traj_path="./sumo_data/trajectory_Lbd0.10.csv",
+    freq=28e9, # 28e9 or 5.9e9
+    antenna_pattern="iso", # "iso" or "tr38901"
+    N_t_H=1,
+    N_t_V=64,
+    N_r_H=1,
+    N_r_V=64,
+    h_car=1.6,
+    h_rx=3,
+    h_tx=30,
+    )
+    

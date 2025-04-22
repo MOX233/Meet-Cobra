@@ -140,29 +140,7 @@ def args_parser():
         default=10 ** (-17.4 - 3),
         help="the noise power spectral density (-174 dBm/Hz -> 10**(-17.4-3) W/Hz)",
     )
-
-    # MM prediction arguments
-    parser.add_argument(
-        "--ifps",
-        type=int,
-        default=10,
-        help="the frame number of one input sample for mobility prediction",
-    )
-
-    parser.add_argument(
-        "--ofps",
-        type=int,
-        default=1,
-        help="the frame number of one output sample for mobility prediction",
-    )
-
-    parser.add_argument(
-        "--sample_interval",
-        type=int,
-        default=1,
-        help="the interval frame number of two successive samples",
-    )
-
+    
     # other arguments
     parser.add_argument("--gpu", type=int, default=0, help="GPU ID, -1 for CPU")
 
@@ -182,7 +160,7 @@ def args_parser():
     parser.add_argument(
         "--trajectoryInfo_path",
         type=str,
-        default="./sumo_result/trajectory.csv",
+        default="./sumo_data/trajectory_Lbd0.10.csv",
         help="the file path where stores the trajectory infomation of cars",
     )
     parser.add_argument(
@@ -218,5 +196,74 @@ def args_parser():
     parser.add_argument("--speedFactoer_dev", type=float, default=0, help="")
     parser.add_argument("--speedFactoer_min", type=float, default=1, help="")
     parser.add_argument("--speedFactoer_max", type=float, default=1, help="")
+    
+    # sionna arguments
+    parser.add_argument(
+        "--sionna_start_time", type=float, default=100, help="Sionna simulation start time"
+    )
+    parser.add_argument(
+        "--sionna_end_time", type=float, default=200, help="Sionna simulation end time"
+    )
+    parser.add_argument(
+        "--sionna_result_tmp_dir",
+        type=str,
+        default="./sionna_result/_tmp",
+        help="the directory where saves the tmp files for sionna running",
+    )
+    parser.add_argument(
+        "--h_car",
+        type=float,
+        default=1.6,
+        help="the height of the car",
+    )
+    parser.add_argument(
+        "--h_tx",
+        type=float,
+        default=30,
+        help="the height of the tx",
+    )
+    parser.add_argument(
+        "--h_rx",
+        type=float,
+        default=3,
+        help="the height of the rx",
+    )
+    parser.add_argument(
+        "--freq",
+        type=float,
+        default=28e9,
+        help="the frequency of the signal",
+    )
+    parser.add_argument(
+        "--N_t_H",
+        type=int,
+        default=1,
+        help="the row number of the tx antennas",
+    )
+    parser.add_argument(
+        "--N_t_V",
+        type=int,
+        default=64,
+        help="the column number of the tx antennas",
+    )
+    parser.add_argument(
+        "--N_r_H",
+        type=int,
+        default=1,
+        help="the row number of the rx antennas",
+    )
+    parser.add_argument(
+        "--N_r_V",
+        type=int,
+        default=8,
+        help="the column number of the rx antennas",
+    )
+    parser.add_argument(
+        "--antenna_pattern",
+        type=str,
+        default="iso",
+        help="the antenna pattern, which can be 'iso' or 'tr38901'",
+    )
+    
     args = parser.parse_args()
     return args
