@@ -9,7 +9,7 @@ import torch
 
 from utils.NN_utils import BeamPredictionModel, train_gainpred_model
 from utils.options import args_parser
-from utils.mox_utils import setup_seed, get_save_dirs, np2torch, save_NN_results
+from utils.mox_utils import setup_seed, get_save_dirs, save_NN_results
 from utils.plot_utils import plot_record_metrics
 from utils.data_utils import get_prepared_dataset, prepare_dataset
 from utils.beam_utils import generate_dft_codebook, beamPairId_to_beamIdPair
@@ -18,8 +18,8 @@ if __name__ == "__main__":
     # 设置随机数种子
     setup_seed(20)
     freq = 28e9
-    DS_start, DS_end = 300, 700
-    preprocess_mode = 2
+    DS_start, DS_end = 200, 800
+    preprocess_mode = 0
     look_ahead_len = 1
     n_pilot = 16
     M_r, N_bs, M_t = 8, 4, 64
@@ -31,14 +31,12 @@ if __name__ == "__main__":
 
     prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np \
         = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise, look_ahead_len)
-    # data_torch = np2torch(data_np,device) 
-    # veh_h_torch = np2torch(veh_h_np,device) 
-    # veh_pos_torch = np2torch(veh_pos_np,device) 
-    # best_beam_pair_index_torch = np2torch(best_beam_pair_index_np,device)
-    data_torch = np2torch(data_np[:,0,...],device) 
-    veh_h_torch = np2torch(veh_h_np[:,-1,...],device) 
-    veh_pos_torch = np2torch(veh_pos_np[:,-1,...],device) 
-    best_beam_pair_index_torch = np2torch(best_beam_pair_index_np[:,-1,...],device)
+    # data_torch = torch.tensor(data_np) 
+    # veh_h_torch = torch.tensor(veh_h_np) 
+    # best_beam_pair_index_torch = torch.tensor(best_beam_pair_index_np)
+    data_torch = torch.tensor(data_np[:,0,...]) 
+    veh_h_torch = torch.tensor(veh_h_np[:,-1,...]) 
+    best_beam_pair_index_torch = torch.tensor(best_beam_pair_index_np[:,-1,...])
     
     DFT_tx = generate_dft_codebook(M_t)
     DFT_rx = generate_dft_codebook(M_r)
@@ -52,7 +50,7 @@ if __name__ == "__main__":
             g_opt[veh,bs] = 1/np.sqrt(M_t*M_r)*np.abs(np.matmul(np.matmul(channel[veh,:,bs,:], DFT_tx[:,beamIdPair[veh,bs,0]]).T.conjugate(),DFT_rx[:,beamIdPair[veh,bs,1]]))
             g_opt[veh,bs] = 20 * np.log10(g_opt[veh,bs] + 1e-9) 
     g_opt_normalized = g_opt / 20 + 7
-    gain_labels = torch.tensor(g_opt_normalized).to(device)
+    gain_labels = torch.tensor(g_opt_normalized)
     
     num_epochs =  50
     # 运行训练

@@ -59,10 +59,10 @@ def main(
     N_t_H=1,
     N_t_V=64,
     N_r_H=1,
-    N_r_V=64,
+    N_r_V=8,
     h_car=1.6,
     h_rx=3,
-    h_tx=30,
+    h_tx=35,
     ):
     
     sionna_result_file_save_path = f"./sionna_result/trajectoryInfo_{start_time}_{end_time}_3Dbeam_tx({N_t_H},{N_t_V})_rx({N_r_H},{N_r_V})_freq{freq:.1e}.pkl"
@@ -101,11 +101,17 @@ def main(
             except Exception as e:
                 print(f"Unexpected error: {str(e)}")
     # 合并结果
+    missing_files = []
     main_trajectoryInfo = collections.OrderedDict()
     for params in PARAMETERS:
         subprocess_start_time = params["sionna_start_time"]
         subprocess_end_time = params["sionna_end_time"]
-        with open(os.path.join(sionna_result_tmp_dir, f"time({subprocess_start_time:.1f},{subprocess_end_time:.1f})_tx({N_t_H},{N_t_V})_rx({N_r_H},{N_r_V})_freq{freq:.1e}.pkl"), "rb") as tf:
+        subprocess_result_file = os.path.join(sionna_result_tmp_dir, f"time({subprocess_start_time:.1f},{subprocess_end_time:.1f})_tx({N_t_H},{N_t_V})_rx({N_r_H},{N_r_V})_freq{freq:.1e}.pkl")
+        if not os.path.exists(subprocess_result_file):
+            missing_files.append(subprocess_result_file)
+            print(f"Missing File {subprocess_result_file}.")
+            continue
+        with open(subprocess_result_file, "rb") as tf:
             sub_trajectoryInfo = pickle.load(tf)
             main_trajectoryInfo.update(sub_trajectoryInfo)
     # 保存结果
@@ -121,10 +127,10 @@ def main(
         
 if __name__ == "__main__":
     main(
-    start_time=400, 
-    end_time=401.5, 
+    start_time=800, 
+    end_time=950, 
     subprocess_time=1, 
-    max_workers=10, # 最大线程数
+    max_workers=5, # 最大线程数
     timeout=3600, # 子进程超时时间（秒）
     gpu=7, # GPU编号
     sumo_traj_path="./sumo_data/trajectory_Lbd0.10.csv",
@@ -133,9 +139,9 @@ if __name__ == "__main__":
     N_t_H=1,
     N_t_V=64,
     N_r_H=1,
-    N_r_V=64,
+    N_r_V=8,
     h_car=1.6,
     h_rx=3,
-    h_tx=30,
+    h_tx=35,
     )
     

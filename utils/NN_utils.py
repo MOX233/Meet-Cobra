@@ -16,6 +16,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from collections import defaultdict
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pack_sequence, pad_sequence
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
 import numpy as np
@@ -23,152 +24,67 @@ import numpy as np
 EPS = 1e-9
 
 # 定义神经网络模型
-class MLP(nn.Module):
-    def __init__(self, input_dim, hidden_dim_list, output_dim):
-        super(MLP, self).__init__()
-        self.num_fc = len(hidden_dim_list) + 1
-        self.dim_list = copy.copy(hidden_dim_list)
-        self.dim_list.insert(0, input_dim)
-        self.dim_list.append(output_dim)
-        self.network = nn.Sequential()
-        for i in range(self.num_fc):
-            self.network.add_module(
-                "fc" + str(i), nn.Linear(self.dim_list[i], self.dim_list[i + 1])
+class VectorResBlock(nn.Module):
+    def __init__(self, in_features, out_features):
+        """
+        适用于向量的残差块实现
+        结构：Linear -> BN -> ReLU -> Linear -> BN -> Add -> ReLU
+        
+        参数：
+            in_features:  输入特征维度
+            out_features: 输出特征维度
+        """
+        super().__init__()
+        
+        # 主路径
+        self.fc1 = nn.Linear(
+            in_features, 
+            out_features, 
+            bias=False  # 使用BN时无需bias
+        )
+        self.bn1 = nn.BatchNorm1d(in_features)
+        
+        self.fc2 = nn.Linear(
+            out_features, 
+            out_features, 
+            bias=False
+        )
+        self.bn2 = nn.BatchNorm1d(out_features)
+        
+        self.relu = nn.ReLU(inplace=True)
+        
+        # 捷径路径（当维度不匹配时启用）
+        self.downsample = None
+        if in_features != out_features:
+            self.downsample = nn.Sequential(
+                nn.Linear(
+                    in_features, 
+                    out_features, 
+                    bias=False
+                ),
+                nn.BatchNorm1d(out_features)
             )
-            if i < self.num_fc - 1:
-                self.network.add_module("relu" + str(i), nn.ReLU())
 
     def forward(self, x):
-        x = self.network(x)
-        return x
-
-class LSTM_Model_abc(nn.Module):
-    def __init__(
-        self,
-        input_dim,
-        hidden_dim,
-        layer_dim,
-        output_dim,
-        mlp_hidden_dim_list=[32, 16, 32],
-        drop_out=0.2,
-        device="cuda" if torch.cuda.is_available() else "cpu",
-    ):
-        super(LSTM_Model_abc, self).__init__()
-        self.device = device
-        self.hidden_dim = hidden_dim
-        self.layer_dim = layer_dim
-        self.mlp_hidden_dim_list = mlp_hidden_dim_list
-        self.drop_out = drop_out
-        self.rnn = nn.LSTM(  # if use nn.RNN(), it hardly learns
-            input_size=input_dim,
-            hidden_size=hidden_dim,  # rnn hidden unit
-            num_layers=layer_dim,  # number of rnn layer
-            batch_first=True,  # input & output will has batch size as 1s dimension. e.g. (batch, time_step, input_size)
-            dropout=drop_out,
-        ).to(self.device)
-        self.mlp = MLP(hidden_dim, mlp_hidden_dim_list, output_dim).to(self.device)
-        for name, param in self.rnn.named_parameters():
-            if name.startswith("weight"):
-                nn.init.xavier_normal_(param)
-            else:
-                nn.init.zeros_(param)
-        """for name, param in self.mlp.named_parameters():
-            if name.startswith("weight"):
-                nn.init.xavier_normal_(param)
-            else:
-                nn.init.zeros_(param)"""
-
-    def forward(self, x, hc=None):
-        # x shape (batch, time_step, input_size)
-        # r_out shape (batch, time_step, output_size)
-        # h_n shape (n_layers, batch, hidden_size)
-        # c_n shape (n_layers, batch, hidden_size)
-        r_out, (h_n, c_n) = self.rnn(
-            x, hc
-        )  # hc=None represents zero initial hidden state
-        # choose r_out at the last time step
-        out = self.mlp(r_out[:, -1, :])
+        identity = x  # 原始输入
+        
+        # 主路径处理
+        out = self.bn1(x)
+        out = self.relu(out)
+        out = self.fc1(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.fc2(out)
+        
+        # 捷径路径处理（如果需要）
+        if self.downsample is not None:
+            identity = self.downsample(identity)
+        
+        # 相加并激活
+        out += identity
+        
         return out
-
-    @abc.abstractmethod
-    def predict(self):
-        pass
-
-class LSTM_Model_Mobility(LSTM_Model_abc):
-    def __init__(
-        self,
-        input_dim,
-        hidden_dim,
-        layer_dim,
-        output_dim,
-        mlp_hidden_dim_list=[32, 16, 32],
-        drop_out=0.5,
-        device="cuda" if torch.cuda.is_available() else "cpu",
-        preprocess_params=None,
-    ):
-        super().__init__(
-            input_dim,
-            hidden_dim,
-            layer_dim,
-            output_dim,
-            mlp_hidden_dim_list,
-            drop_out,
-            device,
-        )
-        if preprocess_params is None:
-            preprocess_params = {
-                "muX": np.array(
-                    [-134.40944, -162.64276, -159.56888, -161.54985, -159.29124],
-                    dtype=np.float32,
-                ),
-                "sigmaX": np.array(
-                    [2.761759, 13.521982, 15.282211, 14.245071, 14.93797],
-                    dtype=np.float32,
-                ),
-                "muY": -23.416536,
-                "sigmaY": 221.9446,
-            }
-        self.preprocess_params = preprocess_params
-
-    def load_preprocess_params(self, preprocess_params):
-        if preprocess_params is dict or preprocess_params is collections.OrderedDict:
-            self.preprocess_params = preprocess_params
-        elif preprocess_params is str:
-            self.preprocess_params = np.load(
-                os.path.join(preprocess_params),
-                allow_pickle=True,
-            ).item()
-        else:
-            exit("load failure")
-
-    def predict(self, X):
-        self.eval()
-        assert type(X) == np.ndarray
-        # X = X[np.newaxis,...].astype(np.float32) if X.ndim == 2 else X
-        # X = X.astype(np.float32)
-        if X.ndim == 3:
-            X = X.astype(np.float32)
-            X = (
-                X - self.preprocess_params["muX"].reshape(1, 1, -1)
-            ) / self.preprocess_params["sigmaX"].reshape(1, 1, -1)
-            X = torch.from_numpy(X).to(self.device)
-            out = self.forward(X).unsqueeze(-2)
-            Y = out.detach().cpu().numpy()
-            Y = Y * self.preprocess_params["sigmaY"] + self.preprocess_params["muY"]
-        elif X.ndim == 2:
-            X = X[np.newaxis, ...].astype(np.float32)
-            X = (
-                X - self.preprocess_params["muX"].reshape(1, 1, -1)
-            ) / self.preprocess_params["sigmaX"].reshape(1, 1, -1)
-            X = torch.from_numpy(X).to(self.device)
-            out = self.forward(X).unsqueeze(-2)
-            Y = out.detach().cpu().numpy()
-            Y = Y * self.preprocess_params["sigmaY"] + self.preprocess_params["muY"]
-            Y = Y.squeeze(0)
-        else:
-            exit("X.ndim error!")
-        return Y
-
+    
 class BasePredictionModel(nn.Module):
     def __init__(self, feature_input_dim, num_bs, params_norm=[20,7]):
         super().__init__()
@@ -186,11 +102,12 @@ class BasePredictionModel(nn.Module):
         )
         return lstm_layers
         
-    def _build_shared_layers(self, layer_dim_list):
+    def _build_shared_layers(self, layer_dim_list=[]):
         shared_layers = nn.Sequential()
         for i in range(len(layer_dim_list)-1):
-            shared_layers.append(nn.Linear(layer_dim_list[i], layer_dim_list[i+1]))
-            shared_layers.append(nn.GELU())
+            # shared_layers.append(nn.Linear(layer_dim_list[i], layer_dim_list[i+1]))
+            shared_layers.append(VectorResBlock(layer_dim_list[i], layer_dim_list[i+1]))
+            shared_layers.append(nn.ReLU())
         return shared_layers
 
     def _build_output_heads(self, num_head, layer_dim_list):
@@ -198,19 +115,12 @@ class BasePredictionModel(nn.Module):
         for _ in range(num_head):
             head = nn.Sequential()
             for i in range(len(layer_dim_list)-1):
-                head.append(nn.Linear(layer_dim_list[i], layer_dim_list[i+1]))
-                head.append(nn.GELU())
+                # head.append(nn.Linear(layer_dim_list[i], layer_dim_list[i+1]))
+                head.append(VectorResBlock(layer_dim_list[i], layer_dim_list[i+1]))
+                head.append(nn.ReLU())
             head.pop(-1)
             output_heads.append(head)
         return output_heads
-
-    def _create_output_head(self, in_dim, out_dim):
-        """创建带有初始化的输出头"""
-        layer = nn.Sequential(
-            nn.Linear(in_dim, out_dim),
-            nn.BatchNorm1d(out_dim)
-        )
-        return layer
     
     def _initialize_weights(self):
         """Xavier初始化所有层"""
@@ -329,69 +239,6 @@ class BestGainPredictionModel(BasePredictionModel):
     def predict(self, x_np, device):
         x_torch = torch.tensor(x_np).to(device)
         return self.pred(x_torch).detach().cpu().numpy()
-    
-    
-class PositionPredictionModel(BasePredictionModel):
-    def __init__(self, feature_input_dim, num_bs, pos_scale=100, params_norm=[20,7]):
-        super().__init__(feature_input_dim, num_bs, params_norm)
-        self.pos_scale = pos_scale
-        
-        # 共享特征提取层
-        self.shared_layers = self._build_shared_layers(
-            layer_dim_list=[feature_input_dim, 256, 256, 128, 128, 64, 64, 32, 2]
-        )
-        self.shared_layers.pop(-1)
-    
-    def forward(self, x):
-        outputs = self.shared_layers(x)
-        return outputs
-
-    def pred(self, x):
-        outputs = self.forward(x)
-        predicted_pos = outputs * self.pos_scale
-        return predicted_pos
-    
-    def predict(self, x_np, device):
-        x_torch = torch.tensor(x_np).to(device)
-        return self.pred(x_torch).detach().cpu().numpy()
-    
-
-class BestGainLevelPredictionModel(BasePredictionModel):
-    def __init__(self, feature_input_dim, num_bs, num_dBlevel=64, LB_db=-110, UB_db=-20, params_norm=[20,7]):
-        super().__init__(feature_input_dim, num_bs, params_norm)
-        self.num_dBlevel = num_dBlevel
-        self.LB_db = LB_db
-        self.UB_db = UB_db
-        
-        # 共享特征提取层
-        self.shared_layers = self._build_shared_layers(
-            layer_dim_list=[feature_input_dim, 256, 256, 128]
-        )
-        
-        # 多任务输出层（每个基站一个输出头）
-        self.output_heads = self._build_output_heads(
-            num_head=self.num_bs, layer_dim_list=[128, 128, 128, 128, self.num_dBlevel]
-        )
-    
-    def forward(self, x):
-        shared_features = self.shared_layers(x)
-        outputs = [head(shared_features) for head in self.output_heads]
-        return torch.stack(outputs, dim=-2)
-
-    def pred(self, x):
-        pass 
-        # outputs = self.forward(x)
-        # predicted_bestgain = self.params_norm[0]*( outputs - self.params_norm[1] )
-        # return predicted_bestgain
-    
-    def trans_dB_to_dBLevel(self, dB, num_dBlevel=64, LB_db=-110, UB_db=-20):
-        if self != None:
-            dBlevel = (dB > self.LB_db) * np.ceil((dB - self.LB_db) / (self.UB_db - self.LB_db) * (self.num_dBlevel-1))
-            dBlevel = dBlevel.astype(np.int64)
-        else:
-            dBlevel = (dB > LB_db) * np.ceil((dB - LB_db) / (UB_db - LB_db) * (num_dBlevel-1))
-            dBlevel = dBlevel.astype(np.int64)
-        return dBlevel
 
 
 ### LSTM Models ###
@@ -408,14 +255,28 @@ class BeamPredictionLSTMModel(BasePredictionModel):
             dropout=0
         )
         
+        # self.shared_layers = self._build_shared_layers(
+        #     layer_dim_list=[128, 64, 32, 64, 128]
+        # )
+        self.shared_layers = self._build_shared_layers()
+        
         # 多任务输出层（每个基站一个输出头）
         self.output_heads = self._build_output_heads(
-            num_head=self.num_bs, layer_dim_list=[128, 64, 32, 64, 128, self.num_class]
+            num_head=self.num_bs, layer_dim_list=[128, 128, 128, 128, self.num_class]
         )
     
-    def forward(self, x, hc=None):
-        shared_features, (h_c, c_n) = self.lstm_layers(x, hc)
-        outputs = [head(shared_features[...,-1,:]) for head in self.output_heads]
+    def forward(self, x, hc=None, lengths=None):
+        if lengths is not None:
+            assert len(x.shape) == 3 and len(lengths) == x.shape[0]
+            x = pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
+            packed_out, (h_c, c_n) =  self.lstm_layers(x, hc)
+            pad_packed_out, valid_lengths = pad_packed_sequence(packed_out, batch_first=True)
+            lstm_out = pad_packed_out[torch.arange(pad_packed_out.shape[0]), valid_lengths-1, ...]
+            shared_features = self.shared_layers(lstm_out)
+        else:
+            lstm_out, (h_c, c_n) = self.lstm_layers(x, hc)
+            shared_features = self.shared_layers(lstm_out[...,-1,:])
+        outputs = [head(shared_features) for head in self.output_heads]
         return torch.stack(outputs, dim=-2)
 
     def pred(self, x):
@@ -436,6 +297,7 @@ class BeamPredictionLSTMModel(BasePredictionModel):
 class BlockPredictionLSTMModel(BasePredictionModel):
     def __init__(self, feature_input_dim, num_bs, params_norm=[20,7]):
         super().__init__(feature_input_dim, num_bs, params_norm)
+        self.num_class = 2
         
         # 共享特征提取层
         self.lstm_layers = self._build_LSTM_layers(
@@ -445,14 +307,28 @@ class BlockPredictionLSTMModel(BasePredictionModel):
             dropout=0
         )
         
+        # self.shared_layers = self._build_shared_layers(
+        #     layer_dim_list=[128, 64, 32, 64, 128]
+        # )
+        self.shared_layers = self._build_shared_layers()
+        
         # 多任务输出层（每个基站一个输出头）
         self.output_heads = self._build_output_heads(
-            num_head=self.num_bs, layer_dim_list=[128, 64, 32, 64, 128, 2]
+            num_head=self.num_bs, layer_dim_list=[128, 128, 128, 128, self.num_class]
         )
     
-    def forward(self, x, hc=None):
-        shared_features, (h_c, c_n) = self.lstm_layers(x, hc)
-        outputs = [head(shared_features[...,-1,:]) for head in self.output_heads]
+    def forward(self, x, hc=None, lengths=None):
+        if lengths is not None:
+            assert len(x.shape) == 3 and len(lengths) == x.shape[0]
+            x = pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
+            packed_out, (h_c, c_n) =  self.lstm_layers(x, hc)
+            pad_packed_out, valid_lengths = pad_packed_sequence(packed_out, batch_first=True)
+            lstm_out = pad_packed_out[torch.arange(pad_packed_out.shape[0]), valid_lengths-1, ...]
+            shared_features = self.shared_layers(lstm_out)
+        else:
+            lstm_out, (h_c, c_n) = self.lstm_layers(x, hc)
+            shared_features = self.shared_layers(lstm_out[...,-1,:])
+        outputs = [head(shared_features) for head in self.output_heads]
         return torch.stack(outputs, dim=-2)
 
     def pred(self, x):
@@ -477,14 +353,28 @@ class BestGainPredictionLSTMModel(BasePredictionModel):
             dropout=0
         )
         
+        # self.shared_layers = self._build_shared_layers(
+        #     layer_dim_list=[256, 256, 128]
+        # )
+        self.shared_layers = self._build_shared_layers()
+        
         # 多任务输出层（每个基站一个输出头）
         self.output_heads = self._build_output_heads(
-            num_head=self.num_bs, layer_dim_list=[128, 64, 64, 32, 1]
+            num_head=self.num_bs, layer_dim_list=[128, 128, 128, 128, 1]
         )
     
-    def forward(self, x, hc=None):
-        shared_features, (h_c, c_n) = self.lstm_layers(x, hc)
-        outputs = [head(shared_features[...,-1,:]) for head in self.output_heads]
+    def forward(self, x, hc=None, lengths=None):
+        if lengths is not None:
+            assert len(x.shape) == 3 and len(lengths) == x.shape[0]
+            x = pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
+            packed_out, (h_c, c_n) =  self.lstm_layers(x, hc)
+            pad_packed_out, valid_lengths = pad_packed_sequence(packed_out, batch_first=True)
+            lstm_out = pad_packed_out[torch.arange(pad_packed_out.shape[0]), valid_lengths-1, ...]
+            shared_features = self.shared_layers(lstm_out)
+        else:
+            lstm_out, (h_c, c_n) = self.lstm_layers(x, hc)
+            shared_features = self.shared_layers(lstm_out[...,-1,:])
+        outputs = [head(shared_features) for head in self.output_heads]
         return torch.concat(outputs, dim=-1)
 
     def pred(self, x):
@@ -548,6 +438,7 @@ class GenericTrainer:
         # 数据相关配置
         self.train_loader = config['train_loader']
         self.val_loader = config.get('val_loader', None)
+        self.various_input_length = config.get('various_input_length', None)
         
         # 回调函数
         self.preprocess_data = config.get('preprocess_data', lambda x: x)
@@ -570,12 +461,17 @@ class GenericTrainer:
         
         with torch.set_grad_enabled(is_train):
             for inputs, labels in loader:
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                
                 if is_train:
                     self.optimizer.zero_grad()
+                
+                if self.various_input_length is not None:
+                    inputs, lengths = inputs
+                    inputs, labels = inputs.to(self.device), labels.to(self.device)
+                    outputs = self.model(inputs, lengths=lengths)
+                else:
+                    inputs, labels = inputs.to(self.device), labels.to(self.device)
+                    outputs = self.model(inputs)
                     
-                outputs = self.model(inputs)
                 loss = self.criterion(outputs, labels)
                 if is_train:
                     loss.backward()
@@ -619,7 +515,13 @@ class GenericTrainer:
         
         return best_model_weights, record_metrics
 
-def create_loaders(dataset, split_ratio=0.7, train_batch=128, val_batch=256, seed=20):
+def collate_fn_lstm(batch): # TODO
+    """自定义collate函数，处理变长序列"""
+    # import ipdb;ipdb.set_trace()
+    data, lengths, labels = zip(*batch)
+    return (torch.stack(data), torch.stack(lengths)),  torch.stack(labels)
+
+def create_loaders(dataset, split_ratio=0.7, train_batch=128, val_batch=256, seed=20, collate_fn=None):
     """通用数据集划分和加载器创建"""
     # 固定随机种子保证可复现性
     generator = torch.Generator().manual_seed(seed) if seed else None
@@ -638,9 +540,10 @@ def create_loaders(dataset, split_ratio=0.7, train_batch=128, val_batch=256, see
         train_set, 
         batch_size=train_batch, 
         shuffle=True, # shuffle=(seed is None),  # 有种子时不shuffle
-        generator=generator
+        generator=generator,
+        collate_fn=collate_fn,
     )
-    val_loader = DataLoader(val_set, batch_size=val_batch)
+    val_loader = DataLoader(val_set, batch_size=val_batch, collate_fn=collate_fn)
     return train_loader, val_loader
 
 def build_trainer(task_config):
@@ -649,11 +552,21 @@ def build_trainer(task_config):
         return lambda data: func(data, task_config['pos_in_data'])
     
     # 构建数据加载器
-    dataset = TensorDataset(
-        preprocess_data(task_config['data_complex'], task_config['pos_in_data']),
-        task_config['labels']
-    )
-    train_loader, val_loader = create_loaders(dataset, task_config['split_ratio'])
+    if task_config.get('various_input_length', None) is not None:
+        dataset = TensorDataset(
+            preprocess_data(task_config['data_complex'], task_config['pos_in_data']),
+            task_config['various_input_length'],
+            task_config['labels'],
+        )
+        collate_fn = collate_fn_lstm
+    else:
+        dataset = TensorDataset(
+            preprocess_data(task_config['data_complex'], task_config['pos_in_data']),
+            task_config['labels']
+        )
+        collate_fn = None
+    
+    train_loader, val_loader = create_loaders(dataset, task_config['split_ratio'], collate_fn=collate_fn)
     
     # 完整配置
     config = {
@@ -666,7 +579,8 @@ def build_trainer(task_config):
         'metrics': task_config.get('metrics', {}),
         'train_loader': train_loader,
         'val_loader': val_loader,
-        'preprocess_data': preprocess_wrapper(preprocess_data)
+        'preprocess_data': preprocess_wrapper(preprocess_data),
+        'various_input_length': task_config.get('various_input_length', None),
     }
     
     # 特殊回调示例
@@ -699,6 +613,7 @@ def train_beampred_model(num_epochs, device, data_complex, labels, M_t, M_r, pos
         },
         'loss_func': lambda o, l: nn.CrossEntropyLoss()(o.view(-1,o.size(-1)), l.view(-1)),
         'split_ratio': 0.7,
+        'various_input_length': None,
     }
     trainer = build_trainer(config)
     return trainer.train(num_epochs)
@@ -722,6 +637,7 @@ def train_gainpred_model(num_epochs, device, data_complex, labels, M_t, M_r, pos
         },
         'loss_func': nn.MSELoss(),
         'split_ratio': 0.7,
+        'various_input_length': None,
     }
     trainer = build_trainer(config)
     return trainer.train(num_epochs)
@@ -742,35 +658,13 @@ def train_blockpred_model(num_epochs, device, data_complex, labels, M_t, M_r, po
         },
         'loss_func': lambda o, l: nn.CrossEntropyLoss()(o.view(-1,o.size(-1)), l.view(-1)),
         'split_ratio': 0.7,
+        'various_input_length': None,
     }
     trainer = build_trainer(config)
     return trainer.train(num_epochs)
-
-def train_pospred_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
-    config = {
-        'device': device,
-        'data_complex': data_complex,
-        'labels': labels,
-        'model_class': PositionPredictionModel,
-        'pos_in_data': pos_in_data,
-        'model_args': {
-            'feature_input_dim': data_complex.shape[-1] * 2 - pos_in_data * 2,  # 复数转实数的维度
-            'num_bs': labels.shape[-1]
-        },
-        'metrics': {
-            'mae': lambda o, l: (o - l).square().sum(-1).sqrt().mean().item()*100,
-            'rmse': lambda o, l: (o - l).square().sum(-1).mean().sqrt().item()*100,
-        },
-        'loss_func': nn.MSELoss(),
-        'split_ratio': 0.7,
-    }
-    trainer = build_trainer(config)
-    return trainer.train(num_epochs)
-
-
 
 # 序列预测
-def train_beampred_lstm_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
+def train_beampred_lstm_model(num_epochs, device, data_complex, lengths, labels, M_t, M_r, pos_in_data=False):
     config = {
         'device': device,
         'data_complex': data_complex,
@@ -788,11 +682,12 @@ def train_beampred_lstm_model(num_epochs, device, data_complex, labels, M_t, M_r
         },
         'loss_func': lambda o, l: nn.CrossEntropyLoss()(o.view(-1,o.size(-1)), l.view(-1)),
         'split_ratio': 0.7,
+        'various_input_length': lengths,
     }
     trainer = build_trainer(config)
     return trainer.train(num_epochs)
 
-def train_blockpred_lstm_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
+def train_blockpred_lstm_model(num_epochs, device, data_complex, lengths, labels, M_t, M_r, pos_in_data=False):
     config = {
         'device': device,
         'data_complex': data_complex,
@@ -808,11 +703,12 @@ def train_blockpred_lstm_model(num_epochs, device, data_complex, labels, M_t, M_
         },
         'loss_func': lambda o, l: nn.CrossEntropyLoss()(o.view(-1,o.size(-1)), l.view(-1)),
         'split_ratio': 0.7,
+        'various_input_length': lengths,
     }
     trainer = build_trainer(config)
     return trainer.train(num_epochs)
 
-def train_gainpred_lstm_model(num_epochs, device, data_complex, labels, M_t, M_r, pos_in_data=False):
+def train_gainpred_lstm_model(num_epochs, device, data_complex, lengths, labels, M_t, M_r, pos_in_data=False):
     config = {
         'device': device,
         'data_complex': data_complex,
@@ -830,6 +726,7 @@ def train_gainpred_lstm_model(num_epochs, device, data_complex, labels, M_t, M_r
         },
         'loss_func': nn.MSELoss(),
         'split_ratio': 0.7,
+        'various_input_length': lengths,
     }
     trainer = build_trainer(config)
     return trainer.train(num_epochs)

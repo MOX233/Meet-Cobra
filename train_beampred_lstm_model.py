@@ -10,7 +10,7 @@ import torch
 # from utils.NN_utils import BeamPredictionModel, train_beampred_lstm_model
 from utils.NN_utils import BeamPredictionModel, train_beampred_lstm_model
 from utils.options import args_parser
-from utils.mox_utils import setup_seed, get_save_dirs, np2torch, save_NN_results
+from utils.mox_utils import setup_seed, get_save_dirs, save_NN_results
 from utils.plot_utils import plot_record_metrics
 from utils.data_utils import get_prepared_dataset, prepare_dataset
 
@@ -18,8 +18,8 @@ if __name__ == "__main__":
     # 设置随机数种子
     setup_seed(20)
     freq = 28e9
-    DS_start, DS_end = 400, 800
-    preprocess_mode = 2
+    DS_start, DS_end = 200, 800
+    preprocess_mode = 0
     look_ahead_len = 3
     n_pilot = 16
     M_r, N_bs, M_t = 8, 4, 64
@@ -31,15 +31,23 @@ if __name__ == "__main__":
     
     prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np \
         = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise, look_ahead_len)
-    data_torch = np2torch(data_np[:,:-1,...],device) 
-    veh_h_torch = np2torch(veh_h_np[:,-1,...],device) 
-    veh_pos_torch = np2torch(veh_pos_np[:,-1,...],device) 
-    best_beam_pair_index_torch = np2torch(best_beam_pair_index_np[:,-1,...],device)
+    data_torch = torch.tensor(data_np[:,:-1,...]) 
+    best_beam_pair_index_label = torch.tensor(best_beam_pair_index_np[:,-1,...])
+    lengths = [look_ahead_len]*len(data_np)
+    # 数据增强 将原长度为look_ahead_len的序列进行截断处理
+    for input_seq_len in range(look_ahead_len-1, 0, -1):
+        # input_seq_len 2,1
+        data_np_clipped = np.zeros_like(data_np[:,:-1,...])
+        data_np_clipped[:,:input_seq_len,...] = data_np[:,-input_seq_len-1:-1,...]
+        data_torch = torch.concat((data_torch, torch.tensor(data_np_clipped)), dim=0)
+        lengths.extend([input_seq_len]*len(data_np_clipped))
+        best_beam_pair_index_label = torch.concat((best_beam_pair_index_label, torch.tensor(best_beam_pair_index_np[:,-1,...])), dim=0)
+    lengths = torch.tensor(lengths).to(torch.int64)
     
     num_epochs =  50
     # 运行训练
     best_model_weights, record_metrics = \
-        train_beampred_lstm_model(num_epochs, device, data_torch, best_beam_pair_index_torch, M_t, M_r, pos_in_data=(preprocess_mode==2))
+        train_beampred_lstm_model(num_epochs, device, data_torch, lengths, best_beam_pair_index_label, M_t, M_r, pos_in_data=(preprocess_mode==2))
     save_file_name = f"beampred_lstm_valAcc{max(record_metrics['val_acc'])*100:.2f}%" \
                 + time.strftime('_%Y-%m-%d_%H:%M:%S', time.gmtime(time.time() + 8 * 3600))            
     

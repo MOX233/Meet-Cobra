@@ -219,7 +219,7 @@ def args_parser():
     parser.add_argument(
         "--h_tx",
         type=float,
-        default=30,
+        default=35,
         help="the height of the tx",
     )
     parser.add_argument(

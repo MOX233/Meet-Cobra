@@ -80,7 +80,7 @@ if __name__ == "__main__":
     args.p_micro = 0.1
     args.data_rate = 10 * 1e6
     args.lat_slot_ub = 200
-    args.trajectoryInfo_path = './sumo_result/trajectory_Lbd0.10.csv'
+    args.trajectoryInfo_path = './sumo_data/trajectory_Lbd0.10.csv'
     args.eta = 1e6
     args.device = device
     args.K = 3 # 每次beam tracking 时选K个最有可能的波束对进行测试

@@ -2,34 +2,27 @@ import time
 import pickle
 import copy
 import gc
-import os
-import sys
-import matplotlib.pyplot as plt
-import drjit as dr
-import mitsuba as mi
 import numpy as np
-# Import or install Sionna
+
+from utils.options import args_parser
+from utils.sumo_utils import read_trajectoryInfo_timeindex
+
+
+args = args_parser()
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = f'{args.gpu}'
+import mitsuba as mi
 try:
     import sionna.rt
 except ImportError as e:
     import os
     os.system("pip install sionna-rt")
     import sionna.rt
-
-no_preview = True # Toggle to False to use the preview widget
-                  # instead of rendering for scene visualization
-
 from sionna.rt import load_scene, PlanarArray, Transmitter, Receiver, Camera,\
                       PathSolver, ITURadioMaterial, SceneObject, subcarrier_frequencies
 
-from utils.options import args_parser
-from utils.sumo_utils import read_trajectoryInfo_timeindex
 
 # 设置参数
-
-
-args = args_parser()
-os.environ['CUDA_VISIBLE_DEVICES'] = f'{args.gpu}'
 args.trajectoryInfo_path = './sumo_data/trajectory_Lbd0.10.csv'
 start_time=args.sionna_start_time
 end_time=args.sionna_end_time
@@ -125,7 +118,7 @@ for scene_time in trajectoryInfo.keys():
         
         sim_cars[i].position = mi.Point3f(x.item(), y.item(), h_car)
         sim_cars[i].velocity = mi.Point3f(v_x.item(), v_y.item(), 0)
-        sim_cars[i].orientation = mi.Point3f((angle/180+0.5)*np.pi, 0, 0)
+        sim_cars[i].orientation = mi.Point3f((angle/180-0.5)*np.pi, 0, 0)
         car_positions.append(sim_cars[i].position)
         car_velocities.append(sim_cars[i].velocity)
         rx_positions.append([x.item(),y.item(),h_rx])
