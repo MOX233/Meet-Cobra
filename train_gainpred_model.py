@@ -54,6 +54,7 @@ if __name__ == "__main__":
     
     num_epochs =  50
     # 运行训练
+    print('start training')
     best_model_weights, record_metrics = \
         train_gainpred_model(num_epochs, device, data_torch, gain_labels, M_t, M_r, pos_in_data=(preprocess_mode==2))
     save_file_name = f"gainpred_valMae{min(record_metrics['val_mae']):.2f}dB" \

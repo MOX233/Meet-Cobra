@@ -37,6 +37,7 @@ if __name__ == "__main__":
     
     num_epochs =  50
     # 运行训练
+    print('start training')
     best_model_weights, record_metrics = \
         train_beampred_model(num_epochs, device, data_torch, best_beam_pair_index_label, M_t, M_r, pos_in_data=(preprocess_mode==2))
     save_file_name = f"beampred_valAcc{max(record_metrics['val_acc'])*100:.2f}%" \

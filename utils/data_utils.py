@@ -2,6 +2,8 @@ import os
 import sys
 import pickle
 sys.path.append(os.getcwd())
+import torch
+import random
 import numpy as np
 from utils.sumo_utils import (
     read_trajectoryInfo_carindex,
@@ -157,6 +159,67 @@ def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pi
         f_save.close()
     return prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np
 
+
+def augment_dataset(data_np, label_np, look_ahead_len, augment_dataset_ratio=2.0):
+    """数据增强函数
+    Args:
+        data_np: 原始时序数据 [num_samples, look_ahead_len+1, ...]
+        label_np: 标签数据 [num_samples, ...]
+        look_ahead_len: 原始序列长度
+        augment_dataset_ratio: 增强后数据集与原数据集的比率 (必须>=1)
+    Returns:
+        data_torch: 增强后的时序数据
+        label_torch: 对应的标签
+        lengths: 每个样本的有效序列长度
+    """
+    num_origin = data_np.shape[0]
+    num_total = int(num_origin * augment_dataset_ratio)
+    num_augment = num_total - num_origin  # 需要新增的样本数
+
+    # 初始数据 (包含原始数据)
+    data_torch = [torch.tensor(data_np[:, :-1, ...])]  # 原始时序数据
+    label_torch = [torch.tensor(label_np[:, -1, ...])]  # 原始标签数据
+    lengths = [look_ahead_len] * num_origin
+    
+    # 随机增强剩余部分
+    for _ in range(num_augment):
+        # 随机选择一个原始样本
+        sample_idx = np.random.randint(0, num_origin)
+        
+        # 随机生成截断长度 (1到look_ahead_len)
+        valid_len = np.random.randint(1, look_ahead_len + 1)
+        
+        # 生成截断序列 (后valid_len个时间步)
+        clipped_data = data_np[sample_idx, -valid_len-1:-1, ...]
+        
+        # 后补零
+        padded_data = np.zeros_like(data_np[sample_idx, :-1, ...])
+        padded_data[:valid_len] = clipped_data
+        
+        # 存储增强数据
+        data_torch.append(torch.from_numpy(padded_data).unsqueeze(0))
+        label_torch.append(torch.from_numpy(label_np[sample_idx, -1, ...]).unsqueeze(0))  # 复制对应标签
+        lengths.append(valid_len)
+    
+    # 合并数据
+    data_torch = torch.cat(data_torch, dim=0)
+    label_torch = torch.cat(label_torch, dim=0)
+    lengths = torch.tensor(lengths, dtype=torch.int64)
+    
+    return data_torch, label_torch, lengths
+
+def random_truncate_tensor_sequence(inputs, lengths):
+    # inputs: [batch_size, max_seq_len, ...]
+    # lengths: [batch_size]
+    batch_size, max_seq_len = inputs.shape[0], inputs.shape[1]
+    truncated_inputs = torch.zeros_like(inputs)
+    truncated_lengths = torch.zeros(batch_size, dtype=torch.int64)
+    for i in range(batch_size):
+        # 随机选择一个截断长度
+        valid_len = random.randint(1, lengths[i].item())
+        truncated_inputs[i, :valid_len] = inputs[i, -valid_len:]
+        truncated_lengths[i] = valid_len
+    return truncated_inputs, truncated_lengths
 
 def is_car_under_BS(BS_pos, car_pos, BS_radius=300):
     return np.sqrt(((BS_pos - car_pos) ** 2).sum()) < BS_radius

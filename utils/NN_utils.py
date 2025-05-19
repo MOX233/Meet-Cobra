@@ -19,6 +19,7 @@ from collections import defaultdict
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pack_sequence, pad_sequence
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
+from utils.data_utils import random_truncate_tensor_sequence
 import numpy as np
 
 EPS = 1e-9
@@ -465,7 +466,9 @@ class GenericTrainer:
                     self.optimizer.zero_grad()
                 
                 if self.various_input_length is not None:
-                    inputs, lengths = inputs
+                    inputs, lengths = inputs 
+                    # inputs.shape = (batch_size, seq_len, feature_dim), lengths.shape = (batch_size,), labels.shape = (batch_size, num_bs)
+                    # inputs, lengths = random_truncate_tensor_sequence(inputs, lengths)
                     inputs, labels = inputs.to(self.device), labels.to(self.device)
                     outputs = self.model(inputs, lengths=lengths)
                 else:
@@ -495,6 +498,7 @@ class GenericTrainer:
         best_model_weights = self.model.state_dict()
         record_metrics = defaultdict(list)
         for epoch in range(num_epochs):
+            _time = time.time()
             self.on_epoch_start(self, epoch)  # 触发回调
             
             train_metrics = self.run_epoch(self.train_loader, 'train')
@@ -504,7 +508,7 @@ class GenericTrainer:
             epoch_metrics = {**train_metrics, **val_metrics}
             for k, v in epoch_metrics.items():
                 record_metrics[k].append(v)
-            print(f"Epoch {epoch+1}/{num_epochs}")
+            print(f"Epoch {epoch+1}/{num_epochs}, training time: {time.time()-_time:.2f}s")
             # print(' | '.join([f"{k}: {v:.4f}" for k, v in epoch_metrics.items()]))
             print(' | '.join([f"{k1.split('train_')[-1]}: {v1:.4f}/{v2:.4f}" for (k1,v1),(k2,v2) in zip(train_metrics.items(),val_metrics.items())]))
             
