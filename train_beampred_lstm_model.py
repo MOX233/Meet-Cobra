@@ -19,9 +19,9 @@ if __name__ == "__main__":
     setup_seed(20)
     freq = 28e9
     DS_start, DS_end = 200, 800
-    preprocess_mode = 2
+    preprocess_mode = 1
     look_ahead_len = 10
-    n_pilot = 16
+    n_pilot = 4
     M_r, N_bs, M_t = 8, 4, 64
     P_t = 1e-1
     P_noise = 1e-14 # -174dBm/Hz * 1.8MHz = 7.165929069962946e-15 W

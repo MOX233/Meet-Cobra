@@ -23,7 +23,6 @@ from sionna.rt import load_scene, PlanarArray, Transmitter, Receiver, Camera,\
 
 
 # 设置参数
-args.trajectoryInfo_path = './sumo_data/trajectory_Lbd0.10.csv'
 start_time=args.sionna_start_time
 end_time=args.sionna_end_time
 frequency = args.freq # 28e9 or 5.9e9

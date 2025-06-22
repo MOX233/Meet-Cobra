@@ -12,7 +12,7 @@ from utils.sumo_utils import sumo_run_with_trajectoryInfo
 
 args = args_parser()
 args.Lambda = (
-    0.2  # "--Lambda", type=float, default=0.2, help="arrival rate of car flow"
+    0.05  # "--Lambda", type=float, default=0.2, help="arrival rate of car flow"
 )
 args.num_steps = 1000
 

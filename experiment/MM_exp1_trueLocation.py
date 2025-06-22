@@ -16,9 +16,8 @@ import ipdb
 import pickle
 
 sys.path.append(os.getcwd())
-from utils.NN_utils import LSTM_Model_Mobility, BeamPredictionModel, \
-    BestGainLevelPredictionModel, BestGainPredictionModel, PositionPredictionModel
-from utils.sim_utils import run_sim
+from utils.NN_utils import BeamPredictionLSTMModel, BestGainPredictionLSTMModel
+from utils.sim_utils import run_sim, run_sim_withUMa
 from utils.options import args_parser
 from utils.alg_utils import (
     RA_unlimitRB,
@@ -45,28 +44,20 @@ def preprocess_input_np(x, params_norm=[20,7], EPS=1e-9):
 if __name__ == "__main__":
     # Urban Macro LoS: PL = 28 + 22*log10(d)+20*log10(f)
     # Urban Micro LoS: PL = 32.4 + 21*log10(d)+20*log10(f)
-    save_path = (
-        "./experiment/exp_results/trueLocation_"
-        + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    )
-    os.makedirs(save_path, exist_ok=True)
     # data_rate_list = np.logspace(7, 8, 10)
     data_rate_list = np.linspace(10e6, 200e6, 21)
     freq = 28e9
-    DS_start, DS_end = 700, 800
-    preprocess_mode = 0
+    DS_start, DS_end = 800, 950
+    look_ahead_len = 10
+    preprocess_mode = 2
     M_r, N_bs, M_t = 8, 4, 64
     P_t = 1e-1
     P_noise = 1e-14
     n_pilot = 16
     sample_interval = int(M_t/n_pilot)
-    gpu = 6
+    gpu = 4
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     args = args_parser()
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed(args.seed)
-    np.random.seed(args.seed)
-    random.seed(args.seed)
     args.from_sionna = True
     args.M_t = M_t
     args.M_r = M_r
@@ -74,29 +65,40 @@ if __name__ == "__main__":
     args.frames_per_sample = 10
     args.num_RB_macro = 100
     args.num_RB_micro = 100
-    args.RB_intervel_macro = 0.18 * 1e6
+    args.RB_intervel_macro = 0.36 * 1e6
     args.RB_intervel_micro = 1.8 * 1e6
     args.p_macro = 1
-    args.p_micro = 0.1
+    args.p_micro = 0.2
     args.data_rate = 10 * 1e6
-    args.lat_slot_ub = 200
-    args.trajectoryInfo_path = './sumo_data/trajectory_Lbd0.10.csv'
+    args.lat_slot_ub = 20
     args.eta = 1e6
     args.device = device
     args.K = 3 # 每次beam tracking 时选K个最有可能的波束对进行测试
-    sionna_result_filepath = f'./sionna_result/trajectoryInfo_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
-    data4sim_filepath = f'./data4sim/trajectoryInfo_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
-
+    args.Lambda = 0.05 # 车辆到达率
+    args.trajectoryInfo_path = './sumo_data/trajectory_Lbd{args.Lambda:.2f}.csv'
+    # 对测试数据集进行截断
+    cut_ratio = 0.1
+    cut_end = DS_start + cut_ratio*(DS_end-DS_start)
+    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"exp_results/lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
+        + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+    os.makedirs(save_path, exist_ok=True)
+    sionna_result_filepath = f'./sionna_result/trajectoryInfo_lbd{args.Lambda:.2f}_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
+    data4sim_filepath = f'./data4sim/lbd{args.Lambda:.2f}_{DS_start}_{DS_end}_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}_lookahead{look_ahead_len}.pkl'
+    
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    random.seed(args.seed)
+    
     if os.path.exists(data4sim_filepath):
         with open(data4sim_filepath, 'rb') as f:
             timeline_dir = pickle.load(f)
     else:
         with open(sionna_result_filepath, 'rb') as f:
             timeline_dir = pickle.load(f)
-            # timeline_dir[700][1.58].keys() == dict_keys(['pos', 'v', 'angle', 'h'])
-        # import ipdb;ipdb.set_trace()
         DFT_matrix_tx = generate_dft_codebook(M_t)
         DFT_matrix_rx = generate_dft_codebook(M_r)
+        frame_prev = None
         for frame in timeline_dir.keys():
             print(f'prepare simulation data: frame[{frame-DS_start:.1f}/{DS_end-DS_start}]',)
             for veh in timeline_dir[frame].keys():
@@ -114,15 +116,23 @@ if __name__ == "__main__":
                 veh_CSI = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
                 n = generate_complex_gaussian_vector(veh_CSI.shape, scale=np.sqrt(P_noise), mean=0.0)
                 veh_CSI = (veh_CSI + n).astype(np.complex64)
-                timeline_dir[frame][veh]['CSI'] = veh_CSI
+                # timeline_dir[frame][veh]['CSI'] = veh_CSI
                 timeline_dir[frame][veh]['CSI_preprocessed'] = preprocess_input_np(veh_CSI)
-            # import ipdb;ipdb.set_trace()
+                if preprocess_mode == 2:
+                    veh_pos = timeline_dir[frame][veh]['pos']
+                    timeline_dir[frame][veh]['CSI_preprocessed'] = \
+                        np.concatenate((timeline_dir[frame][veh]['CSI_preprocessed'], veh_pos/100), axis=-1)
+                if frame_prev is not None and veh in timeline_dir[frame_prev].keys():
+                    timeline_dir[frame][veh]['CSI_preprocessed'] = \
+                        np.concatenate((timeline_dir[frame_prev][veh]['CSI_preprocessed'], 
+                                        timeline_dir[frame][veh]['CSI_preprocessed'].reshape(1, -1)),
+                                        axis=0)[-look_ahead_len:,...]
+                else:
+                    timeline_dir[frame][veh]['CSI_preprocessed'] = timeline_dir[frame][veh]['CSI_preprocessed'].reshape(1, -1)
+            frame_prev = frame
         with open(data4sim_filepath, 'wb') as f:
             pickle.dump(timeline_dir,f)
-            
-    # 对测试数据集进行截断
-    cut_ratio = 0.01
-    cut_end = DS_start + cut_ratio*(DS_end-DS_start)
+    
     _timeline_dir = collections.OrderedDict()
     for frame,v in timeline_dir.items():
         if frame>=cut_end:
@@ -130,17 +140,18 @@ if __name__ == "__main__":
         _timeline_dir[frame] = v
     timeline_dir = _timeline_dir
     
-    feature_input_dim = 2 * M_r * n_pilot
+    
+    feature_input_dim = 2 * M_r * n_pilot + 2 * int(preprocess_mode == 2)
     num_bs = N_bs
     num_beampair = M_r * M_t
 
-    mobpred_model = None
-    beampred_model = BeamPredictionModel(feature_input_dim, num_bs, num_beampair).to(device)
-    beampred_model.load_state_dict(torch.load('/home/ubuntu/niulab/JCBT_AEPHORA/NN_result/300_700_3Dbeam_tx(1,64)_rx(1,8)_freq2.8e+10_Np16_mode0/models/beampred_dimIn256_valAcc91.44%_2025-03-27_13:30:01.pth'))
-    gainpred_model = BestGainPredictionModel(feature_input_dim, num_bs).to(device)
-    gainpred_model.load_state_dict(torch.load('/home/ubuntu/niulab/JCBT_AEPHORA/NN_result/300_700_3Dbeam_tx(1,64)_rx(1,8)_freq2.8e+10_Np16_mode0/models/gainpred_dimIn256_BBSMAE2.98_2025-04-02_07:08:25.pth'))
-    pospred_model = PositionPredictionModel(feature_input_dim, num_bs).to(device)
-    pospred_model.load_state_dict(torch.load('/home/ubuntu/niulab/JCBT_AEPHORA/NN_result/300_700_3Dbeam_tx(1,64)_rx(1,8)_freq2.8e+10_Np16_mode0/models/pospred_dimIn256_valRMSE18.76_2025-03-27_14:05:24.pth'))
+    beampred_model = BeamPredictionLSTMModel(feature_input_dim, num_bs, num_beampair).to(device)
+    beampred_model.load_state_dict(torch.load('./NN_result/200_800_3Dbeam_tx(1,64)_rx(1,8)_freq2.8e+10_Np16_mode2_lookahead10/models/beampred_lstm_valAcc93.01%_2025-04-29_20:55:34.pth'))
+    beampred_model.eval()
+    gainpred_model = BestGainPredictionLSTMModel(feature_input_dim, num_bs).to(device)
+    gainpred_model.load_state_dict(torch.load('./NN_result/200_800_3Dbeam_tx(1,64)_rx(1,8)_freq2.8e+10_Np16_mode2_lookahead10/models/gainpred_lstm_valMae2.06dB_2025-04-29_20:18:49.pth'))
+    gainpred_model.eval()
+    pospred_model = None
         
     # 给定各个基站的位置
     # BS0_loc = np.array([0, 0])
@@ -166,23 +177,32 @@ if __name__ == "__main__":
         "NoBF": False,
     }
     
-    # sim_strategy_dict["GroundTruth"] = {
-    #     "RA": RA_heur_fqb_smartRound,
-    #     "HO": HO_EE_predG,
-    #     "save_pilot": False,
-    #     "gainpred_model": None,
-    #     "beampred_model": None,
-    #     "NoBF": False,
-    # }
+    sim_strategy_dict["LB"] = {
+        "RA": RA_unlimitRB,
+        "HO": HO_EE_predG,
+        "save_pilot": False,
+        "gainpred_model": None,
+        "beampred_model": None,
+        "NoBF": False,
+    }
     
-    # sim_strategy_dict["EE"] = {
-    #     "RA": RA_heur_fqb_smartRound,
-    #     "HO": HO_EE_predG,
-    #     "save_pilot": True,
-    #     "gainpred_model": gainpred_model,
-    #     "beampred_model": beampred_model,
-    #     "NoBF": False,
-    # }
+    sim_strategy_dict["EE"] = {
+        "RA": RA_heur_fqb_smartRound,
+        "HO": HO_EE_predG,
+        "save_pilot": True,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "NoBF": False,
+    }
+    
+    sim_strategy_dict["RBE"] = {
+        "RA": RA_heur_fqb_smartRound,
+        "HO": HO_RBE_predG,
+        "save_pilot": True,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "NoBF": False,
+    }
     
     sim_strategy_dict["Proposed_TrueBeamTrueGain"] = {
         "RA": RA_heur_fqb_smartRound, 
@@ -224,7 +244,7 @@ if __name__ == "__main__":
 
     # 进行仿真实验
     for data_rate_idx, data_rate in enumerate(data_rate_list):
-        print(f"data_rate: {data_rate} bps")
+        print(f"data_rate: {data_rate/1e6:.1f} Mbps")
         for strategy_name in sim_strategy_dict.keys():
             print("Strategy: ", strategy_name)
             args.data_rate = data_rate
@@ -235,7 +255,7 @@ if __name__ == "__main__":
                 violation_prob_record,
                 avg_queuelen_record,
                 pilot_record,
-            ) = run_sim(
+            ) = run_sim_withUMa(
                 args, BS_loc_list, timeline_dir, 
                 pospred_model, 
                 beampred_model=sim_strategy_dict[strategy_name]["beampred_model"],

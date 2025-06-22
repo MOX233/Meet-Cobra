@@ -53,7 +53,7 @@ def main(
     max_workers=3, # 最大线程数
     timeout=3600, # 子进程超时时间（秒）
     gpu=7, # GPU编号
-    sumo_traj_path="./sumo_data/trajectory_Lbd0.10.csv",
+    Lambda=0.10, #车辆到达率
     freq=28e9, # 28e9 or 5.9e9
     antenna_pattern="iso", # "iso" or "tr38901"
     N_t_H=1,
@@ -64,8 +64,9 @@ def main(
     h_rx=3,
     h_tx=35,
     ):
-    
-    sionna_result_file_save_path = f"./sionna_result/trajectoryInfo_{start_time}_{end_time}_3Dbeam_tx({N_t_H},{N_t_V})_rx({N_r_H},{N_r_V})_freq{freq:.1e}.pkl"
+    sumo_traj_path = f"./sumo_data/trajectory_Lbd{Lambda:.2f}.csv"
+
+    sionna_result_file_save_path = f"./sionna_result/trajectoryInfo_lbd{Lambda:.2f}_{start_time}_{end_time}_3Dbeam_tx({N_t_H},{N_t_V})_rx({N_r_H},{N_r_V})_freq{freq:.1e}.pkl"
     sionna_result_tmp_dir = f"./sionna_result/_tmp_({start_time:.1f},{end_time:.1f})" + time.strftime("_%Y-%m-%d_%H:%M:%S", time.gmtime(time.time() + 8 * 3600)) 
     
     # 设置子进程参数列表
@@ -132,8 +133,8 @@ if __name__ == "__main__":
     subprocess_time=1, 
     max_workers=5, # 最大线程数
     timeout=3600, # 子进程超时时间（秒）
-    gpu=7, # GPU编号
-    sumo_traj_path="./sumo_data/trajectory_Lbd0.10.csv",
+    gpu=2, # GPU编号
+    Lambda=0.25, #车辆到达率
     freq=28e9, # 28e9 or 5.9e9
     antenna_pattern="iso", # "iso" or "tr38901"
     N_t_H=1,

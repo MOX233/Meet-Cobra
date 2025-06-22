@@ -107,19 +107,19 @@ def args_parser():
     parser.add_argument(
         "--RB_intervel_micro",
         type=float,
-        default=18 * 1e6,
+        default=1.8 * 1e6,
         help="the frequency interval of two successive RBs for a micro BS",
     )
     parser.add_argument(
         "--num_RB_macro",
         type=int,
-        default=50,
+        default=100,
         help="the RB number of the macro cell",
     )
     parser.add_argument(
         "--num_RB_micro",
         type=int,
-        default=50,
+        default=100,
         help="the RB number of the micro cell",
     )
     parser.add_argument(
@@ -131,7 +131,7 @@ def args_parser():
     parser.add_argument(
         "--p_micro",
         type=float,
-        default=0.1,
+        default=0.2,
         help="the transmission power of the micro cell per RB (W per RB)",
     )
     parser.add_argument(
@@ -232,7 +232,7 @@ def args_parser():
         "--freq",
         type=float,
         default=28e9,
-        help="the frequency of the signal",
+        help="the frequency of the signal of the micro cell",
     )
     parser.add_argument(
         "--N_t_H",

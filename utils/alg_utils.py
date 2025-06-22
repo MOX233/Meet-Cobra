@@ -8,12 +8,14 @@ from scipy.optimize import linprog
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair
 from utils.mox_utils import lin2dB
 
-def init_vehset_connection(veh_set, BS_loc_array, vehstate_dict):
+def init_vehset_connection(veh_set, BS_loc_array, vehstate_dict, macro=False):
     connection_dict = collections.OrderedDict()
     for veh in veh_set:
-        # connection_dict[veh] = 0
-        # connection_dict[veh] = np.linalg.norm((BS_loc_array - vehstate_dict[veh]['pos']),ord=2,axis=-1).argmin() 仍然会导致错误，因为距离最近的bs也有可能被阻挡
-        connection_dict[veh] = vehstate_dict[veh]['g_opt_beam'].argmax() # 但是不现实！需要重新思考如何做connection init
+        if macro:
+            # connection_dict[veh] = 0
+            connection_dict[veh] = np.linalg.norm((BS_loc_array - vehstate_dict[veh]['pos']),ord=2,axis=-1).argmin() # 仍可能导致错误，因为距离最近的bs也有可能被阻挡
+        else:
+            connection_dict[veh] = vehstate_dict[veh]['g_opt_beam'].argmax() # 但是不现实！需要重新思考如何做connection init
         
     return connection_dict
 
@@ -30,14 +32,14 @@ def update_BS_association_state(BS_dict, connection_dict):
     return BS_association_dict, BS_association_num
 
 
-def update_vehset_connection(veh_set_remain, veh_set_in, connection_dict_prev, HO_cmd, BS_loc_array, vehstate_dict):
+def update_vehset_connection(veh_set_remain, veh_set_in, connection_dict_prev, HO_cmd, BS_loc_array, vehstate_dict, macro=False):
     HO_cnt = 0
     connection_dict = collections.OrderedDict()
     for veh_id in veh_set_remain:
         connection_dict[veh_id] = connection_dict_prev[veh_id]
     # for veh_id in veh_set_in:
     #     connection_dict[veh_id] = 0
-    connection_dict.update(init_vehset_connection(veh_set_in, BS_loc_array, vehstate_dict))
+    connection_dict.update(init_vehset_connection(veh_set_in, BS_loc_array, vehstate_dict, macro=macro))
     # HO_cmd 包含需要变更连接关系的veh_id:BS_id
     for veh_id, BS_id in HO_cmd.items():
         if (veh_id in connection_dict.keys()) and (BS_id != connection_dict[veh_id]):
@@ -45,17 +47,44 @@ def update_vehset_connection(veh_set_remain, veh_set_in, connection_dict_prev, H
             HO_cnt += 1
     return connection_dict, HO_cnt
 
+def update_measured_g_record_dict(g_dict, measured_g_record_dict_prev, veh_set_cur, connection_dict_cur, BS_loc_list):
+    """
+    更新车辆历史接入基站的信道增益记录
+    g_dict: 当前帧测量的信道增益字典
+    measured_g_record_dict_prev: 前一帧的车辆历史接入基站的信道增益记录
+    veh_set_cur: 当前帧的车辆集合
+    connection_dict_cur: 当前帧的车辆连接基站字典
+    BS_loc_list: 基站位置列表
+    """
+    measured_g_record_dict_cur = collections.OrderedDict()
+    for veh in veh_set_cur:
+        if veh not in measured_g_record_dict_prev.keys():
+            measured_g_record_dict_cur[veh] = np.zeros((len(BS_loc_list),2))
+            measured_g_record_dict_cur[veh][:,0] = -1 # 车辆与各基站上一次连接的经过时间(帧数)
+            measured_g_record_dict_cur[veh][:,1] = -180 # 车辆与各基站上一次连接时的信道增益(dB)
+        else:
+            measured_g_record_dict_cur[veh] = copy.copy(measured_g_record_dict_prev[veh])
+        
+        for BS_id in range(len(BS_loc_list)):
+            if BS_id == connection_dict_cur[veh]: # 如果当前基站是车辆的连接基站
+                # 更新当前帧测量的信道增益
+                measured_g_record_dict_cur[veh][BS_id,0] = 0  # 车辆与当前连接基站的经过时间(帧数)置为0
+                measured_g_record_dict_cur[veh][BS_id,1] = g_dict[veh][BS_id]  # 车辆与当前连接基站的信道增益(dB)置为当前值
+            else:
+                if measured_g_record_dict_cur[veh][BS_id,0] >= 0:
+                    measured_g_record_dict_cur[veh][BS_id,0] += 1 # 车辆与非连接基站的经过时间(帧数)加1
+    return measured_g_record_dict_cur
+
 def measure_gain_for_topKbeam(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairId_dict, DFT_matrix_tx, DFT_matrix_rx):
     num_pilot = 0
-    g_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益 暂时只实现了K=1的情况
-    bpID_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益 暂时只实现了K=1的情况
+    g_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益
+    bpID_dict = collections.OrderedDict() # 统计各车与各基站的波束对ID
     for v, veh in enumerate(veh_set):
         g_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         bpID_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         veh_h = timeline_dir[frame][veh]['h'] # (M_r, N_bs, M_t)
         best_beam_index_pair = beamPairId_to_beamIdPair(pred_beamPairId_dict[veh], M_t=args.M_t, M_r=args.M_r) # (N_bs,args.K,2)
         for BS_id in range(len(BS_loc_list)):
-            # TODO: 暂时只实现了K=1的情况 -> 已实现待验证
             g_bf = np.zeros((args.K))
             for k in range(args.K):
                 g_bf[k] = 1/np.sqrt(args.M_r*args.M_t) * \
@@ -69,15 +98,14 @@ def measure_gain_for_topKbeam(args, frame, veh_set, timeline_dir, BS_loc_list, p
 def measure_gain_for_topKbeam_savePilot(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairId_dict, pred_gain_opt_beam_dict, DFT_matrix_tx, DFT_matrix_rx, db_err_th=5, db_lb=-100):
     # bug!
     num_pilot = 0
-    g_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益 暂时只实现了K=1的情况
-    bpID_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益 暂时只实现了K=1的情况
+    g_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益
+    bpID_dict = collections.OrderedDict() # 统计各车与各基站的波束对ID
     for v, veh in enumerate(veh_set):
         g_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         bpID_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         veh_h = timeline_dir[frame][veh]['h'] # (M_r, N_bs, M_t)
         best_beam_index_pair = beamPairId_to_beamIdPair(pred_beamPairId_dict[veh], M_t=args.M_t, M_r=args.M_r) # (N_bs,args.K,2)
         for BS_id in range(len(BS_loc_list)):
-            # TODO: 暂时只实现了K=1的情况 -> 已实现待验证
             g_bf = 2 * lin2dB(np.zeros((args.K)))
             for k in range(args.K):
                 g_bf[k] = 1/np.sqrt(args.M_r*args.M_t) * \
@@ -92,8 +120,8 @@ def measure_gain_for_topKbeam_savePilot(args, frame, veh_set, timeline_dir, BS_l
 
 def measure_gain_NoBeamforming(frame, veh_set, timeline_dir, BS_loc_list):
     num_pilot = 0
-    g_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益 暂时只实现了K=1的情况
-    bpID_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益 暂时只实现了K=1的情况
+    g_dict = collections.OrderedDict() # 统计各车与各基站的信道增益
+    bpID_dict = collections.OrderedDict() # 统计各车与各基站的波束对ID
     for v, veh in enumerate(veh_set):
         g_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         bpID_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
@@ -102,6 +130,7 @@ def measure_gain_NoBeamforming(frame, veh_set, timeline_dir, BS_loc_list):
             g_dict[veh][BS_id] = 2 * lin2dB(np.abs(veh_h[:,BS_id,:]).max()) 
     return g_dict, bpID_dict, num_pilot
 
+                    
 ### 250331 ###
 def RA_heur_fqb_smartRound(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     Q_ub = args.lat_slot_ub * args.data_rate * args.slot_len  # 队列长度上限阈值
@@ -111,9 +140,9 @@ def RA_heur_fqb_smartRound(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dic
         return y
 
     RA_dict = collections.OrderedDict()
-    num_RB = args.num_RB_micro
-    delta_f = args.RB_intervel_micro
-    p = args.p_micro
+    num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+    delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+    p = args.p_micro if BS_id > 0 else args.p_macro
     delta_t = args.slot_len
     N0 = args.N0
     veh_id_list = list(veh_set)
@@ -128,13 +157,13 @@ def RA_heur_fqb_smartRound(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dic
     priority = (-f(q) * b).argsort()
     resRB = num_RB
     for v in priority:
-        if q[v] >= 0.3 * Q_ub:
+        if q[v] >= 0.5 * Q_ub:
             RB_alloc = min(math.ceil(q[v] / b[v]), resRB)
         else:
             RB_alloc = min(int(q[v] / b[v]), resRB)
         # if RB_alloc > 30:
         #     import ipdb;ipdb.set_trace()
-        RB_alloc = min(RB_alloc,10) # TODO
+        # RB_alloc = min(RB_alloc,10) # TODO
         RA_dict[veh_id_list[v]] = RB_alloc
         resRB -= RB_alloc
     return RA_dict
@@ -143,9 +172,9 @@ def RA_heur_fqb_smartRound(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dic
 def RA_unlimitRB(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     Q_ub = args.lat_slot_ub * args.data_rate * args.slot_len  # 队列长度上限阈值
     RA_dict = collections.OrderedDict()
-    num_RB = args.num_RB_micro
-    delta_f = args.RB_intervel_micro
-    p = args.p_micro
+    num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+    delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+    p = args.p_micro if BS_id > 0 else args.p_macro
     delta_t = args.slot_len
     N0 = args.N0
     veh_id_list = list(veh_set)
@@ -178,11 +207,14 @@ def HO_EE(args, veh_set_cur, backlog_queue_dict, pred_loc_dict, pred_g_dict, BS_
         )
         EE_array = np.zeros_like(dist_array)
         for BS_id in range(len(BS_loc_array)):
-            delta_f = args.RB_intervel_micro
-            p = args.p_micro
-            bias = args.bias_micro
-            beta = args.beta_micro
-            G = 10 ** ((bias - beta * 10 * log10(dist_array[BS_id])) / 10)
+            # delta_f = args.RB_intervel_micro
+            # p = args.p_micro
+            # bias = args.bias_micro
+            # beta = args.beta_micro
+            # G = 10 ** ((bias - beta * 10 * log10(dist_array[BS_id])) / 10)
+            delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+            p = args.p_micro if BS_id > 0 else args.p_macro
+            G = 10 ** (pred_g_dict[veh][BS_id] / 10)
             EE_array[BS_id] = delta_f / p * log2(1 + p * G / args.N0 / delta_f)
         HO_cmd[veh] = EE_array.argmax()
     return HO_cmd
@@ -199,10 +231,9 @@ def HO_EE_predG(args, veh_set_cur, backlog_queue_dict, pred_loc_dict, pred_g_dic
         )
         EE_array = np.zeros_like(dist_array)
         for BS_id in range(len(BS_loc_array)):
-            G = pred_g_dict[veh][BS_id]
-            G = 10 ** (G / 10)
-            delta_f = args.RB_intervel_micro
-            p = args.p_micro
+            delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+            p = args.p_micro if BS_id > 0 else args.p_macro
+            G = 10 ** (pred_g_dict[veh][BS_id] / 10)
             EE_array[BS_id] = delta_f / p * log2(1 + p * G / args.N0 / delta_f)
         HO_cmd[veh] = EE_array.argmax()
     return HO_cmd
@@ -219,11 +250,9 @@ def HO_RBE(args, veh_set_cur, backlog_queue_dict, pred_loc_dict, pred_g_dict, BS
         )
         RBE_array = np.zeros_like(dist_array)
         for BS_id in range(len(BS_loc_array)):
-            delta_f = args.RB_intervel_micro
-            p = args.p_micro
-            bias = args.bias_micro
-            beta = args.beta_micro
-            G = 10 ** ((bias - beta * 10 * log10(dist_array[BS_id])) / 10)
+            delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+            p = args.p_micro if BS_id > 0 else args.p_macro
+            G = 10 ** (pred_g_dict[veh][BS_id] / 10)
             RBE_array[BS_id] = delta_f * log2(1 + p * G / args.N0 / delta_f)
         HO_cmd[veh] = RBE_array.argmax()
     return HO_cmd
@@ -240,10 +269,9 @@ def HO_RBE_predG(args, veh_set_cur, backlog_queue_dict, pred_loc_dict, pred_g_di
         )
         RBE_array = np.zeros_like(dist_array)
         for BS_id in range(len(BS_loc_array)):
-            G = pred_g_dict[veh][BS_id]
-            G = 10 ** (G / 10)
-            delta_f = args.RB_intervel_micro
-            p = args.p_micro
+            delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+            p = args.p_micro if BS_id > 0 else args.p_macro
+            G = 10 ** (pred_g_dict[veh][BS_id] / 10)
             RBE_array[BS_id] = delta_f * log2(1 + p * G / args.N0 / delta_f)
         HO_cmd[veh] = RBE_array.argmax()
     return HO_cmd
@@ -265,15 +293,9 @@ def HO_EE_GAP_APX_with_offload_conservative(args, veh_set_cur, backlog_queue_dic
     lbd = args.data_rate
     N0 = args.N0
     for BS_id in range(len(BS_loc_array)):
-        delta_f = args.RB_intervel_micro
-        p = args.p_micro
-        bias = args.bias_micro
-        beta = args.beta_micro
-        K = args.num_RB_micro
-        shd_sigma = args.shd_sigma_micro
-        G_array = 10 ** (
-            (bias - beta * 10 * np.log10(dist_matrix[:, BS_id]) - shd_sigma) / 10
-        )
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
+        G_array = 10 ** (np.array([pred_g_dict[veh][BS_id] for veh in veh_set_cur]) / 10)
         k_tilde_matrix[:, BS_id] = lbd / (
             delta_f * np.log2(1 + p * G_array / N0 / delta_f)
         )
@@ -309,9 +331,9 @@ def HO_EE_GAP_APX_with_offload_conservative_predG(args, veh_set_cur, backlog_que
     k_tilde_matrix = np.zeros_like(dist_matrix)
     lbd = args.data_rate
     N0 = args.N0
-    delta_f = args.RB_intervel_micro
-    p = args.p_micro
     for BS_id in range(len(BS_loc_array)):
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
         G_array = pred_G[:, BS_id]
         G_array = 10 ** (G_array / 10)
         k_tilde_matrix[:, BS_id] = lbd / (
@@ -321,8 +343,8 @@ def HO_EE_GAP_APX_with_offload_conservative_predG(args, veh_set_cur, backlog_que
     RB_num_table = np.zeros(len(BS_loc_array))
     pm_table = np.zeros(len(BS_loc_array))
     for BS_id in range(len(BS_loc_array)):
-        RB_num_table[BS_id] = args.num_RB_micro
-        pm_table[BS_id] = args.p_micro
+        RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
     T_HO, feasible_flag = HO_GAP_APX_with_offload(
         T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
     )
@@ -728,14 +750,9 @@ def HO_EE_MOX2(
 
 def RA_Lyapunov(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     eta = args.eta
-    if BS_id == 0:
-        num_RB = args.num_RB_macro
-        delta_f = args.RB_intervel_macro
-        p = args.p_macro
-    else:
-        num_RB = args.num_RB_micro
-        delta_f = args.RB_intervel_micro
-        p = args.p_micro
+    num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+    delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+    p = args.p_micro if BS_id > 0 else args.p_macro
     delta_t = args.slot_len
     N0 = args.N0
     veh_num = len(veh_set)
@@ -771,14 +788,9 @@ def RA_Lyapunov(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
 
 def RA_heur_q(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     RA_dict = collections.OrderedDict()
-    if BS_id == 0:
-        num_RB = args.num_RB_macro
-        delta_f = args.RB_intervel_macro
-        p = args.p_macro
-    else:
-        num_RB = args.num_RB_micro
-        delta_f = args.RB_intervel_micro
-        p = args.p_micro
+    num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+    delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+    p = args.p_micro if BS_id > 0 else args.p_macro
     delta_t = args.slot_len
     N0 = args.N0
     veh_id_list = list(veh_set)
@@ -800,14 +812,9 @@ def RA_heur_q(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
 
 def RA_heur_b(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     RA_dict = collections.OrderedDict()
-    if BS_id == 0:
-        num_RB = args.num_RB_macro
-        delta_f = args.RB_intervel_macro
-        p = args.p_macro
-    else:
-        num_RB = args.num_RB_micro
-        delta_f = args.RB_intervel_micro
-        p = args.p_micro
+    num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+    delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+    p = args.p_micro if BS_id > 0 else args.p_macro
     delta_t = args.slot_len
     N0 = args.N0
     veh_id_list = list(veh_set)
@@ -829,14 +836,9 @@ def RA_heur_b(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
 
 def RA_heur_qb(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     RA_dict = collections.OrderedDict()
-    if BS_id == 0:
-        num_RB = args.num_RB_macro
-        delta_f = args.RB_intervel_macro
-        p = args.p_macro
-    else:
-        num_RB = args.num_RB_micro
-        delta_f = args.RB_intervel_micro
-        p = args.p_micro
+    num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+    delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+    p = args.p_micro if BS_id > 0 else args.p_macro
     delta_t = args.slot_len
     N0 = args.N0
     veh_id_list = list(veh_set)
@@ -865,14 +867,9 @@ def RA_heur_fqb(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
         return y
 
     RA_dict = collections.OrderedDict()
-    if BS_id == 0:
-        num_RB = args.num_RB_macro
-        delta_f = args.RB_intervel_macro
-        p = args.p_macro
-    else:
-        num_RB = args.num_RB_micro
-        delta_f = args.RB_intervel_micro
-        p = args.p_micro
+    num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+    delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+    p = args.p_micro if BS_id > 0 else args.p_macro
     delta_t = args.slot_len
     N0 = args.N0
     veh_id_list = list(veh_set)
