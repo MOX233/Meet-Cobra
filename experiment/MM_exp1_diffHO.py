@@ -17,16 +17,18 @@ import pickle
 
 sys.path.append(os.getcwd())
 from utils.NN_utils import BeamPredictionLSTMModel, BestGainPredictionLSTMModel
-from utils.sim_utils import run_sim, run_sim_withUMa
+from utils.sim_utils import run_sim_withUMa
 from utils.options import args_parser
 from utils.alg_utils import (
     RA_unlimitRB,
     RA_heur_fqb_smartRound,
+    RA_heur_QPOS,
+    RA_heur_QPPF,
     HO_EE_predG,
     HO_RBE_predG,
     HO_EE_GAP_APX_with_offload_conservative_predG,
 )
-from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch, lin2dB
+from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch, lin2dB, generate_1Dsamples
 from utils.data_utils import get_prepared_dataset, generate_complex_gaussian_vector
 from utils.plot_utils import plot_beampred
 from utils.beam_utils import generate_dft_codebook, beamPairId_to_beamIdPair
@@ -45,7 +47,8 @@ if __name__ == "__main__":
     # Urban Macro LoS: PL = 28 + 22*log10(d)+20*log10(f)
     # Urban Micro LoS: PL = 32.4 + 21*log10(d)+20*log10(f)
     # data_rate_list = np.logspace(7, 8, 10)
-    data_rate_list = np.linspace(10e6, 200e6, 21)
+    # data_rate_list = np.linspace(10e6, 200e6, 20)
+    # data_rate_list = np.linspace(30e6, 50e6, 11)
     freq = 28e9
     DS_start, DS_end = 800, 950
     look_ahead_len = 10
@@ -55,8 +58,9 @@ if __name__ == "__main__":
     P_noise = 1e-14
     n_pilot = 16
     sample_interval = int(M_t/n_pilot)
-    gpu = 4
+    gpu = 2
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
+    print('device: ',device)
     args = args_parser()
     args.from_sionna = True
     args.M_t = M_t
@@ -69,17 +73,29 @@ if __name__ == "__main__":
     args.RB_intervel_micro = 1.8 * 1e6
     args.p_macro = 1
     args.p_micro = 0.2
+    args.NF_macro_dB = 5
+    args.NF_micro_dB = 10
     args.data_rate = 10 * 1e6
+    args.random_factor_range4data_rate = 0.0
     args.lat_slot_ub = 20
     args.eta = 1e6
     args.device = device
     args.K = 3 # 每次beam tracking 时选K个最有可能的波束对进行测试
-    args.Lambda = 0.05 # 车辆到达率
+    args.Lambda = 0.1 # 车辆到达率
+    match args.Lambda:
+        case 0.1:
+            data_rate_list = generate_1Dsamples(split_point_list=[10e6,120e6,160e6, 200e6], spacing_list=[10e6,5e6,10e6])
+        case 0.15:
+            data_rate_list = generate_1Dsamples(split_point_list=[10e6,50e6,80e6,100e6 ], spacing_list=[10e6,3e6,10e6])
+        case 0.2:
+            data_rate_list = generate_1Dsamples(split_point_list=[10e6,30e6,60e6], spacing_list=[5e6,3e6])
+        case _:
+            data_rate_list = np.linspace(10e6, 200e6, 21)
     args.trajectoryInfo_path = './sumo_data/trajectory_Lbd{args.Lambda:.2f}.csv'
     # 对测试数据集进行截断
-    cut_ratio = 0.1
+    cut_ratio = 0.02
     cut_end = DS_start + cut_ratio*(DS_end-DS_start)
-    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"exp_results/lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
+    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"results_exp1/lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
         + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
     os.makedirs(save_path, exist_ok=True)
     sionna_result_filepath = f'./sionna_result/trajectoryInfo_lbd{args.Lambda:.2f}_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
@@ -140,7 +156,8 @@ if __name__ == "__main__":
         _timeline_dir[frame] = v
     timeline_dir = _timeline_dir
     
-    
+    avg_car_num = sum([len(timeline_dir[frame]) for frame in timeline_dir.keys()]) / len(timeline_dir.keys())
+            
     feature_input_dim = 2 * M_r * n_pilot + 2 * int(preprocess_mode == 2)
     num_bs = N_bs
     num_beampair = M_r * M_t
@@ -168,8 +185,9 @@ if __name__ == "__main__":
 
     # 给出所需要仿真的方案名和PHO,RA策略
     sim_strategy_dict = collections.OrderedDict()
-    sim_strategy_dict["Proposed"] = {
-        "RA": RA_heur_fqb_smartRound,
+    
+    sim_strategy_dict["ME-COBRA (PredInfo)"] = {
+        "RA": RA_heur_QPOS,
         "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
@@ -177,35 +195,8 @@ if __name__ == "__main__":
         "NoBF": False,
     }
     
-    sim_strategy_dict["LB"] = {
-        "RA": RA_unlimitRB,
-        "HO": HO_EE_predG,
-        "save_pilot": False,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "NoBF": False,
-    }
-    
-    sim_strategy_dict["EE"] = {
-        "RA": RA_heur_fqb_smartRound,
-        "HO": HO_EE_predG,
-        "save_pilot": True,
-        "gainpred_model": gainpred_model,
-        "beampred_model": beampred_model,
-        "NoBF": False,
-    }
-    
-    sim_strategy_dict["RBE"] = {
-        "RA": RA_heur_fqb_smartRound,
-        "HO": HO_RBE_predG,
-        "save_pilot": True,
-        "gainpred_model": gainpred_model,
-        "beampred_model": beampred_model,
-        "NoBF": False,
-    }
-    
-    sim_strategy_dict["Proposed_TrueBeamTrueGain"] = {
-        "RA": RA_heur_fqb_smartRound, 
+    sim_strategy_dict["ME-COBRA (TrueInfo)"] = {
+        "RA": RA_heur_QPOS, 
         "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
         "save_pilot": True,
         "gainpred_model": None,
@@ -213,16 +204,8 @@ if __name__ == "__main__":
         "NoBF": False,
     }
     
-    # sim_strategy_dict["Proposed_NoSavePilot"] = {
-    #     "RA": RA_heur_fqb_smartRound, 
-    #     "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
-    #     "save_pilot": False,
-    #     "gainpred_model": gainpred_model,
-    #     "beampred_model": beampred_model,
-    #     "NoBF": False,
-    # }
-    sim_strategy_dict["NoBF"] = {
-        "RA": RA_heur_fqb_smartRound, 
+    sim_strategy_dict["ME-COBRA (NoBF)"] = {
+        "RA": RA_heur_QPOS, 
         "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
         "save_pilot": False,
         "gainpred_model": None,
@@ -230,12 +213,52 @@ if __name__ == "__main__":
         "NoBF": True,
     }
     
+    sim_strategy_dict["GreedyPHO (PredInfo)"] = {
+        "RA": RA_heur_QPOS, 
+        "HO": HO_EE_predG,
+        "save_pilot": True,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "NoBF": False,
+    }
+    
+    sim_strategy_dict["GreedyPHO (TrueInfo)"] = {
+        "RA": RA_heur_QPOS, 
+        "HO": HO_EE_predG,
+        "save_pilot": True,
+        "gainpred_model": None,
+        "beampred_model": None,
+        "NoBF": False,
+    }
+    
+    sim_strategy_dict["GreedyPHO (NoBF)"] = {
+        "RA": RA_heur_QPOS, 
+        "HO": HO_EE_predG,
+        "save_pilot": True,
+        "gainpred_model": None,
+        "beampred_model": None,
+        "NoBF": True,
+    }
+    
+    # sim_strategy_dict["LowerBound"] = {
+    #     "RA": RA_unlimitRB,
+    #     "HO": HO_EE_predG,
+    #     "save_pilot": False,
+    #     "gainpred_model": None,
+    #     "beampred_model": None,
+    #     "NoBF": False,
+    # }
+    
+
+    
+    
     
     sim_result_dict = collections.OrderedDict()
     for strategy_name in sim_strategy_dict.keys():
         sim_result_dict[strategy_name] = {
             "avg_system_power_list": [],
             "HOps_list": [],
+            "carnum_under_BS_list": [],
             "vio_prob_list": [],
             "avg_queue_len_list": [],
             "avg_latency_list": [],
@@ -266,6 +289,12 @@ if __name__ == "__main__":
                 save_pilot=sim_strategy_dict[strategy_name]["save_pilot"],
                 No_BF=sim_strategy_dict[strategy_name]["NoBF"],
             )
+            # TODO：HO_cmd_record
+            # import ipdb; ipdb.set_trace()
+            carnum_under_BS = np.zeros((len(HO_cmd_record.keys())-1,len(BS_loc_list)+1,))
+            for frame in range(1, len(HO_cmd_record.keys())):
+                for BS_id in HO_cmd_record[frame].values():
+                    carnum_under_BS[frame-1, BS_id] += 1
             
             avg_system_power = energy_record.mean() / (
                 args.slots_per_frame * args.slot_len
@@ -281,6 +310,9 @@ if __name__ == "__main__":
             sim_result_dict[strategy_name]["avg_queue_len_list"].append(avg_queue_len)
             sim_result_dict[strategy_name]["avg_latency_list"].append(avg_latency)
             sim_result_dict[strategy_name]["avg_pilot_list"].append(avg_pilot)
+            sim_result_dict[strategy_name]["carnum_under_BS_list"].append(carnum_under_BS)
+           
+            
 
         plt.figure()
         for strategy_name in sim_strategy_dict.keys():
@@ -296,24 +328,24 @@ if __name__ == "__main__":
         plt.xlabel("data rate (Mbps)")
         # plt.xscale("log")
         plt.ylabel("Average system power (W)")
-        plt.savefig(os.path.join(save_path, "exp1 Average system power.png"))
-        plt.savefig(os.path.join(save_path, "exp1 Average system power.pdf"))
+        plt.savefig(os.path.join(save_path, "Average system power.png"))
+        plt.savefig(os.path.join(save_path, "Average system power.pdf"))
         plt.close()
 
         plt.figure()
         for strategy_name in sim_strategy_dict.keys():
             plt.plot(
                 data_rate_list[: data_rate_idx + 1]/1e6,
-                sim_result_dict[strategy_name]["HOps_list"][: data_rate_idx + 1],
+                np.array(sim_result_dict[strategy_name]["HOps_list"][: data_rate_idx + 1]) / avg_car_num,
                 "*-",
                 label=strategy_name,
             )
         plt.legend()
         plt.xlabel("data rate (Mbps)")
         # plt.xscale("log")
-        plt.ylabel("Average HO frequency (1/s)")
-        plt.savefig(os.path.join(save_path, "exp1 Average HO frequency.png"))
-        plt.savefig(os.path.join(save_path, "exp1 Average HO frequency.pdf"))
+        plt.ylabel("Average HO frequency per vehicle (1/s)")
+        plt.savefig(os.path.join(save_path, "Average HO frequency.png"))
+        plt.savefig(os.path.join(save_path, "Average HO frequency.pdf"))
         plt.close()
 
         plt.figure()
@@ -329,8 +361,8 @@ if __name__ == "__main__":
         # plt.xscale("log")
         plt.ylim(0, 100)
         plt.ylabel("Violation probability (%)")
-        plt.savefig(os.path.join(save_path, "exp1 Violation probability.png"))
-        plt.savefig(os.path.join(save_path, "exp1 Violation probability.pdf"))
+        plt.savefig(os.path.join(save_path, "Violation probability.png"))
+        plt.savefig(os.path.join(save_path, "Violation probability.pdf"))
         plt.close()
 
         plt.figure()
@@ -346,9 +378,28 @@ if __name__ == "__main__":
         # plt.xscale("log")
         plt.yscale("log")
         plt.ylabel("Average latency (ms)")
-        plt.savefig(os.path.join(save_path, "exp1 Average latency.png"))
-        plt.savefig(os.path.join(save_path, "exp1 Average latency.pdf"))
+        plt.savefig(os.path.join(save_path, "Average latency.png"))
+        plt.savefig(os.path.join(save_path, "Average latency.pdf"))
         plt.close()
+        
+        plt.figure(figsize=(6, 4*len(BS_loc_list)))
+        plt.xlabel("data rate (Mbps)")
+        plt.ylabel("Average car number under each BS")
+        for BS_id in range(len(BS_loc_list)+1):
+            plt.subplot(len(BS_loc_list)+1, 1, BS_id + 1)
+            for strategy_name in sim_strategy_dict.keys():
+                avg_carnum_under_BS_list = np.array(sim_result_dict[strategy_name]["carnum_under_BS_list"][: data_rate_idx + 1]).mean(axis=-2)
+                plt.plot(
+                    data_rate_list[: data_rate_idx + 1]/1e6,
+                    avg_carnum_under_BS_list[:, BS_id],
+                    "*-",
+                    label=f"{strategy_name} BS{BS_id}",
+                )
+            plt.legend()
+        plt.savefig(os.path.join(save_path, "Average car number under each BS.png"))
+        plt.savefig(os.path.join(save_path, "Average car number under each BS.pdf"))
+        plt.close()
+        
 
         # 保存仿真实验设置
         sim_result_dict["args"] = args

@@ -28,6 +28,12 @@ def args_parser():
         help="UE data traffic arrival rate (bps), default (1Mbps)",
     )
     parser.add_argument(
+        "--random_factor_range4data_rate",
+        type=float,
+        default=0,
+        help="generate random factors for data rates, which are random numbers in [1-random_factor_range4data_rate, 1+random_factor_range4data_rate] (default: 0)",
+    )
+    parser.add_argument(
         "--lat_slot_ub",
         type=float,
         default=10,
@@ -139,6 +145,18 @@ def args_parser():
         type=float,
         default=10 ** (-17.4 - 3),
         help="the noise power spectral density (-174 dBm/Hz -> 10**(-17.4-3) W/Hz)",
+    )
+    parser.add_argument(
+        "--NF_macro_dB",
+        type=float,
+        default=5,
+        help="the noise factor (dB) of the macro cell",
+    )
+    parser.add_argument(
+        "--NF_micro_dB",
+        type=float,
+        default=10,
+        help="the noise factor (dB) of the micro cell",
     )
     
     # other arguments

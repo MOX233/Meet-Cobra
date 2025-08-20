@@ -4,22 +4,17 @@ from numpy import log2, log10
 from utils.channel_utils import rician_channel_gain
 
 
-def init_backlog_queue(Q_th=100, slots_per_frame=100):
-    # p.s. slots_per_frame+1 第0元素表示上一帧末时隙的队列长度,第i(i>0)元素表示当前帧第i-1时隙的队列长度
-    return np.random.choice(Q_th) * np.ones(slots_per_frame + 1)
-
-
-def init_vehset_backlog_queue(veh_set, Q_th=100, slots_per_frame=100):
+def init_vehset_backlog_queue(veh_set, Q_ub_dict, Q_th=0.5, slots_per_frame=100):
     backlog_queue_dict = collections.OrderedDict()
     for veh in veh_set:
-        backlog_queue_dict[veh] = np.random.choice(Q_th) * np.ones(slots_per_frame + 1)
+        backlog_queue_dict[veh] = np.random.choice(int(Q_ub_dict[veh]*Q_th)) * np.ones(slots_per_frame + 1)
         # p.s. slots_per_frame+1 第0元素表示上一帧末时隙的队列长度,第i(i>0)元素表示当前帧第i-1时隙的队列长度
 
     return backlog_queue_dict
 
 
 def init4frame_vehset_backlog_queue(
-    veh_set_remain, veh_set_in, Q_dict_prev, Q_th=100, slots_per_frame=100
+    veh_set_remain, veh_set_in, Q_dict_prev, Q_ub_dict, Q_th=0.5, slots_per_frame=100
 ):
     backlog_queue_dict = collections.OrderedDict()
     for veh in veh_set_remain:
@@ -27,7 +22,7 @@ def init4frame_vehset_backlog_queue(
         backlog_queue_dict[veh][0] = Q_dict_prev[veh][-1]
     for veh in veh_set_in:
         backlog_queue_dict[veh] = np.zeros(slots_per_frame + 1)
-        backlog_queue_dict[veh][0] = np.random.choice(Q_th)
+        backlog_queue_dict[veh][0] = np.random.choice(int(Q_ub_dict[veh]*Q_th))
     return backlog_queue_dict
 
 
@@ -48,14 +43,16 @@ def update4slot_vehset_backlog_queue(
         if BS_id == 0:
             delta_f = args.RB_intervel_macro
             p = args.p_macro
+            NF_dB = args.NF_macro_dB
         else:
             delta_f = args.RB_intervel_micro
             p = args.p_micro
+            NF_dB = args.NF_micro_dB
         q = backlog_queue_dict[veh_id][slot_idx]
         a = a_dict[veh_id][slot_idx]
         g = g_dict[veh_id][BS_id] * rician_channel_gain(args.K_rician, size=1)
         k = RA_dict[veh_id]
-        r = k * delta_f * delta_t * log2(1 + p * 10 ** (g / 10) / N0 / delta_f)
+        r = k * delta_f * delta_t * log2(1 + p * 10**((g-NF_dB)/10) / N0 / delta_f)
         
         # print('SNR',10*np.log10(p * 10 ** (g / 10) / N0 / delta_f),'dB')
         # print('SNR_macro',10*np.log10(1600 * p * 10 ** (g / 10) / N0 / delta_f),'dB')

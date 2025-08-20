@@ -91,13 +91,13 @@ def prepare_dataset(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound 
                 # 车辆在look_ahead_frame中也存在
                 veh_h = np.stack([trajectoryInfo[frame_list[j]][veh]['h'] for j in range(i, i+look_ahead_len+1)], axis=0)
                 veh_pos = np.stack([trajectoryInfo[frame_list[j]][veh]['pos'] for j in range(i, i+look_ahead_len+1)], axis=0)
-                if mode == 0: # 所有BS同时发射pilot，一共有n_pilot个不同方向
+                if mode == 0: # 所有BS同时发射pilot，一共有n_pilot次发射
                     #data = veh_h.sum(axis=-1).reshape(-1)
                     data = np.stack([np.sqrt(P_t)*np.matmul(veh_h[j], DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1) for j in range(look_ahead_len+1)], axis=0)
                     # data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
                     n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
                     data = (data + n).astype(np.complex64)
-                elif mode == 1: # 各BS轮流发射pilot，每个BS各有n_pilot个不同方向，一共有n_bs*n_pilot个不同方向
+                elif mode == 1: # 各BS轮流发射pilot，每个BS各有n_pilot个不同方向，一共有n_bs*n_pilot次发射
                     data = np.stack([np.sqrt(P_t)*np.matmul(veh_h[j], DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].reshape(-1) for j in range(look_ahead_len+1)], axis=0)
                     # data = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].reshape(-1)
                     n = generate_complex_gaussian_vector(data.shape, scale=np.sqrt(P_noise), mean=0.0)
@@ -132,7 +132,7 @@ def prepare_dataset(sionna_result_filepath, M_t, M_r, N_bs, datasize_upperbound 
 
     return data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np
 
-def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise, look_ahead_len=0, datasize_upperbound = 1e9):
+def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise, look_ahead_len=0, datasize_upperbound = 1e9, lbd=0.1):
     # 加载数据集
     if look_ahead_len == 0:
         prepared_dataset_filename = f'{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}'
@@ -146,7 +146,7 @@ def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pi
             prepared_dataset['data_np'], prepared_dataset['best_beam_pair_index_np'], prepared_dataset['veh_pos_np'], prepared_dataset['veh_h_np']
         f_read.close()
     else:
-        filepath = f'./sionna_result/trajectoryInfo_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
+        filepath = f'./sionna_result/trajectoryInfo_lbd{lbd:.2f}_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
         data_np, best_beam_pair_index_np, veh_pos_np, veh_h_np = \
             prepare_dataset(filepath,M_t, M_r, N_bs,datasize_upperbound,P_t, P_noise, n_pilot, mode=preprocess_mode, look_ahead_len=look_ahead_len)
         prepared_dataset = {}

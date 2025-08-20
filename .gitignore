@@ -6,7 +6,7 @@ save**
 old_*
 trajectory*
 .ipynb_checkpoints
-experiment/exp_results
+experiment/results_*
 data4sim
 sumo_data
 prepared_dataset

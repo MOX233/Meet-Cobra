@@ -128,13 +128,13 @@ def main(
         
 if __name__ == "__main__":
     main(
-    start_time=800, 
-    end_time=950, 
+    start_time=200, 
+    end_time=800, 
     subprocess_time=1, 
     max_workers=5, # 最大线程数
     timeout=3600, # 子进程超时时间（秒）
-    gpu=2, # GPU编号
-    Lambda=0.25, #车辆到达率
+    gpu=0, # GPU编号
+    Lambda=0.1, #车辆到达率
     freq=28e9, # 28e9 or 5.9e9
     antenna_pattern="iso", # "iso" or "tr38901"
     N_t_H=1,

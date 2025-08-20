@@ -19,18 +19,19 @@ if __name__ == "__main__":
     setup_seed(20)
     freq = 28e9
     DS_start, DS_end = 200, 800
-    preprocess_mode = 1
+    preprocess_mode = 2
     look_ahead_len = 10
     n_pilot = 4
-    M_r, N_bs, M_t = 8, 4, 64
+    M_r, N_bs, M_t = 8, 4, 32
     P_t = 1e-1
     P_noise = 1e-14 # -174dBm/Hz * 1.8MHz = 7.165929069962946e-15 W
-    gpu = 5
+    lbd = 0.1
+    gpu = 2
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('Using device: ', device)
     
     prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np \
-        = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise, look_ahead_len)
+        = get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pilot, N_bs, P_t, P_noise, look_ahead_len, lbd)
     
     data_torch, best_beam_pair_index_label, lengths = augment_dataset(
         data_np, best_beam_pair_index_np, look_ahead_len, augment_dataset_ratio=2)

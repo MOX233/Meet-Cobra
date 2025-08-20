@@ -77,3 +77,12 @@ def see_model_structure(log_addr):
 
 def lin2dB(x:np.ndarray, eps=1e-9):
     return 10 * np.log10(x + eps)
+
+def generate_1Dsamples(split_point_list, spacing_list):
+    samples = []
+    for i in range(len(split_point_list) - 1):
+        start = split_point_list[i]
+        end = split_point_list[i + 1]
+        samples.append(np.arange(start, end, spacing_list[i]))
+    samples.append(np.array([split_point_list[-1]]))  # Add the last point
+    return np.concatenate(samples)
