@@ -1,0 +1,15 @@
+**.pyc
+**/__pycache__
+**/_tmp**
+*_result
+save**
+old_*
+trajectory*
+.ipynb_checkpoints
+experiment/results_*
+data4sim
+sumo_data
+prepared_dataset
+plots
+mox.ipynb
+_scene_from_sionna_old.xml
