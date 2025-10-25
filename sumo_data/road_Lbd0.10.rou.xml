@@ -69,15 +69,15 @@
     <routeDistribution id="rd_7" routes="r_42 r_43 r_44 r_45 r_46 r_47 r_48" probabilities="0.50 0.50 0.50 0.50 0.50 0.50 0.50"/>
     <routeDistribution id="rd_8" routes="r_49 r_50 r_51 r_52 r_53 r_54 r_55" probabilities="0.50 0.50 0.50 0.50 0.50 0.50 0.50"/>
     <!-- Vehicles, persons and containers (sorted by depart) -->
-    <!-- flow id="flow0" type="typecar" begin="0.00" color="blue" end="1000" probability="0.1" route="rd_0"/ -->
-    <flow id="flow1" type="typecar" begin="0.00" color="blue" end="1000" probability="0.1" route="rd_1"/>
-    <flow id="flow2" type="typecar" begin="0.00" color="blue" end="1000" probability="0.1" route="rd_2"/>
-    <flow id="flow3" type="typecar" begin="0.00" color="blue" end="1000" probability="0.1" route="rd_3"/>
-    <flow id="flow4" type="typecar" begin="0.00" color="blue" end="1000" probability="0.1" route="rd_4"/>
-    <flow id="flow5" type="typecar" begin="0.00" color="blue" end="1000" probability="0.1" route="rd_5"/>
-    <flow id="flow6" type="typecar" begin="0.00" color="blue" end="1000" probability="0.1" route="rd_6"/>
-    <flow id="flow7" type="typecar" begin="0.00" color="blue" end="1000" probability="0.1" route="rd_7"/>
-    <flow id="flow8" type="typecar" begin="0.00" color="blue" end="1000" probability="0.1" route="rd_8"/>
-    
+    <flow id="flow0" type="typecar" begin="0.00" color="blue" end="1000" probability="0.012902216769226168" route="rd_0"/>
+    <flow id="flow1" type="typecar" begin="0.00" color="blue" end="1000" probability="0.017169589238257725" route="rd_1"/>
+    <flow id="flow2" type="typecar" begin="0.00" color="blue" end="1000" probability="0.00703645500348951" route="rd_2"/>
+    <flow id="flow3" type="typecar" begin="0.00" color="blue" end="1000" probability="0.011288571833632726" route="rd_3"/>
+    <flow id="flow4" type="typecar" begin="0.00" color="blue" end="1000" probability="0.009099655904988712" route="rd_4"/>
+    <flow id="flow5" type="typecar" begin="0.00" color="blue" end="1000" probability="0.00833402133350617" route="rd_5"/>
+    <flow id="flow6" type="typecar" begin="0.00" color="blue" end="1000" probability="0.009655469510964972" route="rd_6"/>
+    <flow id="flow7" type="typecar" begin="0.00" color="blue" end="1000" probability="0.0118967786333462" route="rd_7"/>
+    <flow id="flow8" type="typecar" begin="0.00" color="blue" end="1000" probability="0.012617241772587823" route="rd_8"/>
+
 </routes>
 

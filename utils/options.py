@@ -187,7 +187,7 @@ def args_parser():
     parser.add_argument(
         "--num_steps",
         type=int,
-        default=3600,
+        default=1000,
         help="number of time steps, which means how many seconds the car flow takes",
     )
 
@@ -195,7 +195,7 @@ def args_parser():
         "--Lambda", type=float, default=0.2, help="arrival rate of car flow"
     )
     parser.add_argument(
-        "--random_factor", type=float, default=1.0,
+        "--random_factor", type=float, default=2.0,
         help="edge weights are dynamically disturbed by a random factor drawn uniformly from [1,FLOAT]")
     parser.add_argument("--accel", type=float, default=3, help="accelerate of car flow")
     parser.add_argument("--decel", type=float, default=6, help="decelerate of car flow")

@@ -399,34 +399,6 @@ def preprocess_data(data_complex,pos_in_data):
     return data
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO
-
 class GenericTrainer:
     def __init__(self, config):
         self.device = config['device']
@@ -453,6 +425,10 @@ class GenericTrainer:
         return results
         
     def run_epoch(self, loader, phase='train'):
+        # debug for OOM
+        import psutil, os
+        print(f"Init RAM: {psutil.Process(os.getpid()).memory_info().rss/1024**3:.2f} GB")
+        
         is_train = phase == 'train'
         self.model.train(is_train)
         
@@ -668,7 +644,7 @@ def train_blockpred_model(num_epochs, device, data_complex, labels, M_t, M_r, po
     return trainer.train(num_epochs)
 
 # 序列预测
-def train_beampred_lstm_model(num_epochs, device, data_complex, lengths, labels, M_t, M_r, pos_in_data=False):
+def train_beampred_lstm_model(num_epochs, device, data_complex, lengths, labels, M_t, M_r, pos_in_data=False, split_ratio=0.7):
     config = {
         'device': device,
         'data_complex': data_complex,
@@ -685,7 +661,7 @@ def train_beampred_lstm_model(num_epochs, device, data_complex, lengths, labels,
             'top3_acc': lambda o, l: (o.topk(3, dim=-1).indices == l.unsqueeze(-1)).any(-1).float().mean().item(),
         },
         'loss_func': lambda o, l: nn.CrossEntropyLoss()(o.view(-1,o.size(-1)), l.view(-1)),
-        'split_ratio': 0.7,
+        'split_ratio': split_ratio,
         'various_input_length': lengths,
     }
     trainer = build_trainer(config)

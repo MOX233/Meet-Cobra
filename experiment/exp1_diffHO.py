@@ -22,7 +22,6 @@ from utils.options import args_parser
 from utils.alg_utils import (
     RA_unlimitRB,
     RA_heur_fqb_smartRound,
-    RA_heur_PF,
     RA_heur_QPOS,
     RA_heur_QPPF,
     HO_EE_predG,
@@ -49,16 +48,21 @@ if __name__ == "__main__":
     # Urban Micro LoS: PL = 32.4 + 21*log10(d)+20*log10(f)
     # data_rate_list = np.logspace(7, 8, 10)
     # data_rate_list = np.linspace(10e6, 200e6, 20)
+    # data_rate_list = np.linspace(30e6, 50e6, 11)
+    N_bs = 4
     freq = 28e9
-    DS_start, DS_end = 800, 950
-    look_ahead_len = 10
+    DS_start, DS_end = 800, 950 # test on a different scenario
     preprocess_mode = 0
-    M_r, N_bs, M_t = 8, 4, 32
+    pos_in_data = preprocess_mode==2
+    look_ahead_len = 10
+    M_t = 32
+    M_r = 8
+    n_pilot = 8
     P_t = 1e-1
-    P_noise = 1e-14
-    n_pilot = 16
+    P_noise = 1e-14 # -174dBm/Hz * 1.8MHz = 7.165929069962946e-15 W
+    lbd = 1
     sample_interval = int(M_t/n_pilot)
-    gpu = 3
+    gpu = 5
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('device: ',device)
     args = args_parser()
@@ -75,7 +79,7 @@ if __name__ == "__main__":
     args.p_micro = 0.2
     args.NF_macro_dB = 5
     args.NF_micro_dB = 10
-    # args.data_rate = 10 * 1e6
+    args.data_rate = 10 * 1e6
     args.random_factor_range4data_rate = 0.0
     args.lat_slot_ub = 20
     args.eta = 1e6
@@ -91,13 +95,15 @@ if __name__ == "__main__":
             data_rate_list = generate_1Dsamples(split_point_list=[10e6,30e6,60e6], spacing_list=[5e6,3e6])
         case _:
             data_rate_list = np.linspace(10e6, 200e6, 21)
-    args.trajectoryInfo_path = './sumo_data/trajectory_Lbd{args.Lambda:.2f}.csv'
+    args.trajectoryInfo_path = f'./sumo_data/trajectory_Lbd{args.Lambda:.2f}.csv'
     # 对测试数据集进行截断
     cut_ratio = 1
     cut_end = DS_start + cut_ratio*(DS_end-DS_start)
-    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"results_exp2/lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
+    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"results_exp1/lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
         + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
     os.makedirs(save_path, exist_ok=True)
+    os.makedirs('./sionna_result', exist_ok=True)
+    os.makedirs('./data4sim', exist_ok=True)
     sionna_result_filepath = f'./sionna_result/trajectoryInfo_lbd{args.Lambda:.2f}_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
     data4sim_filepath = f'./data4sim/lbd{args.Lambda:.2f}_{DS_start}_{DS_end}_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}_lookahead{look_ahead_len}.pkl'
     
@@ -163,10 +169,10 @@ if __name__ == "__main__":
     num_beampair = M_r * M_t
 
     beampred_model = BeamPredictionLSTMModel(feature_input_dim, num_bs, num_beampair).to(device)
-    beampred_model.load_state_dict(torch.load('./NN_result/200_800_3Dbeam_tx(1,32)_rx(1,8)_freq2.8e+10_Np16_mode0_lookahead10/models/beampred_lstm_valAcc91.11%_2025-08-26_02:41:26.pth'))
+    beampred_model.load_state_dict(torch.load('./NN_result/200_800_3Dbeam_tx(1,32)_rx(1,8)_freq2.8e+10_Np8_mode0_lookahead10/models/beampred_lstm_valAcc89.73%_2025-09-19_21:48:48.pth'))
     beampred_model.eval()
     gainpred_model = BestGainPredictionLSTMModel(feature_input_dim, num_bs).to(device)
-    gainpred_model.load_state_dict(torch.load('./NN_result/200_800_3Dbeam_tx(1,32)_rx(1,8)_freq2.8e+10_Np16_mode0_lookahead10/models/gainpred_lstm_valMae3.44dB_2025-08-28_21:35:39.pth'))
+    gainpred_model.load_state_dict(torch.load('./NN_result/200_800_3Dbeam_tx(1,32)_rx(1,8)_freq2.8e+10_Np8_mode0_lookahead10/models/gainpred_lstm_valMae4.07dB_2025-09-25_02:04:34.pth'))
     gainpred_model.eval()
     pospred_model = None
         
@@ -213,50 +219,32 @@ if __name__ == "__main__":
         "NoBF": True,
     }
     
-    # sim_strategy_dict["f(q)b"] = {
-    #     "RA": RA_heur_fqb_smartRound,
-    #     "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
-    #     "save_pilot": True,
-    #     "gainpred_model": gainpred_model,
-    #     "beampred_model": beampred_model,
-    #     "NoBF": False,
-    # }
-    
-    sim_strategy_dict["PropFair (PredInfo)"] = {
-        "RA": RA_heur_PF,
-        "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
+    sim_strategy_dict["GreedyPHO (PredInfo)"] = {
+        "RA": RA_heur_QPOS, 
+        "HO": HO_EE_predG,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
         "NoBF": False,
     }
     
-    sim_strategy_dict["PropFair (TrueInfo)"] = {
-        "RA": RA_heur_PF,
-        "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
+    sim_strategy_dict["GreedyPHO (TrueInfo)"] = {
+        "RA": RA_heur_QPOS, 
+        "HO": HO_EE_predG,
         "save_pilot": True,
         "gainpred_model": None,
         "beampred_model": None,
         "NoBF": False,
     }
     
-    sim_strategy_dict["PropFair (NoBF)"] = {
-        "RA": RA_heur_PF,
-        "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
+    sim_strategy_dict["GreedyPHO (NoBF)"] = {
+        "RA": RA_heur_QPOS, 
+        "HO": HO_EE_predG,
         "save_pilot": True,
         "gainpred_model": None,
         "beampred_model": None,
         "NoBF": True,
     }
-    
-    # sim_strategy_dict["QPPF"] = {
-    #     "RA": RA_heur_QPPF,
-    #     "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
-    #     "save_pilot": True,
-    #     "gainpred_model": gainpred_model,
-    #     "beampred_model": beampred_model,
-    #     "NoBF": False,
-    # }
     
     # sim_strategy_dict["LowerBound"] = {
     #     "RA": RA_unlimitRB,
@@ -266,8 +254,6 @@ if __name__ == "__main__":
     #     "beampred_model": None,
     #     "NoBF": False,
     # }
-    
-    
     
     sim_result_dict = collections.OrderedDict()
     for strategy_name in sim_strategy_dict.keys():
