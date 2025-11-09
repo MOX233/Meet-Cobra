@@ -5,7 +5,7 @@ import math
 
 sys.path.append(os.getcwd())
 import numpy as np
-from utils.mox_utils import lin2dB
+from utils.mox_utils import lin2dB, dB2lin
 
 def rician_channel_gain(K=1, size=100):
     x = np.random.normal(0, np.sqrt(1 / 2), size)  # Real part of scattered component

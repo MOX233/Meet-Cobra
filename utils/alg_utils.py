@@ -6,7 +6,9 @@ import numpy as np
 from numpy import log2, log10
 from scipy.optimize import linprog
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair
-from utils.mox_utils import lin2dB
+from utils.mox_utils import lin2dB, dB2lin
+
+min_bf_gain_dB = 20
 
 def init_vehset_connection(veh_set, BS_loc_array, vehstate_dict, macro=False):
     connection_dict = collections.OrderedDict()
@@ -76,11 +78,14 @@ def update_measured_g_record_dict(g_dict, measured_g_record_dict_prev, veh_set_c
     return measured_g_record_dict_cur
 
 def measure_gain_for_topKbeam(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairId_dict, DFT_matrix_tx, DFT_matrix_rx):
-    num_pilot = 0
+    num_pilot_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming所用的导频数量
     g_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益
+    g_NoBF_dict = collections.OrderedDict() # 统计各车与各基站间不进行beamforming的信道增益
     bpID_dict = collections.OrderedDict() # 统计各车与各基站的波束对ID
     for v, veh in enumerate(veh_set):
+        num_pilot_dict[veh] = np.zeros((len(BS_loc_list)))
         g_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
+        g_NoBF_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         bpID_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         veh_h = timeline_dir[frame][veh]['h'] # (M_r, N_bs, M_t)
         best_beam_index_pair = beamPairId_to_beamIdPair(pred_beamPairId_dict[veh], M_t=args.M_t, M_r=args.M_r) # (N_bs,args.K,2)
@@ -90,18 +95,22 @@ def measure_gain_for_topKbeam(args, frame, veh_set, timeline_dir, BS_loc_list, p
                 g_bf[k] = 1/np.sqrt(args.M_r*args.M_t) * \
                     np.abs(np.matmul(np.matmul(veh_h[:,BS_id,:], DFT_matrix_tx[:,best_beam_index_pair[BS_id,k,0]]).T.conjugate(),DFT_matrix_rx[:,best_beam_index_pair[BS_id,k,1]]))
                 g_bf[k] = 2 * lin2dB(g_bf[k])
-                num_pilot += 1
+                num_pilot_dict[veh][BS_id] += 1
             g_dict[veh][BS_id] = g_bf.max()
+            g_NoBF_dict[veh][BS_id] = 2 * lin2dB(np.abs(veh_h[:,BS_id,:]).max())
             bpID_dict[veh][BS_id] = pred_beamPairId_dict[veh][BS_id, g_bf.argmax()]
-    return g_dict, bpID_dict, num_pilot
+    return g_dict, g_NoBF_dict, bpID_dict, num_pilot_dict
 
 def measure_gain_for_topKbeam_savePilot(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairId_dict, pred_gain_opt_beam_dict, DFT_matrix_tx, DFT_matrix_rx, db_err_th=5, db_lb=-100):
     # bug!
-    num_pilot = 0
+    num_pilot_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming所用的导频数量
     g_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益
+    g_NoBF_dict = collections.OrderedDict() # 统计各车与各基站间不进行beamforming的信道增益
     bpID_dict = collections.OrderedDict() # 统计各车与各基站的波束对ID
     for v, veh in enumerate(veh_set):
+        num_pilot_dict[veh] = np.zeros((len(BS_loc_list)))
         g_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
+        g_NoBF_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         bpID_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         veh_h = timeline_dir[frame][veh]['h'] # (M_r, N_bs, M_t)
         best_beam_index_pair = beamPairId_to_beamIdPair(pred_beamPairId_dict[veh], M_t=args.M_t, M_r=args.M_r) # (N_bs,args.K,2)
@@ -111,29 +120,86 @@ def measure_gain_for_topKbeam_savePilot(args, frame, veh_set, timeline_dir, BS_l
                 g_bf[k] = 1/np.sqrt(args.M_r*args.M_t) * \
                     np.abs(np.matmul(np.matmul(veh_h[:,BS_id,:], DFT_matrix_tx[:,best_beam_index_pair[BS_id,k,0]]).T.conjugate(),DFT_matrix_rx[:,best_beam_index_pair[BS_id,k,1]]))
                 g_bf[k] = 2 * lin2dB(g_bf[k])
-                num_pilot += 1
+                num_pilot_dict[veh][BS_id] += 1
                 if (g_bf[k] > pred_gain_opt_beam_dict[veh][BS_id] - db_err_th) and (g_bf[k] > db_lb):
                     break
             g_dict[veh][BS_id] = g_bf.max()
+            g_NoBF_dict[veh][BS_id] = 2 * lin2dB(np.abs(veh_h[:,BS_id,:]).max())
             bpID_dict[veh][BS_id] = pred_beamPairId_dict[veh][BS_id, g_bf.argmax()]
-    return g_dict, bpID_dict, num_pilot
+    return g_dict, g_NoBF_dict, bpID_dict, num_pilot_dict
 
 def measure_gain_NoBeamforming(frame, veh_set, timeline_dir, BS_loc_list):
-    num_pilot = 0
+    num_pilot_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming所用的导频数量
     g_dict = collections.OrderedDict() # 统计各车与各基站的信道增益
     bpID_dict = collections.OrderedDict() # 统计各车与各基站的波束对ID
     for v, veh in enumerate(veh_set):
+        num_pilot_dict[veh] = np.zeros((len(BS_loc_list)))
         g_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         bpID_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
         veh_h = timeline_dir[frame][veh]['h'] # (M_r, N_bs, M_t)
         for BS_id in range(len(BS_loc_list)):
+            num_pilot_dict[veh][BS_id] = 0
             g_dict[veh][BS_id] = 2 * lin2dB(np.abs(veh_h[:,BS_id,:]).max()) 
-    return g_dict, bpID_dict, num_pilot
+    g_NoBF_dict = g_dict
+    return g_dict, g_NoBF_dict, bpID_dict, num_pilot_dict
+
+def estimate_num_RB_allocated_perBS(args, connection_dict_cur, BS_loc_array, veh_set_cur, g_dict, veh_data_rate_dict, infer_g_dict=None):
+    # 估计每个基站在当前帧平均分配出去的RB数量
+    T_HO = np.zeros((len(BS_loc_array),len(veh_set_cur)))
+    N0 = args.N0
+    for i, veh in enumerate(veh_set_cur):
+        T_HO[connection_dict_cur[veh], i] = 1
+    k_tilde_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    G_dB = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    for i, veh in enumerate(veh_set_cur):
+        G_dB[i, :] = g_dict[veh]
+    # 迭代至收敛
+    _num_RB_allocated_perBS = args.num_RB_micro * np.ones(len(BS_loc_array))
+    for _iter in range(10):
+        for BS_id in range(len(BS_loc_array)):
+            delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+            p = args.p_micro if BS_id > 0 else args.p_macro
+            NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+            G_array = dB2lin(G_dB[:, BS_id])
+            lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+            if infer_g_dict is not None:
+                interference_array = np.array([
+                    sum([
+                        dB2lin(infer_g_dict[veh][other_BS_id]) * args.p_micro * (_num_RB_allocated_perBS[other_BS_id]/args.num_RB_micro)
+                        for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                    ])
+                    for veh in veh_set_cur
+                ])  
+            else:
+                interference_array = np.array([
+                    sum([
+                        dB2lin(g_dict[veh][other_BS_id] - min_bf_gain_dB) * args.p_micro * (_num_RB_allocated_perBS[other_BS_id]/args.num_RB_micro)
+                        for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                    ])
+                    for veh in veh_set_cur
+                ])
+            if BS_id == 0:
+                interference_array *= 0  # macro BS不考虑微基站的干扰
+            k_tilde_matrix[:, BS_id] = lbd_array / (
+                delta_f * np.log2(1 + p * G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array)) + 1e-15
+            )
+
+        num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+        # print('_num_RB_allocated_perBS',_num_RB_allocated_perBS,'est_num_RB_allocated_perBS:', num_RB_allocated_perBS)
+        if np.allclose(_num_RB_allocated_perBS, num_RB_allocated_perBS, atol=1):
+            # print('break in iter',_iter)
+            break
+        _num_RB_allocated_perBS = num_RB_allocated_perBS
+    return num_RB_allocated_perBS
 
                     
 ### 250331 ###
-def RA_heur_fqb_smartRound(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict):
+def RA_heur_fqb_smartRound(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
     RA_dict = collections.OrderedDict()
+    est_num_RB_allocated_perBS = kwargs.get('est_num_RB_allocated_perBS', None)
+    if est_num_RB_allocated_perBS is not None:
+        # 逐元素取上界args.num_RB_micro和预测值的较小值
+        est_num_RB_allocated_perBS = np.minimum(est_num_RB_allocated_perBS, args.num_RB_micro)
     num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
     delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
     p = args.p_micro if BS_id > 0 else args.p_macro
@@ -144,9 +210,12 @@ def RA_heur_fqb_smartRound(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q
     q = np.array([q_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     a = np.array([a_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     g = np.array([g_dict[veh_id][BS_id] for veh_id in veh_id_list])
-
+    if BS_id == 0:
+        BF_pilot_overhead = np.zeros(len(veh_id_list))
+    else:
+        BF_pilot_overhead = np.array([min(num_pilot_dict[veh_id][BS_id-1] * args.pilot_overhead_factor,1) for veh_id in veh_id_list])
     b = np.array(
-        [delta_f * delta_t * log2(1 + p*10**((G-NF_dB)/10) / N0 / delta_f) for G in g]
+        [(1-BPO) * delta_f * delta_t * log2(1 + p* dB2lin(G-NF_dB) / N0 / delta_f) for G,BPO in zip(g,BF_pilot_overhead)]
     )  # 一个RB能提供的传输量
 
     alpha = 100
@@ -158,17 +227,18 @@ def RA_heur_fqb_smartRound(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q
             RB_alloc = min(math.ceil(q[v] / b[v]), resRB)
         else:
             RB_alloc = min(int(q[v] / b[v]), resRB)
-        # if RB_alloc > 30:
-        #     import ipdb;ipdb.set_trace()
-        # RB_alloc = min(RB_alloc,10) # TODO
         RA_dict[veh_id_list[v]] = RB_alloc
         resRB -= RB_alloc
     return RA_dict
 
 
-def RA_heur_PF(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict):
+def RA_heur_PF(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
     # Proportional Fair Scheduling
     RA_dict = collections.OrderedDict()
+    est_num_RB_allocated_perBS = kwargs.get('est_num_RB_allocated_perBS', None)
+    if est_num_RB_allocated_perBS is not None:
+        # 逐元素取上界args.num_RB_micro和预测值的较小值
+        est_num_RB_allocated_perBS = np.minimum(est_num_RB_allocated_perBS, args.num_RB_micro)
     num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
     delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
     p = args.p_micro if BS_id > 0 else args.p_macro
@@ -179,9 +249,12 @@ def RA_heur_PF(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_
     q = np.array([q_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     a = np.array([a_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     g = np.array([g_dict[veh_id][BS_id] for veh_id in veh_id_list])
-
+    if BS_id == 0:
+        BF_pilot_overhead = np.zeros(len(veh_id_list))
+    else:
+        BF_pilot_overhead = np.array([min(num_pilot_dict[veh_id][BS_id-1] * args.pilot_overhead_factor,1) for veh_id in veh_id_list])
     b = np.array(
-        [delta_f * delta_t * log2(1 + p*10**((G-NF_dB)/10) / N0 / delta_f) for G in g]
+        [(1-BPO) * delta_f * delta_t * log2(1 + p* dB2lin(G-NF_dB) / N0 / delta_f) for G,BPO in zip(g,BF_pilot_overhead)]
     )  # 一个RB能提供的传输量
 
     q_over_Qub = np.array([q_dict[veh_id][slot_idx] / Q_ub_dict[veh_id] for veh_id in veh_id_list])
@@ -192,17 +265,18 @@ def RA_heur_PF(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_
             RB_alloc = min(math.ceil(q[v] / b[v]), resRB)
         else:
             RB_alloc = min(int(q[v] / b[v]), resRB)
-        # if RB_alloc > 30:
-        #     import ipdb;ipdb.set_trace()
-        # RB_alloc = min(RB_alloc,10) # TODO
         RA_dict[veh_id_list[v]] = RB_alloc
         resRB -= RB_alloc
     return RA_dict
 
 
-def RA_heur_QPOS(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict):
+def RA_heur_QPOS(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
     # QoS-Prioritized Opportunistic Scheduling
     RA_dict = collections.OrderedDict()
+    est_num_RB_allocated_perBS = kwargs.get('est_num_RB_allocated_perBS', None)
+    if est_num_RB_allocated_perBS is not None:
+        # 逐元素取上界args.num_RB_micro和预测值的较小值
+        est_num_RB_allocated_perBS = np.minimum(est_num_RB_allocated_perBS, args.num_RB_micro)
     if not veh_set:  # 如果没有车辆，则返回空字典
         return RA_dict
     num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
@@ -215,9 +289,15 @@ def RA_heur_QPOS(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, 
     q = np.array([q_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     a = np.array([a_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     g = np.array([g_dict[veh_id][BS_id] for veh_id in veh_id_list])
+    if BS_id == 0:
+        BF_pilot_overhead = np.zeros(len(veh_id_list))
+    else:
+        BF_pilot_overhead = np.array([min(num_pilot_dict[veh_id][BS_id-1] * args.pilot_overhead_factor,1) for veh_id in veh_id_list])
     b = np.array(
-        [delta_f * delta_t * log2(1 + p*10**((G-NF_dB)/10) / N0 / delta_f) for G in g]
+        [(1-BPO) * delta_f * delta_t * log2(1 + p* dB2lin(G-NF_dB) / N0 / delta_f) for G,BPO in zip(g,BF_pilot_overhead)]
     )  # 一个RB能提供的传输量
+    
+    
     backlog_flag = np.array([q_dict[veh_id][slot_idx] > Q_ub_dict[veh_id]/2 for veh_id in veh_id_list])
     max_b = b.max()
     weight = b/max_b * backlog_flag - (1-b/max_b) * (1-backlog_flag)
@@ -232,7 +312,70 @@ def RA_heur_QPOS(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, 
         resRB -= RB_alloc
     return RA_dict
 
-def RA_heur_QPPF(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict):
+def RA_heur_QPOS_SINR(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
+    # QoS-Prioritized Opportunistic Scheduling
+    RA_dict = collections.OrderedDict()
+    est_num_RB_allocated_perBS = kwargs.get('est_num_RB_allocated_perBS', None)
+    if est_num_RB_allocated_perBS is not None:
+        # 逐元素取上界args.num_RB_micro和预测值的较小值
+        est_num_RB_allocated_perBS = np.minimum(est_num_RB_allocated_perBS, args.num_RB_micro)
+    infer_g_dict = kwargs.get('infer_g_dict', None)
+    BS_association_dict = kwargs.get('BS_association_dict', None)
+    if not veh_set:  # 如果没有车辆，则返回空字典
+        return RA_dict
+    num_bs = g_dict[list(veh_set)[0]].shape[0]
+    num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+    delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+    p = args.p_micro if BS_id > 0 else args.p_macro
+    NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+    delta_t = args.slot_len
+    N0 = args.N0
+    veh_id_list = list(veh_set)
+    q = np.array([q_dict[veh_id][slot_idx] for veh_id in veh_id_list])
+    a = np.array([a_dict[veh_id][slot_idx] for veh_id in veh_id_list])
+    if (infer_g_dict is not None) and (est_num_RB_allocated_perBS is not None):
+        Interference = np.array([
+            sum([
+                dB2lin(infer_g_dict[veh_id][other_BS_id]) * (est_num_RB_allocated_perBS[other_BS_id]/args.num_RB_micro) * args.p_micro # 缺了一个Km/K
+                for other_BS_id in range(1,num_bs) if other_BS_id != BS_id
+            ])
+            for veh_id in veh_id_list
+        ])  
+    else:
+        Interference = np.array([
+                sum([
+                    dB2lin(g_dict[veh_id][other_BS_id] - min_bf_gain_dB) * args.p_micro # 缺了一个Km/K
+                    for other_BS_id in range(1,num_bs) if other_BS_id != BS_id
+                ])
+                for veh_id in veh_id_list
+            ])
+    if BS_id == 0:
+        Interference *= 0  # macro BS不考虑微基站的干扰
+            
+    g = np.array([g_dict[veh_id][BS_id] for veh_id in veh_id_list])
+    
+    if BS_id == 0:
+        BF_pilot_overhead = np.zeros(len(veh_id_list))
+    else:
+        BF_pilot_overhead = np.array([min(num_pilot_dict[veh_id][BS_id-1] * args.pilot_overhead_factor,1) for veh_id in veh_id_list])
+    b = np.array(
+        [(1-BFO) * delta_f * delta_t * log2(1 + p*dB2lin(G) / (N0*delta_f*dB2lin(NF_dB) + I)) for I,G,BFO in zip(Interference,g,BF_pilot_overhead)]
+    )  # 一个RB能提供的传输量
+    backlog_flag = np.array([q_dict[veh_id][slot_idx] > Q_ub_dict[veh_id]/2 for veh_id in veh_id_list])
+    max_b = b.max()
+    weight = b/max_b * backlog_flag - (1-b/max_b) * (1-backlog_flag)
+    priority = (-weight).argsort()
+    resRB = num_RB
+    for v in priority:
+        if backlog_flag[v]:
+            RB_alloc = min(math.ceil(q[v] / (b[v]+1e-15)), resRB)
+        else:
+            RB_alloc = min(int(q[v] / (b[v]+1e-15)), resRB)
+        RA_dict[veh_id_list[v]] = RB_alloc
+        resRB -= RB_alloc
+    return RA_dict
+
+def RA_heur_QPPF(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
     # QoS-Prioritized Opportunistic Scheduling
     RA_dict = collections.OrderedDict()
     if not veh_set:  # 如果没有车辆，则返回空字典
@@ -247,8 +390,12 @@ def RA_heur_QPPF(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, 
     q = np.array([q_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     a = np.array([a_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     g = np.array([g_dict[veh_id][BS_id] for veh_id in veh_id_list])
+    if BS_id == 0:
+        BF_pilot_overhead = np.zeros(len(veh_id_list))
+    else:
+        BF_pilot_overhead = np.array([min(num_pilot_dict[veh_id][BS_id-1] * args.pilot_overhead_factor,1) for veh_id in veh_id_list])
     b = np.array(
-        [delta_f * delta_t * log2(1 + p*10**((G-NF_dB)/10) / N0 / delta_f) for G in g]
+        [(1-BPO) * delta_f * delta_t * log2(1 + p* dB2lin(G-NF_dB) / N0 / delta_f) for G,BPO in zip(g,BF_pilot_overhead)]
     )  # 一个RB能提供的传输量
     backlog_flag = np.array([q_dict[veh_id][slot_idx] > Q_ub_dict[veh_id]/2 for veh_id in veh_id_list])
     max_b = b.max()
@@ -267,7 +414,7 @@ def RA_heur_QPPF(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, 
     return RA_dict
 
 
-def RA_unlimitRB(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict):
+def RA_unlimitRB(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
     RA_dict = collections.OrderedDict()
     num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
     delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
@@ -279,8 +426,12 @@ def RA_unlimitRB(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, 
     q = np.array([q_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     a = np.array([a_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     g = np.array([g_dict[veh_id][BS_id] for veh_id in veh_id_list])
+    if BS_id == 0:
+        BF_pilot_overhead = np.zeros(len(veh_id_list))
+    else:
+        BF_pilot_overhead = np.array([min(num_pilot_dict[veh_id][BS_id-1] * args.pilot_overhead_factor,1) for veh_id in veh_id_list])
     b = np.array(
-        [delta_f * delta_t * log2(1 + p*10**((G-NF_dB)/10) / N0 / delta_f) for G in g]
+        [(1-BPO) * delta_f * delta_t * log2(1 + p* dB2lin(G-NF_dB) / N0 / delta_f) for G,BPO in zip(g,BF_pilot_overhead)]
     )  # 一个RB能提供的传输量
     priority = (-q).argsort()
     for v in priority:
@@ -294,9 +445,11 @@ def RA_unlimitRB(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, 
     return RA_dict
 
 
-def HO_EE_predG(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array):
+def HO_EE_predG(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
     # Energy Efficiency
     HO_cmd = collections.OrderedDict()
+    infer_g_dict = kwargs.get('infer_g_dict', None) 
+    num_pilot_dict = kwargs.get('num_pilot_dict', None)
     for veh in veh_set_cur:
         pred_veh_loc = pred_loc_dict[veh]
         BS_loc_array - pred_veh_loc
@@ -308,96 +461,60 @@ def HO_EE_predG(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_
             delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
             p = args.p_micro if BS_id > 0 else args.p_macro
             NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
-            G = 10 ** ((pred_g_dict[veh][BS_id]-NF_dB) / 10)
+            G = dB2lin(pred_g_dict[veh][BS_id] - NF_dB)
             EE_array[BS_id] = delta_f / p * log2(1 + p * G / args.N0 / delta_f)
         HO_cmd[veh] = EE_array.argmax()
-    return HO_cmd
-
-
-def HO_RBE_predG(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array):
-    # Spectral Efficiency
-    HO_cmd = collections.OrderedDict()
-    for veh in veh_set_cur:
-        pred_veh_loc = pred_loc_dict[veh]
-        BS_loc_array - pred_veh_loc
-        dist_array = np.linalg.norm(
-            BS_loc_array - pred_veh_loc, ord=2, axis=-1, keepdims=False
-        )
-        RBE_array = np.zeros_like(dist_array)
-        for BS_id in range(len(BS_loc_array)):
-            delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
-            p = args.p_micro if BS_id > 0 else args.p_macro
-            NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
-            G = 10 ** ((pred_g_dict[veh][BS_id]-NF_dB) / 10)
-            RBE_array[BS_id] = delta_f * log2(1 + p * G / args.N0 / delta_f)
-        HO_cmd[veh] = RBE_array.argmax()
-    return HO_cmd
-
-
-def HO_EE_GAP_APX_with_offload_conservative(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array):
-    # Spectral Efficiency
-    HO_cmd = collections.OrderedDict()
-    points = np.zeros((len(veh_set_cur), 2))
+    
+    # 基于HO_cmd得到T_HO
+    T_HO = np.zeros((len(BS_loc_array),len(veh_set_cur)))
     for i, veh in enumerate(veh_set_cur):
-        points[i, :] = pred_loc_dict[veh]
-    dist_matrix = np.linalg.norm(
-        points[:, np.newaxis, :] - BS_loc_array[np.newaxis, :, :],
-        ord=2,
-        axis=-1,
-        keepdims=False,
-    )
-    power_matrix = np.zeros_like(dist_matrix)
-    k_tilde_matrix = np.zeros_like(dist_matrix)
+        T_HO[HO_cmd[veh], i] = 1
+    # 计算k_tilde_matrix和power_matrix
+    k_tilde_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    pred_G_dB = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    power_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    for i, veh in enumerate(veh_set_cur):
+        pred_G_dB[i, :] = pred_g_dict[veh]
     N0 = args.N0
     for BS_id in range(len(BS_loc_array)):
         delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
         p = args.p_micro if BS_id > 0 else args.p_macro
         NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
-        G_array = 10 ** (np.array([(pred_g_dict[veh][BS_id]-NF_dB) for veh in veh_set_cur]) / 10)
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
         lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
         k_tilde_matrix[:, BS_id] = lbd_array / (
-            delta_f * np.log2(1 + p * G_array / N0 / delta_f)
+            delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB)))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
-    RB_num_table = np.zeros(len(BS_loc_array))
-    pm_table = np.zeros(len(BS_loc_array))
-    for BS_id in range(len(BS_loc_array)):
-        RB_num_table[BS_id] = args.num_RB_micro
-        pm_table[BS_id] = args.p_micro
-    T_HO, feasible_flag = HO_GAP_APX_with_offload(
-        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
-    )
-    for i, veh in enumerate(veh_set_cur):
-        HO_cmd[veh] = T_HO[:, i].argmax()
-    return HO_cmd
+    num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    return HO_cmd, num_RB_allocated_perBS
 
 
-def HO_EE_GAP_APX_with_offload_conservative_predG(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array):
+def HO_EE_GAP_APX_with_offload_conservative_predG(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
     # Spectral Efficiency
     HO_cmd = collections.OrderedDict()
+    infer_g_dict = kwargs.get('infer_g_dict', None) 
+    num_pilot_dict = kwargs.get('num_pilot_dict', None)
     points = np.zeros((len(veh_set_cur), 2))
-    pred_G = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    pred_G_dB = np.zeros((len(veh_set_cur), len(BS_loc_array)))
     for i, veh in enumerate(veh_set_cur):
         points[i, :] = pred_loc_dict[veh]
-        pred_G[i, :] = pred_g_dict[veh]
-    dist_matrix = np.linalg.norm(
-        points[:, np.newaxis, :] - BS_loc_array[np.newaxis, :, :],
-        ord=2,
-        axis=-1,
-        keepdims=False,
-    ) # (n_car,n_bs)
-    power_matrix = np.zeros_like(dist_matrix)
-    k_tilde_matrix = np.zeros_like(dist_matrix)
+        pred_G_dB[i, :] = pred_g_dict[veh]
+    power_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    k_tilde_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
     N0 = args.N0
     for BS_id in range(len(BS_loc_array)):
         delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
         p = args.p_micro if BS_id > 0 else args.p_macro
         NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
-        G_array = pred_G[:, BS_id]
-        G_array = 10 ** ((G_array-NF_dB) / 10)
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
         lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+        BF_overhad_array = np.zeros(len(veh_set_cur))
+        if num_pilot_dict is not None:
+            for i, veh in enumerate(veh_set_cur):
+                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         k_tilde_matrix[:, BS_id] = lbd_array / (
-            delta_f * np.log2(1 + p * G_array / N0 / delta_f)
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     RB_num_table = np.zeros(len(BS_loc_array))
@@ -410,194 +527,390 @@ def HO_EE_GAP_APX_with_offload_conservative_predG(args, veh_set_cur, backlog_que
     )
     for i, veh in enumerate(veh_set_cur):
         HO_cmd[veh] = T_HO[:, i].argmax()
-    return HO_cmd
+        
+    num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    return HO_cmd, num_RB_allocated_perBS
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#################### others ##########################
-
-def HO_nearest(args, veh_set_cur, backlog_queue_dict, pred_loc_dict, pred_g_dict, BS_loc_array):
-    HO_cmd = collections.OrderedDict()
-    for veh in veh_set_cur:
-        pred_veh_loc = pred_loc_dict[veh]
-        BS_loc_array - pred_veh_loc
-        dist_array = np.linalg.norm(
-            BS_loc_array - pred_veh_loc, ord=2, axis=-1, keepdims=False
-        )
-        HO_cmd[veh] = dist_array.argmin()
-    return HO_cmd
-
-
-def HO_SE(args, veh_set_cur, backlog_queue_dict, pred_loc_dict, pred_g_dict, BS_loc_array):
+def HO_EE_GAP_APX_with_offload_conservative_predG_SINR(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
     # Spectral Efficiency
     HO_cmd = collections.OrderedDict()
-    for veh in veh_set_cur:
-        pred_veh_loc = pred_loc_dict[veh]
-        BS_loc_array - pred_veh_loc
-        dist_array = np.linalg.norm(
-            BS_loc_array - pred_veh_loc, ord=2, axis=-1, keepdims=False
+    infer_g_dict = kwargs.get('infer_g_dict', None) 
+    num_pilot_dict = kwargs.get('num_pilot_dict', None)
+    points = np.zeros((len(veh_set_cur), 2))
+    pred_G_dB = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    for i, veh in enumerate(veh_set_cur):
+        points[i, :] = pred_loc_dict[veh]
+        pred_G_dB[i, :] = pred_g_dict[veh]
+    power_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    k_tilde_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    N0 = args.N0
+    for BS_id in range(len(BS_loc_array)):
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
+        NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
+        lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+        if infer_g_dict is not None:
+            interference_array = np.array([
+                sum([
+                    dB2lin(infer_g_dict[veh][other_BS_id]) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])  
+        else:
+            interference_array = np.array([
+                sum([
+                    dB2lin(pred_g_dict[veh][other_BS_id] - min_bf_gain_dB) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])
+        if BS_id == 0:
+            interference_array *= 0  # macro BS不考虑微基站的干扰
+        BF_overhad_array = np.zeros(len(veh_set_cur))
+        if num_pilot_dict is not None:
+            for i, veh in enumerate(veh_set_cur):
+                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+        k_tilde_matrix[:, BS_id] = lbd_array / (
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
-        SE_array = np.zeros_like(dist_array)
-        for BS_id in range(len(BS_loc_array)):
-            if BS_id == 0:
-                delta_f = args.RB_intervel_macro
-                p = args.p_macro
-                bias = args.bias_macro
-                beta = args.beta_macro
-            else:
-                delta_f = args.RB_intervel_micro
-                p = args.p_micro
-                bias = args.bias_micro
-                beta = args.beta_micro
-            G = 10 ** ((bias - beta * 10 * log10(dist_array[BS_id])) / 10)
-            SE_array[BS_id] = log2(1 + p * G / args.N0 / delta_f)
-        HO_cmd[veh] = SE_array.argmax()
-    return HO_cmd
-
-
-def HO_EE_loadbalance(
-    args,
-    veh_set_cur,
-    backlog_queue_dict,
-    pred_loc_dict,
-    pred_g_dict,
-    BS_loc_array,
-    UEnum_factor=0.9,
-):
-    # Energy Efficiency
-    HO_cmd = collections.OrderedDict()
-    BS_UEnum = np.zeros(len(BS_loc_array))
-    for veh in veh_set_cur:
-        pred_veh_loc = pred_loc_dict[veh]
-        BS_loc_array - pred_veh_loc
-        dist_array = np.linalg.norm(
-            BS_loc_array - pred_veh_loc, ord=2, axis=-1, keepdims=False
+        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
+    
+    RB_num_table = np.zeros(len(BS_loc_array))
+    pm_table = np.zeros(len(BS_loc_array))
+    for BS_id in range(len(BS_loc_array)):
+        RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
+    T_HO, feasible_flag = HO_GAP_APX_with_offload(
+        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+    )
+    _num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    _T_HO = T_HO
+    
+    # 在上次迭代的基础上，进行微调
+    for BS_id in range(len(BS_loc_array)):
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
+        NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
+        lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+        if infer_g_dict is not None:
+            interference_array = np.array([
+                sum([
+                    dB2lin(infer_g_dict[veh][other_BS_id]) * args.p_micro * (_num_RB_allocated_perBS[other_BS_id]/args.num_RB_micro)
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])  
+        else:
+            interference_array = np.array([
+                sum([
+                    dB2lin(pred_g_dict[veh][other_BS_id] - min_bf_gain_dB) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])
+        if BS_id == 0:
+            interference_array *= 0  # macro BS不考虑微基站的干扰
+        BF_overhad_array = np.zeros(len(veh_set_cur))
+        if num_pilot_dict is not None:
+            for i, veh in enumerate(veh_set_cur):
+                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+        k_tilde_matrix[:, BS_id] = lbd_array / (
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
-        EE_array = np.zeros_like(dist_array)
-        for BS_id in range(len(BS_loc_array)):
-            if BS_id == 0:
-                delta_f = args.RB_intervel_macro
-                p = args.p_macro
-                bias = args.bias_macro
-                beta = args.beta_macro
-            else:
-                delta_f = args.RB_intervel_micro
-                p = args.p_micro
-                bias = args.bias_micro
-                beta = args.beta_micro
-            G = 10 ** ((bias - beta * 10 * log10(dist_array[BS_id])) / 10)
-            EE_array[BS_id] = delta_f / p * log2(1 + p * G / args.N0 / delta_f)
-        EE_array = EE_array * UEnum_factor**BS_UEnum
-        HO_cmd[veh] = EE_array.argmax()
-        BS_UEnum[EE_array.argmax()] += 1
-    return HO_cmd
+        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
+    
+    RB_num_table = np.zeros(len(BS_loc_array))
+    pm_table = np.zeros(len(BS_loc_array))
+    for BS_id in range(len(BS_loc_array)):
+        RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
+    T_HO, feasible_flag = HO_GAP_APX_with_offload(
+        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+    )
+    num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    
+    for i, veh in enumerate(veh_set_cur):
+        HO_cmd[veh] = T_HO[:, i].argmax()
+    return HO_cmd, num_RB_allocated_perBS
 
 
-def HO_SE_loadbalance(
-    args,
-    veh_set_cur,
-    backlog_queue_dict,
-    pred_loc_dict,
-    pred_g_dict,
-    BS_loc_array,
-    UEnum_factor=0.9,
-):
+def HO_EE_GAP_APX_conservative_predG_SINR(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
     # Spectral Efficiency
     HO_cmd = collections.OrderedDict()
-    BS_UEnum = np.zeros(len(BS_loc_array))
-    for veh in veh_set_cur:
-        pred_veh_loc = pred_loc_dict[veh]
-        BS_loc_array - pred_veh_loc
-        dist_array = np.linalg.norm(
-            BS_loc_array - pred_veh_loc, ord=2, axis=-1, keepdims=False
+    infer_g_dict = kwargs.get('infer_g_dict', None) 
+    num_pilot_dict = kwargs.get('num_pilot_dict', None)
+    points = np.zeros((len(veh_set_cur), 2))
+    pred_G_dB = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    for i, veh in enumerate(veh_set_cur):
+        points[i, :] = pred_loc_dict[veh]
+        pred_G_dB[i, :] = pred_g_dict[veh]
+    power_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    k_tilde_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    N0 = args.N0
+    for BS_id in range(len(BS_loc_array)):
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
+        NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
+        lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+        if infer_g_dict is not None:
+            interference_array = np.array([
+                sum([
+                    dB2lin(infer_g_dict[veh][other_BS_id]) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])  
+        else:
+            interference_array = np.array([
+                sum([
+                    dB2lin(pred_g_dict[veh][other_BS_id] - min_bf_gain_dB) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])
+        if BS_id == 0:
+            interference_array *= 0  # macro BS不考虑微基站的干扰
+        BF_overhad_array = np.zeros(len(veh_set_cur))
+        if num_pilot_dict is not None:
+            for i, veh in enumerate(veh_set_cur):
+                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+        
+        k_tilde_matrix[:, BS_id] = lbd_array / (
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
-        SE_array = np.zeros_like(dist_array)
-        for BS_id in range(len(BS_loc_array)):
-            if BS_id == 0:
-                delta_f = args.RB_intervel_macro
-                p = args.p_macro
-                bias = args.bias_macro
-                beta = args.beta_macro
-            else:
-                delta_f = args.RB_intervel_micro
-                p = args.p_micro
-                bias = args.bias_micro
-                beta = args.beta_micro
-            G = 10 ** ((bias - beta * 10 * log10(dist_array[BS_id])) / 10)
-            SE_array[BS_id] = log2(1 + p * G / args.N0 / delta_f)
-        SE_array = SE_array * UEnum_factor**BS_UEnum
-        HO_cmd[veh] = SE_array.argmax()
-        BS_UEnum[SE_array.argmax()] += 1
-    return HO_cmd
+        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
+    
+    RB_num_table = np.zeros(len(BS_loc_array))
+    pm_table = np.zeros(len(BS_loc_array))
+    for BS_id in range(len(BS_loc_array)):
+        RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
+    T_HO, feasible_flag = HO_GAP_APX(
+        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+    )
+    _num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    _T_HO = T_HO
+    
+    # 在上次迭代的基础上，进行微调
+    for BS_id in range(len(BS_loc_array)):
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
+        NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
+        lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+        if infer_g_dict is not None:
+            interference_array = np.array([
+                sum([
+                    dB2lin(infer_g_dict[veh][other_BS_id]) * args.p_micro * (_num_RB_allocated_perBS[other_BS_id]/args.num_RB_micro)
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])  
+        else:
+            interference_array = np.array([
+                sum([
+                    dB2lin(pred_g_dict[veh][other_BS_id] - min_bf_gain_dB) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])
+        if BS_id == 0:
+            interference_array *= 0  # macro BS不考虑微基站的干扰
+        BF_overhad_array = np.zeros(len(veh_set_cur))
+        if num_pilot_dict is not None:
+            for i, veh in enumerate(veh_set_cur):
+                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+        k_tilde_matrix[:, BS_id] = lbd_array / (
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+        )
+        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
+    
+    RB_num_table = np.zeros(len(BS_loc_array))
+    pm_table = np.zeros(len(BS_loc_array))
+    for BS_id in range(len(BS_loc_array)):
+        RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
+    T_HO, feasible_flag = HO_GAP_APX_with_offload(
+        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+    )
+    num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    
+    for i, veh in enumerate(veh_set_cur):
+        HO_cmd[veh] = T_HO[:, i].argmax()
+    return HO_cmd, num_RB_allocated_perBS
 
 
-def HO_RBE_loadbalance(
-    args,
-    veh_set_cur,
-    backlog_queue_dict,
-    pred_loc_dict,
-    pred_g_dict,
-    BS_loc_array,
-    UEnum_factor=0.9,
-):
+def HO_EE_GAP_APX_conservative_predG_SINR_Rician(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
     # Spectral Efficiency
     HO_cmd = collections.OrderedDict()
-    BS_UEnum = np.zeros(len(BS_loc_array))
-    for veh in veh_set_cur:
-        pred_veh_loc = pred_loc_dict[veh]
-        BS_loc_array - pred_veh_loc
-        dist_array = np.linalg.norm(
-            BS_loc_array - pred_veh_loc, ord=2, axis=-1, keepdims=False
+    g_var = (2*args.K_rician + 1) / (args.K_rician + 1)**2
+    g_std = np.sqrt(g_var)
+    g_std_factor = 0.2 * g_std  # 99.7%的置信区间
+    infer_g_dict = kwargs.get('infer_g_dict', None) 
+    num_pilot_dict = kwargs.get('num_pilot_dict', None)
+    points = np.zeros((len(veh_set_cur), 2))
+    pred_G_dB = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    for i, veh in enumerate(veh_set_cur):
+        points[i, :] = pred_loc_dict[veh]
+        pred_G_dB[i, :] = pred_g_dict[veh]
+    power_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    k_tilde_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    N0 = args.N0
+    for BS_id in range(len(BS_loc_array)):
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
+        NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
+        lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+        if infer_g_dict is not None:
+            interference_array = np.array([
+                sum([
+                    dB2lin(infer_g_dict[veh][other_BS_id]) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])  
+        else:
+            interference_array = np.array([
+                sum([
+                    dB2lin(pred_g_dict[veh][other_BS_id] - min_bf_gain_dB) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])
+        if BS_id == 0:
+            interference_array *= 0  # macro BS不考虑微基站的干扰
+        BF_overhad_array = np.zeros(len(veh_set_cur))
+        if num_pilot_dict is not None:
+            for i, veh in enumerate(veh_set_cur):
+                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+        k_tilde_matrix[:, BS_id] = lbd_array / (
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
-        RBE_array = np.zeros_like(dist_array)
-        for BS_id in range(len(BS_loc_array)):
-            if BS_id == 0:
-                delta_f = args.RB_intervel_macro
-                p = args.p_macro
-                bias = args.bias_macro
-                beta = args.beta_macro
-            else:
-                delta_f = args.RB_intervel_micro
-                p = args.p_micro
-                bias = args.bias_micro
-                beta = args.beta_micro
-            G = 10 ** ((bias - beta * 10 * log10(dist_array[BS_id])) / 10)
-            RBE_array[BS_id] = delta_f * log2(1 + p * G / args.N0 / delta_f)
-        RBE_array = RBE_array * UEnum_factor**BS_UEnum
-        HO_cmd[veh] = RBE_array.argmax()
-        BS_UEnum[RBE_array.argmax()] += 1
-    return HO_cmd
+        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
+    
+    RB_num_table = np.zeros(len(BS_loc_array))
+    pm_table = np.zeros(len(BS_loc_array))
+    for BS_id in range(len(BS_loc_array)):
+        RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
+    T_HO, feasible_flag = HO_GAP_APX(
+        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+    )
+    _num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    _T_HO = T_HO
+    
+    # 在上次迭代的基础上，进行微调
+    for BS_id in range(len(BS_loc_array)):
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
+        NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
+        lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+        if infer_g_dict is not None:
+            interference_array = np.array([
+                sum([
+                    dB2lin(infer_g_dict[veh][other_BS_id]) * args.p_micro * (_num_RB_allocated_perBS[other_BS_id]/args.num_RB_micro)
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])  
+        else:
+            interference_array = np.array([
+                sum([
+                    dB2lin(pred_g_dict[veh][other_BS_id] - min_bf_gain_dB) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])
+        if BS_id == 0:
+            interference_array *= 0  # macro BS不考虑微基站的干扰
+        BF_overhad_array = np.zeros(len(veh_set_cur))
+        if num_pilot_dict is not None:
+            for i, veh in enumerate(veh_set_cur):
+                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+        k_tilde_matrix[:, BS_id] = lbd_array / (
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+        )
+        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
+    
+    RB_num_table = np.zeros(len(BS_loc_array))
+    pm_table = np.zeros(len(BS_loc_array))
+    for BS_id in range(len(BS_loc_array)):
+        RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
+    T_HO, feasible_flag = HO_GAP_APX_with_offload(
+        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+    )
+    num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    
+    for i, veh in enumerate(veh_set_cur):
+        HO_cmd[veh] = T_HO[:, i].argmax()
+    return HO_cmd, num_RB_allocated_perBS
+
+
+def HO_EE_offload(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
+    # Spectral Efficiency
+    HO_cmd = collections.OrderedDict()
+    infer_g_dict = kwargs.get('infer_g_dict', None) 
+    num_pilot_dict = kwargs.get('num_pilot_dict', None)
+    points = np.zeros((len(veh_set_cur), 2))
+    pred_G_dB = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    for i, veh in enumerate(veh_set_cur):
+        points[i, :] = pred_loc_dict[veh]
+        pred_G_dB[i, :] = pred_g_dict[veh]
+    power_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    k_tilde_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    N0 = args.N0
+    for BS_id in range(len(BS_loc_array)):
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
+        NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
+        lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+        if infer_g_dict is not None:
+            interference_array = np.array([
+                sum([
+                    dB2lin(infer_g_dict[veh][other_BS_id]) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])  
+        else:
+            interference_array = np.array([
+                sum([
+                    dB2lin(pred_g_dict[veh][other_BS_id] - min_bf_gain_dB) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])
+        if BS_id == 0:
+            interference_array *= 0  # macro BS不考虑微基站的干扰
+        BF_overhad_array = np.zeros(len(veh_set_cur))
+        if num_pilot_dict is not None:
+            for i, veh in enumerate(veh_set_cur):
+                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+        k_tilde_matrix[:, BS_id] = lbd_array / (
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+        )
+        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
+    RB_num_table = np.zeros(len(BS_loc_array))
+    pm_table = np.zeros(len(BS_loc_array))
+    for BS_id in range(len(BS_loc_array)):
+        RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
+    T_HO, feasible_flag = HO_offload(
+        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+    )
+    num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    for i, veh in enumerate(veh_set_cur):
+        HO_cmd[veh] = T_HO[:, i].argmax()
+    return HO_cmd, num_RB_allocated_perBS
 
 
 def HO_offload(T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray):
@@ -646,169 +959,37 @@ def HO_offload(T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray):
     return T_HO, feasible_flag
 
 
-def HO_MOX2(T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray, alpha=2):
-    def load_func(A, x, alpha=2):
-        M, N = A.shape
-        g = (alpha ** ((A * x).sum(axis=-1) - 1)).sum() / M
-        return g
-
-    def best_bOg4UE(UE, A, B, X, alpha=2):
-        assert X[:, UE].sum() == 0
-        g_increment_UE_list = []
-        b_increment_UE_list = []
-        bOVERg_UE_list = []
-        for m in range(len(A)):
-            dX = np.zeros_like(X)
-            dX[m, UE] = 1
-            g_increment_UE_list.append(
-                load_func(A, X + dX, alpha) - load_func(A, X, alpha)
-            )
-            b_increment_UE_list.append((B * dX).reshape(-1).sum())
-            bOVERg_UE_list.append(b_increment_UE_list[-1] / g_increment_UE_list[-1])
-        bOVERg_UE_array = np.array(bOVERg_UE_list)
-        return bOVERg_UE_array.max(), bOVERg_UE_array.argmax()
-
-    num_BS, num_UE = T_KR.shape
-    T_PK = T_KR * T_PM[:, np.newaxis]  # record p_m*k （能耗）
-    c = T_PK.reshape(-1).max()
-    B = 1 - T_PK / c  # profit matrix
-    T_HO = np.zeros((num_BS, num_UE))  # HO decision table
-    A = T_KR / T_TR[:, np.newaxis]
-    for _i in range(num_UE):
-        UE_unHO_list = np.sort(
-            np.where(T_HO.sum(axis=0) == 0)[0]
-        )  # the UE indices which has not been connected
-        bOg_list = np.zeros_like(UE_unHO_list, dtype=float)
-        UE2BS_list = np.zeros_like(UE_unHO_list)
-        for i, ue in enumerate(UE_unHO_list):
-            bOg_list[i], UE2BS_list[i] = best_bOg4UE(ue, A, B, T_HO, alpha=alpha)
-        UE_selected = UE_unHO_list[bOg_list.argmax()]
-        BS_selected = UE2BS_list[bOg_list.argmax()]
-        T_HO[BS_selected, UE_selected] = 1
-    return T_HO
 
 
-def HO_EE_offload(
-    args,
-    veh_set_cur,
-    backlog_queue_dict,
-    pred_loc_dict,
-    pred_g_dict,
-    BS_loc_array,
-):
-    # Spectral Efficiency
-    HO_cmd = collections.OrderedDict()
-    points = np.zeros((len(veh_set_cur), 2))
-    for i, veh in enumerate(veh_set_cur):
-        points[i, :] = pred_loc_dict[veh]
-    dist_matrix = np.linalg.norm(
-        points[:, np.newaxis, :] - BS_loc_array[np.newaxis, :, :],
-        ord=2,
-        axis=-1,
-        keepdims=False,
-    )
-    power_matrix = np.zeros_like(dist_matrix)
-    k_tilde_matrix = np.zeros_like(dist_matrix)
-    lbd = args.data_rate
-    N0 = args.N0
-    for BS_id in range(len(BS_loc_array)):
-        if BS_id == 0:
-            delta_f = args.RB_intervel_macro
-            p = args.p_macro
-            bias = args.bias_macro
-            beta = args.beta_macro
-            K = args.num_RB_macro
-        else:
-            delta_f = args.RB_intervel_micro
-            p = args.p_micro
-            bias = args.bias_micro
-            beta = args.beta_micro
-            K = args.num_RB_micro
-        G_array = 10 ** ((bias - beta * 10 * np.log10(dist_matrix[:, BS_id])) / 10)
-        k_tilde_matrix[:, BS_id] = lbd / (
-            delta_f * np.log2(1 + p * G_array / N0 / delta_f)
-        )
-        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
-    RB_num_table = np.zeros(len(BS_loc_array))
-    pm_table = np.zeros(len(BS_loc_array))
-    for BS_id in range(len(BS_loc_array)):
-        if BS_id == 0:
-            RB_num_table[BS_id] = args.num_RB_macro
-            pm_table[BS_id] = args.p_macro
-        else:
-            RB_num_table[BS_id] = args.num_RB_micro
-            pm_table[BS_id] = args.p_micro
-    T_HO, feasible_flag = HO_offload(
-        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
-    )
-    for i, veh in enumerate(veh_set_cur):
-        HO_cmd[veh] = T_HO[:, i].argmax()
-    return HO_cmd
 
 
-def HO_EE_MOX2(
-    args,
-    veh_set_cur,
-    backlog_queue_dict,
-    pred_loc_dict,
-    pred_g_dict,
-    BS_loc_array,
-    alpha=100,
-):
-    # Spectral Efficiency
-    HO_cmd = collections.OrderedDict()
-    points = np.zeros((len(veh_set_cur), 2))
-    for i, veh in enumerate(veh_set_cur):
-        points[i, :] = pred_loc_dict[veh]
-    dist_matrix = np.linalg.norm(
-        points[:, np.newaxis, :] - BS_loc_array[np.newaxis, :, :],
-        ord=2,
-        axis=-1,
-        keepdims=False,
-    )
-    power_matrix = np.zeros_like(dist_matrix)
-    k_tilde_matrix = np.zeros_like(dist_matrix)
-    lbd = args.data_rate
-    N0 = args.N0
-    for BS_id in range(len(BS_loc_array)):
-        if BS_id == 0:
-            delta_f = args.RB_intervel_macro
-            p = args.p_macro
-            bias = args.bias_macro
-            beta = args.beta_macro
-            K = args.num_RB_macro
-        else:
-            delta_f = args.RB_intervel_micro
-            p = args.p_micro
-            bias = args.bias_micro
-            beta = args.beta_micro
-            K = args.num_RB_micro
-        G_array = 10 ** ((bias - beta * 10 * np.log10(dist_matrix[:, BS_id])) / 10)
-        k_tilde_matrix[:, BS_id] = lbd / (
-            delta_f * np.log2(1 + p * G_array / N0 / delta_f)
-        )
-        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
-    RB_num_table = np.zeros(len(BS_loc_array))
-    pm_table = np.zeros(len(BS_loc_array))
-    for BS_id in range(len(BS_loc_array)):
-        if BS_id == 0:
-            RB_num_table[BS_id] = args.num_RB_macro
-            pm_table[BS_id] = args.p_macro
-        else:
-            RB_num_table[BS_id] = args.num_RB_micro
-            pm_table[BS_id] = args.p_micro
-    T_HO = HO_MOX2(
-        T_KR=k_tilde_matrix.swapaxes(0, 1),
-        T_TR=RB_num_table,
-        T_PM=pm_table,
-        alpha=alpha,
-    )
-    for i, veh in enumerate(veh_set_cur):
-        HO_cmd[veh] = T_HO[:, i].argmax()
-    return HO_cmd
 
 
-def RA_Lyapunov(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#################### others ##########################
+
+def RA_Lyapunov(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict, **kwargs):
     eta = args.eta
     num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
     delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
@@ -829,7 +1010,7 @@ def RA_Lyapunov(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     r = []
     for i in range(veh_num):
         r.append(
-            k[i] * delta_f * delta_t * log2(1 + p * 10 ** (g[i] / 10) / N0 / delta_f)
+            k[i] * delta_f * delta_t * log2(1 + p * dB2lin(g[i]) / (N0 * delta_f))
         )
     target = pulp.lpSum([q[i] * (a[i] - r[i]) + eta * p * k[i] for i in range(veh_num)])
     prob += target, "Z"
@@ -846,7 +1027,7 @@ def RA_Lyapunov(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     return RA_dict
 
 
-def RA_heur_q(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
+def RA_heur_q(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict, **kwargs):
     RA_dict = collections.OrderedDict()
     num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
     delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
@@ -858,7 +1039,7 @@ def RA_heur_q(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     a = np.array([a_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     g = np.array([g_dict[veh_id][BS_id] for veh_id in veh_id_list])
     b = np.array(
-        [delta_f * delta_t * log2(1 + p * 10 ** (G / 10) / N0 / delta_f) for G in g]
+        [delta_f * delta_t * log2(1 + p * dB2lin(G) / (N0 * delta_f)) for G in g]
     )
     priority = (-q).argsort()
     resRB = num_RB
@@ -870,7 +1051,7 @@ def RA_heur_q(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     return RA_dict
 
 
-def RA_heur_b(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
+def RA_heur_b(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict, **kwargs):
     RA_dict = collections.OrderedDict()
     num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
     delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
@@ -882,7 +1063,7 @@ def RA_heur_b(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     a = np.array([a_dict[veh_id][slot_idx] for veh_id in veh_id_list])
     g = np.array([g_dict[veh_id][BS_id] for veh_id in veh_id_list])
     b = np.array(
-        [delta_f * delta_t * log2(1 + p * 10 ** (G / 10) / N0 / delta_f) for G in g]
+        [delta_f * delta_t * log2(1 + p * dB2lin(G) / (N0 * delta_f)) for G in g]
     )
 
     priority = (-b).argsort()
@@ -894,7 +1075,7 @@ def RA_heur_b(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     return RA_dict
 
 
-def RA_heur_qb(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
+def RA_heur_qb(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict, **kwargs):
     RA_dict = collections.OrderedDict()
     num_RB = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
     delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
@@ -907,7 +1088,7 @@ def RA_heur_qb(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     g = np.array([g_dict[veh_id][BS_id] for veh_id in veh_id_list])
 
     b = np.array(
-        [delta_f * delta_t * log2(1 + p * 10 ** (G / 10) / N0 / delta_f) for G in g]
+        [delta_f * delta_t * log2(1 + p * dB2lin(G) / (N0 * delta_f)) for G in g]
     )
 
     priority = (-q * b).argsort()
@@ -919,7 +1100,7 @@ def RA_heur_qb(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     return RA_dict
 
 
-def RA_heur_fqb(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
+def RA_heur_fqb(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict, **kwargs):
     def f(x):
         alpha = 100
         Q_ub = args.lat_slot_ub * args.data_rate * args.slot_len  # 队列长度上限阈值
@@ -938,7 +1119,7 @@ def RA_heur_fqb(args, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict):
     g = np.array([g_dict[veh_id][BS_id] for veh_id in veh_id_list])
 
     b = np.array(
-        [delta_f * delta_t * log2(1 + p * 10 ** (G / 10) / N0 / delta_f) for G in g]
+        [delta_f * delta_t * log2(1 + p * dB2lin(G) / (N0 * delta_f)) for G in g]
     )  # 一个RB能提供的传输量
 
     priority = (-f(q) * b).argsort()
@@ -1193,7 +1374,7 @@ def HO_EE_GAP_APX(
             bias = args.bias_micro
             beta = args.beta_micro
             K = args.num_RB_micro
-        G_array = 10 ** ((bias - beta * 10 * np.log10(dist_matrix[:, BS_id])) / 10)
+        G_array = dB2lin(bias - beta * 10 * np.log10(dist_matrix[:, BS_id]))
         k_tilde_matrix[:, BS_id] = lbd / (
             delta_f * np.log2(1 + p * G_array / N0 / delta_f)
         )
@@ -1225,7 +1406,6 @@ def HO_GAP_APX_with_offload(T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray
     T_LR = T_TR - (T_KR * T_HO).sum(1)
     feasible_flag = T_LR.min() >= 0
 
-    # print("HO_GAP_APX_with_MOX1, T_LR before iter: ", T_LR)
     max_iter_num = 1000
     for _iter in range(max_iter_num):
         if (_iter > max_iter_num - 10) and (T_LR[0] > 99) and (feasible_flag == False):
@@ -1299,7 +1479,7 @@ def HO_EE_GAP_APX_with_offload(
             bias = args.bias_micro
             beta = args.beta_micro
             K = args.num_RB_micro
-        G_array = 10 ** ((bias - beta * 10 * np.log10(dist_matrix[:, BS_id])) / 10)
+        G_array = dB2lin(bias - beta * 10 * np.log10(dist_matrix[:, BS_id]))
         k_tilde_matrix[:, BS_id] = lbd / (
             delta_f * np.log2(1 + p * G_array / N0 / delta_f)
         )

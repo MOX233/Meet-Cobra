@@ -21,7 +21,8 @@ from utils.channel_utils import (
     update_CSI,
     calculate_uma_pathloss_3gpp_38901,
     calculate_channel_gain_from_pathloss,
-    get_g_macroBS_dict
+    get_g_macroBS_dict,
+    rician_channel_gain,
 )
 from utils.queue_utils import (
     init_vehset_backlog_queue,
@@ -36,10 +37,11 @@ from utils.alg_utils import (
     measure_gain_for_topKbeam,
     measure_gain_for_topKbeam_savePilot,
     measure_gain_NoBeamforming,
-    HO_nearest,
+    estimate_num_RB_allocated_perBS,
     RA_Lyapunov,
+    HO_EE_predG,
 )
-from utils.mox_utils import lin2dB
+from utils.mox_utils import lin2dB, dB2lin
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
 
 def run_sim_withUMa(
@@ -49,12 +51,14 @@ def run_sim_withUMa(
     pospred_model,  # 基于CSI预测车辆移动性的AI模型
     beampred_model,
     gainpred_model,
+    inferpred_model,
     RA_func=RA_Lyapunov,  # 资源分配算法
-    HO_func=HO_nearest,  # 越区切换算法
+    HO_func=HO_EE_predG,  # 越区切换算法
     prt=True,  # 是否在仿真运行时实时打印相关信息
     save_pilot=False, # 是否执行pilot-saved的测量方法
     No_BF=False, # 是否不使用Beamforming
-    MacroBS_loc = [0, 0]  # 宏基站位置，默认在原点
+    MacroBS_loc = [0, 0],  # 宏基站位置，默认在原点
+    **kwargs,
 ):
     device = args.device
     DFT_matrix_tx = generate_dft_codebook(args.M_t)
@@ -198,51 +202,35 @@ def run_sim_withUMa(
         
         pred_g_macroBS_dict = get_g_macroBS_dict(args, pred_loc_dict, MacroBS_loc, fc_ghz=2.8, Gt_macro=17, scenario='los')
         pred_g_dict = collections.OrderedDict()
+        pred_infer_g_dict = collections.OrderedDict() if inferpred_model is not None else None
         for veh in pred_g_macroBS_dict.keys():
             pred_g_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], pred_gain_opt_beam_dict[veh]), axis=0)
+            if inferpred_model is not None:
+                pred_infer_g_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], inferpred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device)[0]), axis=0)
 
         
         # 让各车对各MicroBS的K个波束对进行测量
         if No_BF:
-            g_microBS_dict, bpID_microBS_dict, num_pilot = measure_gain_NoBeamforming(frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list)
+            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = measure_gain_NoBeamforming(frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list)
         elif save_pilot:
-            g_microBS_dict, bpID_microBS_dict, num_pilot = measure_gain_for_topKbeam_savePilot(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
+            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = measure_gain_for_topKbeam_savePilot(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
                                                                      pred_beamPairId_dict, pred_gain_opt_beam_dict, DFT_matrix_tx, DFT_matrix_rx)
         else:
-            g_microBS_dict, bpID_microBS_dict, num_pilot = measure_gain_for_topKbeam(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
+            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = measure_gain_for_topKbeam(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
                                                                          pred_beamPairId_dict, DFT_matrix_tx, DFT_matrix_rx)
         g_dict = collections.OrderedDict()
+        g_NoBF_dict = collections.OrderedDict()
         for veh in pred_g_macroBS_dict.keys():
             g_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], g_microBS_dict[veh]), axis=0)
-
+            g_NoBF_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], g_microBS_NoBF_dict[veh]), axis=0)
         measured_g_record_dict_cur = update_measured_g_record_dict(g_dict, measured_g_record_dict_prev, veh_set_cur, connection_dict_cur, BS_loc_list)    
+                      
+        # num_pilot_dict[veh][BS_id]记录了各车与各基站基于pred_beamPairId_dict进行beamforming所用的平均导频数量
+        pilot_record[x] = np.array([num_pilot_dict[veh][connection_dict_cur[veh]-1] if connection_dict_cur[veh]!=0 else 0 
+                                    for veh in veh_set_cur]).mean()
+        # print([num_pilot_dict[veh][connection_dict_cur[veh]-1] if connection_dict_cur[veh]!=0 else 0 for veh in veh_set_cur])
+        # import ipdb;ipdb.set_trace()
         
-        # def see_micro_macro_diff(veh, fc_ghz=5.9, Gt_macro=0, NF1=5, NF2=10, scenario='nlos'):
-        #     PL = calculate_uma_pathloss_3gpp_38901(distance_2d_m=np.linalg.norm(pred_loc_dict[veh]-MacroBS_loc),
-        #                                         fc_ghz=fc_ghz,
-        #                                         h_ut_m=args.h_car,
-        #                                         h_bs_m=args.h_tx,
-        #                                         scenario=scenario)
-        #     SE_macro = np.log2(1+calculate_channel_gain_from_pathloss(NF1+PL-Gt_macro)*args.p_macro/(args.N0*args.RB_intervel_macro))
-        #     SE_micro = np.log2(1+1/16*calculate_channel_gain_from_pathloss(NF2-max(g_microBS_dict[veh]))*args.p_micro/(args.N0*args.RB_intervel_micro))
-        #     RBE_macro = args.RB_intervel_macro * SE_macro
-        #     RBE_micro = args.RB_intervel_micro * SE_micro
-        #     EE_macro = RBE_macro / args.p_macro
-        #     EE_micro = RBE_micro / args.p_micro
-        #     print(f'SE_macro: {SE_macro:.2f} bps/Hz, SE_micro: {SE_micro:.2f} bps/Hz, '
-        #         f'RBE_macro: {RBE_macro/1e6:.2f} Mbps, RBE_micro: {RBE_micro/1e6:.2f} Mbps'
-        #         f', EE_macro: {EE_macro/1e3:.2e} bps/mW, EE_micro: {EE_micro/1e3:.2e} bps/mW')
-        #     return SE_macro, SE_micro, RBE_macro, RBE_micro    
-        # _ = see_micro_macro_diff(veh, fc_ghz=2.8, Gt_macro=17, NF1=5, NF2=10, scenario='los')
-        # np.linalg.norm(BS_loc_array-pred_loc_dict[veh],axis=1)
-        # import ipdb; ipdb.set_trace()
-        
-        
-        pilot_record[x] += num_pilot 
-            # veh7.68 与BS-4的信道可能被阻挡，但是仍然被model预测错为最优基站
-        
-        # TODO
-        #ipdb.set_trace()
         def predict_g_from_measured_g_record_dict(measured_g_record_dict, pred_g_dict, veh_set_cur, gamma=0.9):
             for veh in veh_set_cur:
                 elapsed_frame = measured_g_record_dict[veh][:,0]
@@ -252,14 +240,19 @@ def run_sim_withUMa(
                     valid_mask * (gamma**(elapsed_frame+1)*last_measured_g + (1-gamma**(elapsed_frame+1)) * pred_g_dict[veh])
             return pred_g_dict
         pred_g_dict = predict_g_from_measured_g_record_dict(measured_g_record_dict_cur, pred_g_dict, veh_set_cur)
-        #ipdb.set_trace()
-        
         
         # 基于积压队列、预测位置、BS位置等信息进行PHO决策
-        HO_cmd_cur4next = HO_func(
-            args, veh_set_cur, Q_dict_cur, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array
-        )
+        # 将num_RB_allocated_perBS的估计转到在本程序中进行
+        est_num_RB_allocated_perBS = estimate_num_RB_allocated_perBS(args, connection_dict_cur, BS_loc_array, veh_set_cur, g_dict, 
+                                                                     veh_data_rate_dict, infer_g_dict=pred_infer_g_dict if inferpred_model is not None else g_NoBF_dict)
 
+        # PHO决策
+        HO_cmd_cur4next, pred_num_RB_allocated_perBS = HO_func(
+            args, veh_set_cur, Q_dict_cur, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array,
+            infer_g_dict=pred_infer_g_dict if inferpred_model is not None else g_NoBF_dict,
+            num_pilot_dict=num_pilot_dict,
+        )
+        
         # 模拟车辆业务数据到达过程 in a frame
         a_dict = collections.OrderedDict()
         for veh in veh_set_cur:
@@ -269,8 +262,16 @@ def run_sim_withUMa(
             )
         
         energy4frame = 0  # 统计当前帧的能耗
+        g_slot_dict = collections.OrderedDict()
+        for veh_id in g_dict.keys():
+            rician_factor = lin2dB(rician_channel_gain(args.K_rician, size=len(g_dict[veh_id])))
+            # rician_factor[0] = 0  # 宏基站不受Rician衰落影响
+            g_slot_dict[veh_id] = g_dict[veh_id] + rician_factor
+        # import ipdb;ipdb.set_trace()
+            
         for i in range(0, args.slots_per_frame):
             RA_dict = collections.OrderedDict()
+            num_RB_allocated_perBS = np.zeros((len(BS_loc_list),), dtype=int) #各基站分配的子载波数
             # 各基站逐时隙进行子载波分配
             for BS_id in range(len(BS_loc_list)):
                 BS_RA_dict = RA_func(
@@ -282,13 +283,18 @@ def run_sim_withUMa(
                     Q_ub_dict=Q_ub_dict,
                     q_dict=Q_dict_cur,
                     a_dict=a_dict,
-                    g_dict=g_dict,
+                    g_dict=g_slot_dict,
+                    num_pilot_dict=num_pilot_dict,
+                    BS_association_dict=BS_association_dict,
+                    infer_g_dict=g_NoBF_dict,
+                    est_num_RB_allocated_perBS=est_num_RB_allocated_perBS,
                 )
                 # if x > 0 and len(BS_RA_dict) > 0 and max(BS_RA_dict.values()) > 50:
                 #     print(f'BS_id: {BS_id}, RA_dict: {BS_RA_dict}')
                 #     ipdb.set_trace()
                 RA_dict.update(BS_RA_dict)
-                energy4frame += sum(BS_RA_dict.values()) * (args.p_micro if BS_id > 0 else args.p_macro) * args.slot_len
+                num_RB_allocated_perBS[BS_id] = sum(BS_RA_dict.values())
+                energy4frame += num_RB_allocated_perBS[BS_id] * (args.p_micro if BS_id > 0 else args.p_macro) * args.slot_len
             # print(RA_dict)
             # if RA_dict[2.78]>30:
             #     ipdb.set_trace()
@@ -301,7 +307,11 @@ def run_sim_withUMa(
                 connection_dict=connection_dict_cur,
                 backlog_queue_dict=Q_dict_cur,
                 a_dict=a_dict,
-                g_dict=g_dict,
+                g_dict=g_slot_dict,
+                infer_g_dict=g_NoBF_dict,
+                num_RB_allocated_perBS=num_RB_allocated_perBS,
+                num_pilot_dict=num_pilot_dict,
+                sinr_flag=True,
             )
         
         violation_cnt = sum(

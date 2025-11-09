@@ -16,15 +16,18 @@ from utils.data_utils import get_prepared_dataset, prepare_dataset, augment_data
 if __name__ == "__main__":
     # 设置随机数种子
     setup_seed(20)
+    N_bs = 4
     freq = 28e9
     DS_start, DS_end = 200, 800
-    preprocess_mode = 2
+    preprocess_mode = 0
     look_ahead_len = 10
-    n_pilot = 16
-    M_r, N_bs, M_t = 8, 4, 64
+    M_t = 32
+    M_r = 8
+    n_pilot = 8
     P_t = 1e-1
     P_noise = 1e-14 # -174dBm/Hz * 1.8MHz = 7.165929069962946e-15 W
-    gpu = 6
+    lbd = 1
+    gpu = 0
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('Using device: ', device)
 

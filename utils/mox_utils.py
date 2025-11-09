@@ -79,6 +79,9 @@ def see_model_structure(log_addr):
 def lin2dB(x:np.ndarray, eps=1e-9):
     return 10 * np.log10(x + eps)
 
+def dB2lin(x:np.ndarray):
+    return 10 ** (x / 10)
+
 def generate_1Dsamples(split_point_list, spacing_list):
     samples = []
     for i in range(len(split_point_list) - 1):

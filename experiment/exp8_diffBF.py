@@ -22,11 +22,14 @@ from utils.options import args_parser
 from utils.alg_utils import (
     RA_unlimitRB,
     RA_heur_fqb_smartRound,
-    RA_heur_PF,
     RA_heur_QPOS,
+    RA_heur_QPOS_SINR,
     RA_heur_QPPF,
     HO_EE_predG,
     HO_EE_GAP_APX_with_offload_conservative_predG,
+    HO_EE_GAP_APX_conservative_predG_SINR,
+    HO_EE_GAP_APX_with_offload_conservative_predG_SINR,
+    HO_EE_offload,
 )
 from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch, lin2dB, dB2lin, generate_1Dsamples
 from utils.data_utils import get_prepared_dataset, generate_complex_gaussian_vector
@@ -46,6 +49,9 @@ def preprocess_input_np(x, params_norm=[20,7], EPS=1e-9):
 if __name__ == "__main__":
     # Urban Macro LoS: PL = 28 + 22*log10(d)+20*log10(f)
     # Urban Micro LoS: PL = 32.4 + 21*log10(d)+20*log10(f)
+    # data_rate_list = np.logspace(7, 8, 10)
+    # data_rate_list = np.linspace(10e6, 200e6, 20)
+    # data_rate_list = np.linspace(30e6, 50e6, 11)
     N_bs = 4
     freq = 28e9
     DS_start, DS_end = 800, 950 # test on a different scenario
@@ -77,19 +83,29 @@ if __name__ == "__main__":
     args.NF_macro_dB = 5
     args.NF_micro_dB = 10
     args.data_rate = 10 * 1e6
+    args.random_factor_range4data_rate = 0.0
     args.lat_slot_ub = 20
     args.eta = 1e6
     args.device = device
     args.K = 3 # 每次beam tracking 时选K个最有可能的波束对进行测试
     args.Lambda = 1 # 车辆到达率
-    args.data_rate = 90e6
-    random_factor_range4data_rate_list = np.linspace(0, 1, 11)
+    args.note = ""
+    match args.Lambda:
+        case 0.1:
+            data_rate_list = generate_1Dsamples(split_point_list=[10e6,120e6,160e6, 200e6], spacing_list=[10e6,5e6,10e6])
+        case 0.15:
+            data_rate_list = generate_1Dsamples(split_point_list=[10e6,50e6,80e6,100e6 ], spacing_list=[10e6,3e6,10e6])
+        case 0.2:
+            data_rate_list = generate_1Dsamples(split_point_list=[10e6,30e6,60e6], spacing_list=[5e6,3e6])
+        case _:
+            # data_rate_list = np.linspace(10e6, 200e6, 21)
+            data_rate_list = np.linspace(35e6, 75e6, 21)
     args.trajectoryInfo_path = f'./sumo_data/trajectory_Lbd{args.Lambda:.2f}.csv'
     # 对测试数据集进行截断
-    cut_ratio = 1
+    cut_ratio = 0.1
     cut_end = DS_start + cut_ratio*(DS_end-DS_start)
-    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"results_exp6/lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
-        + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"results_exp8/lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
+        + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + (f"_{args.note}" if args.note != "" else ""))
     os.makedirs(save_path, exist_ok=True)
     os.makedirs('./sionna_result', exist_ok=True)
     os.makedirs('./data4sim', exist_ok=True)
@@ -181,77 +197,67 @@ if __name__ == "__main__":
     # 给出所需要仿真的方案名和PHO,RA策略
     sim_strategy_dict = collections.OrderedDict()
     
-    sim_strategy_dict["MEET-COBRA (PredInfo)"] = {
-        "RA": RA_heur_QPOS,
-        "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
+    sim_strategy_dict["BF_topK_savePilot (TrueInfo)"] = {
+        "RA": RA_heur_QPOS_SINR, 
+        "HO": HO_EE_GAP_APX_conservative_predG_SINR,
+        "save_pilot": True,
+        "gainpred_model": None,
+        "beampred_model": None,
+        "NoBF": False,
+        "linestyle": "dashed",
+        "color": "black",
+        "marker": "+",
+    }
+    
+    sim_strategy_dict["BF_topK_savePilot (PredInfo)"] = {
+        "RA": RA_heur_QPOS_SINR, 
+        "HO": HO_EE_GAP_APX_conservative_predG_SINR,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
         "NoBF": False,
+        "linestyle": "solid",
+        "color": "black",
+        "marker": "+",
     }
     
-    # sim_strategy_dict["MEET-COBRA (TrueInfo)"] = {
-    #     "RA": RA_heur_QPOS, 
-    #     "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
-    #     "save_pilot": True,
-    #     "gainpred_model": None,
-    #     "beampred_model": None,
-    #     "NoBF": False,
-    # }
-    
-    sim_strategy_dict["MEET-COBRA (NoBF)"] = {
-        "RA": RA_heur_QPOS, 
-        "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
+    sim_strategy_dict["BF_topK (TrueInfo)"] = {
+        "RA": RA_heur_QPOS_SINR, 
+        "HO": HO_EE_GAP_APX_conservative_predG_SINR,
         "save_pilot": False,
         "gainpred_model": None,
         "beampred_model": None,
-        "NoBF": True,
+        "NoBF": False,
+        "linestyle": "dashed",
+        "color": "orange",
+        "marker": "*",
     }
     
-    sim_strategy_dict["GreedyPHO (PredInfo)"] = {
-        "RA": RA_heur_QPOS, 
-        "HO": HO_EE_predG,
-        "save_pilot": True,
+    sim_strategy_dict["BF_topK (PredInfo)"] = {
+        "RA": RA_heur_QPOS_SINR, 
+        "HO": HO_EE_GAP_APX_conservative_predG_SINR,
+        "save_pilot": False,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
         "NoBF": False,
+        "linestyle": "solid",
+        "color": "orange",
+        "marker": "*",
     }
     
-    sim_strategy_dict["PropFair (PredInfo)"] = {
-        "RA": RA_heur_PF,
-        "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
-        "save_pilot": True,
-        "gainpred_model": gainpred_model,
-        "beampred_model": beampred_model,
-        "NoBF": False,
-    }
     
-    # sim_strategy_dict["GreedyPHO (TrueInfo)"] = {
-    #     "RA": RA_heur_QPOS, 
-    #     "HO": HO_EE_predG,
-    #     "save_pilot": True,
-    #     "gainpred_model": None,
-    #     "beampred_model": None,
-    #     "NoBF": False,
-    # }
-    
-    # sim_strategy_dict["GreedyPHO (NoBF)"] = {
-    #     "RA": RA_heur_QPOS, 
-    #     "HO": HO_EE_predG,
-    #     "save_pilot": True,
-    #     "gainpred_model": None,
-    #     "beampred_model": None,
-    #     "NoBF": True,
-    # }
-    
-    # sim_strategy_dict["LowerBound"] = {
-    #     "RA": RA_unlimitRB,
-    #     "HO": HO_EE_predG,
+    # sim_strategy_dict["NoBF (TrueInfo)"] = {
+    #     "RA": RA_heur_QPOS_SINR, 
+    #     "HO": HO_EE_GAP_APX_conservative_predG_SINR,
     #     "save_pilot": False,
     #     "gainpred_model": None,
     #     "beampred_model": None,
-    #     "NoBF": False,
+    #     "NoBF": True,
+    #     "linestyle": "dashed",
+    #     "color": "blue",
+    #     "marker": "x",
     # }
+    
     
     sim_result_dict = collections.OrderedDict()
     for strategy_name in sim_strategy_dict.keys():
@@ -266,11 +272,11 @@ if __name__ == "__main__":
         }
 
     # 进行仿真实验
-    for data_rate_idx, random_factor_range4data_rate in enumerate(random_factor_range4data_rate_list):
-        print(f"random_factor_range4data_rate: {random_factor_range4data_rate:.2f}")
+    for data_rate_idx, data_rate in enumerate(data_rate_list):
+        print(f"data_rate: {data_rate/1e6:.1f} Mbps")
         for strategy_name in sim_strategy_dict.keys():
             print("Strategy: ", strategy_name)
-            args.random_factor_range4data_rate = random_factor_range4data_rate
+            args.data_rate = data_rate
             (
                 energy_record,
                 HO_time_record,
@@ -290,7 +296,6 @@ if __name__ == "__main__":
                 No_BF=sim_strategy_dict[strategy_name]["NoBF"],
             )
             # TODO：HO_cmd_record
-            # import ipdb; ipdb.set_trace()
             carnum_under_BS = np.zeros((len(HO_cmd_record.keys())-1,len(BS_loc_list)+1,))
             for frame in range(1, len(HO_cmd_record.keys())):
                 for BS_id in HO_cmd_record[frame].values():
@@ -317,15 +322,17 @@ if __name__ == "__main__":
         plt.figure()
         for strategy_name in sim_strategy_dict.keys():
             plt.plot(
-                random_factor_range4data_rate_list[: data_rate_idx + 1]/1e6,
+                data_rate_list[: data_rate_idx + 1]/1e6,
                 sim_result_dict[strategy_name]["avg_system_power_list"][
                     : data_rate_idx + 1
                 ],
-                "*-",
+                linestyle=sim_strategy_dict[strategy_name]["linestyle"],
+                color=sim_strategy_dict[strategy_name]["color"],
+                marker=sim_strategy_dict[strategy_name]["marker"],
                 label=strategy_name,
             )
         plt.legend()
-        plt.xlabel("random_factor_range4data_rate")
+        plt.xlabel("data rate (Mbps)")
         # plt.xscale("log")
         plt.ylabel("Average system power (W)")
         plt.savefig(os.path.join(save_path, "Average system power.png"))
@@ -335,13 +342,15 @@ if __name__ == "__main__":
         plt.figure()
         for strategy_name in sim_strategy_dict.keys():
             plt.plot(
-                random_factor_range4data_rate_list[: data_rate_idx + 1]/1e6,
+                data_rate_list[: data_rate_idx + 1]/1e6,
                 np.array(sim_result_dict[strategy_name]["HOps_list"][: data_rate_idx + 1]) / avg_car_num,
-                "*-",
+                linestyle=sim_strategy_dict[strategy_name]["linestyle"],
+                color=sim_strategy_dict[strategy_name]["color"],
+                marker=sim_strategy_dict[strategy_name]["marker"],
                 label=strategy_name,
             )
         plt.legend()
-        plt.xlabel("random_factor_range4data_rate")
+        plt.xlabel("data rate (Mbps)")
         # plt.xscale("log")
         plt.ylabel("Average HO frequency per vehicle (1/s)")
         plt.savefig(os.path.join(save_path, "Average HO frequency.png"))
@@ -351,13 +360,15 @@ if __name__ == "__main__":
         plt.figure()
         for strategy_name in sim_strategy_dict.keys():
             plt.plot(
-                random_factor_range4data_rate_list[: data_rate_idx + 1]/1e6,
+                data_rate_list[: data_rate_idx + 1]/1e6,
                 sim_result_dict[strategy_name]["vio_prob_list"][: data_rate_idx + 1],
-                "*-",
+                linestyle=sim_strategy_dict[strategy_name]["linestyle"],
+                color=sim_strategy_dict[strategy_name]["color"],
+                marker=sim_strategy_dict[strategy_name]["marker"],
                 label=strategy_name,
             )
         plt.legend()
-        plt.xlabel("random_factor_range4data_rate")
+        plt.xlabel("data rate (Mbps)")
         # plt.xscale("log")
         plt.ylim(0, 100)
         plt.ylabel("Violation probability (%)")
@@ -368,13 +379,15 @@ if __name__ == "__main__":
         plt.figure()
         for strategy_name in sim_strategy_dict.keys():
             plt.plot(
-                random_factor_range4data_rate_list[: data_rate_idx + 1]/1e6,
+                data_rate_list[: data_rate_idx + 1]/1e6,
                 sim_result_dict[strategy_name]["avg_latency_list"][: data_rate_idx + 1],
-                "*-",
+                linestyle=sim_strategy_dict[strategy_name]["linestyle"],
+                color=sim_strategy_dict[strategy_name]["color"],
+                marker=sim_strategy_dict[strategy_name]["marker"],
                 label=strategy_name,
             )
         plt.legend()
-        plt.xlabel("random_factor_range4data_rate")
+        plt.xlabel("data rate (Mbps)")
         # plt.xscale("log")
         plt.yscale("log")
         plt.ylabel("Average latency (ms)")
@@ -383,16 +396,18 @@ if __name__ == "__main__":
         plt.close()
         
         plt.figure(figsize=(6, 4*len(BS_loc_list)))
-        plt.xlabel("random_factor_range4data_rate")
+        plt.xlabel("data rate (Mbps)")
         plt.ylabel("Average car number under each BS")
         for BS_id in range(len(BS_loc_list)+1):
             plt.subplot(len(BS_loc_list)+1, 1, BS_id + 1)
             for strategy_name in sim_strategy_dict.keys():
                 avg_carnum_under_BS_list = np.array(sim_result_dict[strategy_name]["carnum_under_BS_list"][: data_rate_idx + 1]).mean(axis=-2)
                 plt.plot(
-                    random_factor_range4data_rate_list[: data_rate_idx + 1]/1e6,
+                    data_rate_list[: data_rate_idx + 1]/1e6,
                     avg_carnum_under_BS_list[:, BS_id],
-                    "*-",
+                    linestyle=sim_strategy_dict[strategy_name]["linestyle"],
+                    color=sim_strategy_dict[strategy_name]["color"],
+                    marker=sim_strategy_dict[strategy_name]["marker"],
                     label=f"{strategy_name} BS{BS_id}",
                 )
             plt.legend()
@@ -403,7 +418,7 @@ if __name__ == "__main__":
 
         # 保存仿真实验设置
         sim_result_dict["args"] = args
-        sim_result_dict["random_factor_range4data_rate_list"] = random_factor_range4data_rate_list
+        sim_result_dict["data_rate_list"] = data_rate_list
         # 保存仿真实验结果指标
         np.save(os.path.join(save_path, "sim_result_dict.npy"), sim_result_dict)
         # 保存仿真实验设置

@@ -15,6 +15,12 @@ def args_parser():
         help="Useless. Just for jupyter!",
     )
     parser.add_argument(
+        "--note",
+        type=str,
+        default="",
+        help="Explaination for the experiment (default: empty string)",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=1,
@@ -59,12 +65,18 @@ def args_parser():
         default=4,
         help="number of micro BSs (default: 4)",
     )
+    parser.add_argument(
+        "--pilot_overhead_factor",
+        type=float,
+        default=2/112,
+        help="the pilot overhead factor for MIMO beam seach (default: 2/112)",
+    )
     
     # channel arguments
     parser.add_argument(
         "--K_rician",
         type=float,
-        default=1e9,
+        default=100,
         help="Rician K-factor",
     )
     parser.add_argument(

@@ -1,7 +1,7 @@
 import numpy as np
 import collections
 from numpy import log2, log10
-from utils.channel_utils import rician_channel_gain
+from utils.mox_utils import lin2dB, dB2lin
 
 
 def init_vehset_backlog_queue(veh_set, Q_ub_dict, Q_th=0.5, slots_per_frame=100):
@@ -35,31 +35,70 @@ def update4slot_vehset_backlog_queue(
     backlog_queue_dict,
     a_dict,
     g_dict,
+    infer_g_dict,
+    num_RB_allocated_perBS,
+    num_pilot_dict,
+    sinr_flag=True,
 ):
     delta_t = args.slot_len
     N0 = args.N0
-    for veh_id in veh_set:
-        BS_id = connection_dict[veh_id]
-        if BS_id == 0:
-            delta_f = args.RB_intervel_macro
-            p = args.p_macro
-            NF_dB = args.NF_macro_dB
-        else:
-            delta_f = args.RB_intervel_micro
-            p = args.p_micro
-            NF_dB = args.NF_micro_dB
-        q = backlog_queue_dict[veh_id][slot_idx]
-        a = a_dict[veh_id][slot_idx]
-        g = g_dict[veh_id][BS_id] * rician_channel_gain(args.K_rician, size=1)
-        k = RA_dict[veh_id]
-        r = k * delta_f * delta_t * log2(1 + p * 10**((g-NF_dB)/10) / N0 / delta_f)
-        
-        # print('SNR',10*np.log10(p * 10 ** (g / 10) / N0 / delta_f),'dB')
-        # print('SNR_macro',10*np.log10(1600 * p * 10 ** (g / 10) / N0 / delta_f),'dB')
-        # print('r (k=1)',f'{(delta_f * delta_t * log2(1 + p * 10 ** (g / 10) / N0 / delta_f)).item():.2e}bps')
-        # print('r_macro (k=1)',f'{(0.1 * delta_f * delta_t * log2(1 + 1600 * p * 10 ** (g / 10) / N0 / delta_f)).item():.2e}bps')
-        
-        # backlog_queue_dict[veh_id][slot_idx + 1] = max(q + a - r, 0)
-        # 241022
-        backlog_queue_dict[veh_id][slot_idx + 1] = max(q - r, 0) + a
+    if sinr_flag:
+        # 考虑通信速率由sinr而非snr决定的情况
+        for veh_id in veh_set:
+            BS_id = connection_dict[veh_id]
+            q = backlog_queue_dict[veh_id][slot_idx]
+            a = a_dict[veh_id][slot_idx]
+            g = g_dict[veh_id][BS_id]
+            k = RA_dict[veh_id]
+            if BS_id == 0:
+                delta_f = args.RB_intervel_macro
+                p = args.p_macro
+                NF_dB = args.NF_macro_dB
+                snr = p * dB2lin(g) / (N0 * delta_f * dB2lin(NF_dB))
+                r =  k * delta_f * delta_t * log2(1 + snr)
+                # print('SNR',10*np.log10(p * dB2lin(g) / N0 / delta_f),'dB')
+                # print('SNR_macro ',10*np.log10(snr),'dB')
+                # print('r (k=1)',f'{(delta_f * delta_t * log2(1 + p * dB2lin(g) / N0 / delta_f)).item():.2e}bps')
+                # print('r_macro (k=1)',f'{(0.1 * delta_f * delta_t * log2(1 + 1600 * p * dB2lin(g) / N0 / delta_f)).item():.2e}bps')
+            else:
+                delta_f = args.RB_intervel_micro
+                p = args.p_micro
+                NF_dB = args.NF_micro_dB
+                Interference = 0
+                # 计算干扰
+                for other_microBS_id in range(1,len(num_RB_allocated_perBS)):
+                    if other_microBS_id != BS_id:
+                        Interference += num_RB_allocated_perBS[other_microBS_id] / args.num_RB_micro * p * dB2lin(infer_g_dict[veh_id][other_microBS_id])
+                sinr = p * dB2lin(g) / (N0 * delta_f * dB2lin(NF_dB) + Interference)
+                BF_pilot_overhead = min(num_pilot_dict[veh_id][BS_id-1] * args.pilot_overhead_factor,1)
+                r = (1-BF_pilot_overhead) * k * delta_f * delta_t * log2(1 + sinr)
+                # print(f'SNR_micro-{BS_id}',
+                #       f'SINR {10*np.log10(sinr).item():.2f} dB',
+                #       f'SNR {10*np.log10(p * dB2lin(g) / (N0 * delta_f * dB2lin(NF_dB))).item():.2f} dB',
+                #       f'SIR {10*np.log10(p * dB2lin(g) / Interference).item():.2f} dB'
+                #     )
+                # import ipdb; ipdb.set_trace()
+            # 241022
+            backlog_queue_dict[veh_id][slot_idx + 1] = max(q - r, 0) + a
+    else:
+        for veh_id in veh_set:
+            BS_id = connection_dict[veh_id]
+            q = backlog_queue_dict[veh_id][slot_idx]
+            a = a_dict[veh_id][slot_idx]
+            g = g_dict[veh_id][BS_id]
+            k = RA_dict[veh_id]
+            if BS_id == 0:
+                delta_f = args.RB_intervel_macro
+                p = args.p_macro
+                NF_dB = args.NF_macro_dB
+                snr = p * dB2lin(g-NF_dB) / (N0 * delta_f)
+                r = k * delta_f * delta_t * log2(1 + snr)
+            else:
+                delta_f = args.RB_intervel_micro
+                p = args.p_micro
+                NF_dB = args.NF_micro_dB
+                snr = p * dB2lin(g-NF_dB) / (N0 * delta_f)
+                BF_pilot_overhead = min(num_pilot_dict[veh_id][BS_id-1] * args.pilot_overhead_factor,1)
+                r = (1-BF_pilot_overhead) * k * delta_f * delta_t * log2(1 + snr)
+            backlog_queue_dict[veh_id][slot_idx + 1] = max(q - r, 0) + a
     return backlog_queue_dict
