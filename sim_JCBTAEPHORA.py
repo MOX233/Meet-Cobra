@@ -17,13 +17,10 @@ from utils.NN_utils import LSTM_Model_Mobility, BeamPredictionModel, \
     BestGainLevelPredictionModel, BestGainPredictionModel, PositionPredictionModel
 from utils.alg_utils import (
     RA_Lyapunov,
-    RA_heur_b,
-    RA_heur_q,
-    RA_heur_qb,
-    RA_heur_fqb_smartRound,
-    HO_EE_predG,
-    HO_EE_GAP_APX_with_offload_conservative_predG,
-    HO_EE_GAP_APX_with_offload_conservative_predG_SINR,
+    RA_fqb,
+    HO_EE_Greedy,
+    HO_EE_GAP_APX_with_offload,
+    HO_EE_GAP_APX_with_offload_SINR,
 )
 from utils.sumo_utils import (
     read_trajectoryInfo_carindex,
@@ -160,8 +157,8 @@ print(BS_loc_dict)
     pospred_model, 
     beampred_model,
     gainpred_model,
-    RA_func=RA_heur_fqb_smartRound, 
-    HO_func=HO_EE_predG,
+    RA_func=RA_fqb, 
+    HO_func=HO_EE_Greedy,
     #HO_func=HO_EE_GAP_APX_with_offload_conservative_predG,
     prt=True,
     save_pilot=False,

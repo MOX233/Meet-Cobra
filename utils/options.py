@@ -76,7 +76,7 @@ def args_parser():
     parser.add_argument(
         "--K_rician",
         type=float,
-        default=100,
+        default=3,
         help="Rician K-factor",
     )
     parser.add_argument(

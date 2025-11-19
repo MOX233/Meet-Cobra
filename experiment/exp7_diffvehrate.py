@@ -21,11 +21,11 @@ from utils.sim_utils import run_sim_withUMa
 from utils.options import args_parser
 from utils.alg_utils import (
     RA_unlimitRB,
-    RA_heur_fqb_smartRound,
-    RA_heur_QPOS,
-    RA_heur_QPPF,
-    HO_EE_predG,
-    HO_EE_GAP_APX_with_offload_conservative_predG,
+    RA_fqb,
+    RA_UTO,
+    RA_UTPF,
+    HO_EE_Greedy,
+    HO_EE_GAP_APX_with_offload,
 )
 from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch, lin2dB, dB2lin, generate_1Dsamples
 from utils.data_utils import run_sionna_sim, get_prepared_dataset, generate_complex_gaussian_vector
@@ -133,8 +133,8 @@ if __name__ == "__main__":
     sim_strategy_dict = collections.OrderedDict()
     
     sim_strategy_dict["ME-COBRA (PredInfo)"] = {
-        "RA": RA_heur_QPOS,
-        "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
+        "RA": RA_UTO,
+        "HO": HO_EE_GAP_APX_with_offload,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
@@ -142,8 +142,8 @@ if __name__ == "__main__":
     }
     
     sim_strategy_dict["ME-COBRA (TrueInfo)"] = {
-        "RA": RA_heur_QPOS, 
-        "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
+        "RA": RA_UTO, 
+        "HO": HO_EE_GAP_APX_with_offload,
         "save_pilot": True,
         "gainpred_model": None,
         "beampred_model": None,
@@ -151,8 +151,8 @@ if __name__ == "__main__":
     }
     
     sim_strategy_dict["ME-COBRA (NoBF)"] = {
-        "RA": RA_heur_QPOS, 
-        "HO": HO_EE_GAP_APX_with_offload_conservative_predG,
+        "RA": RA_UTO, 
+        "HO": HO_EE_GAP_APX_with_offload,
         "save_pilot": False,
         "gainpred_model": None,
         "beampred_model": None,
@@ -160,8 +160,8 @@ if __name__ == "__main__":
     }
     
     sim_strategy_dict["GreedyPHO (PredInfo)"] = {
-        "RA": RA_heur_QPOS, 
-        "HO": HO_EE_predG,
+        "RA": RA_UTO, 
+        "HO": HO_EE_Greedy,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
@@ -169,8 +169,8 @@ if __name__ == "__main__":
     }
     
     sim_strategy_dict["GreedyPHO (TrueInfo)"] = {
-        "RA": RA_heur_QPOS, 
-        "HO": HO_EE_predG,
+        "RA": RA_UTO, 
+        "HO": HO_EE_Greedy,
         "save_pilot": True,
         "gainpred_model": None,
         "beampred_model": None,
@@ -178,8 +178,8 @@ if __name__ == "__main__":
     }
     
     sim_strategy_dict["GreedyPHO (NoBF)"] = {
-        "RA": RA_heur_QPOS, 
-        "HO": HO_EE_predG,
+        "RA": RA_UTO, 
+        "HO": HO_EE_Greedy,
         "save_pilot": True,
         "gainpred_model": None,
         "beampred_model": None,

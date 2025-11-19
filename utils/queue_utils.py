@@ -56,10 +56,9 @@ def update4slot_vehset_backlog_queue(
                 NF_dB = args.NF_macro_dB
                 snr = p * dB2lin(g) / (N0 * delta_f * dB2lin(NF_dB))
                 r =  k * delta_f * delta_t * log2(1 + snr)
-                # print('SNR',10*np.log10(p * dB2lin(g) / N0 / delta_f),'dB')
-                # print('SNR_macro ',10*np.log10(snr),'dB')
-                # print('r (k=1)',f'{(delta_f * delta_t * log2(1 + p * dB2lin(g) / N0 / delta_f)).item():.2e}bps')
-                # print('r_macro (k=1)',f'{(0.1 * delta_f * delta_t * log2(1 + 1600 * p * dB2lin(g) / N0 / delta_f)).item():.2e}bps')
+                # print('snr_macro-0',
+                #       f'SNR {10*np.log10(snr).item():.2f} dB'
+                #     )
             else:
                 delta_f = args.RB_intervel_micro
                 p = args.p_micro
@@ -70,14 +69,16 @@ def update4slot_vehset_backlog_queue(
                     if other_microBS_id != BS_id:
                         Interference += num_RB_allocated_perBS[other_microBS_id] / args.num_RB_micro * p * dB2lin(infer_g_dict[veh_id][other_microBS_id])
                 sinr = p * dB2lin(g) / (N0 * delta_f * dB2lin(NF_dB) + Interference)
+                # if sinr < 1:
+                #     import ipdb;ipdb.set_trace()
                 BF_pilot_overhead = min(num_pilot_dict[veh_id][BS_id-1] * args.pilot_overhead_factor,1)
                 r = (1-BF_pilot_overhead) * k * delta_f * delta_t * log2(1 + sinr)
-                # print(f'SNR_micro-{BS_id}',
+                # print('sinr_micro-'+str(BS_id),
                 #       f'SINR {10*np.log10(sinr).item():.2f} dB',
                 #       f'SNR {10*np.log10(p * dB2lin(g) / (N0 * delta_f * dB2lin(NF_dB))).item():.2f} dB',
                 #       f'SIR {10*np.log10(p * dB2lin(g) / Interference).item():.2f} dB'
-                #     )
-                # import ipdb; ipdb.set_trace()
+                #     )   
+                
             # 241022
             backlog_queue_dict[veh_id][slot_idx + 1] = max(q - r, 0) + a
     else:

@@ -39,7 +39,7 @@ from utils.alg_utils import (
     measure_gain_NoBeamforming,
     estimate_num_RB_allocated_perBS,
     RA_Lyapunov,
-    HO_EE_predG,
+    HO_EE_Greedy,
 )
 from utils.mox_utils import lin2dB, dB2lin
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
@@ -53,13 +53,15 @@ def run_sim_withUMa(
     gainpred_model,
     inferpred_model,
     RA_func=RA_Lyapunov,  # 资源分配算法
-    HO_func=HO_EE_predG,  # 越区切换算法
+    HO_func=HO_EE_Greedy,  # 越区切换算法
     prt=True,  # 是否在仿真运行时实时打印相关信息
     save_pilot=False, # 是否执行pilot-saved的测量方法
     No_BF=False, # 是否不使用Beamforming
     MacroBS_loc = [0, 0],  # 宏基站位置，默认在原点
     **kwargs,
 ):
+    K_BF = kwargs.get('K_BF', None) 
+    K_BF = K_BF if K_BF is not None else args.K
     device = args.device
     DFT_matrix_tx = generate_dft_codebook(args.M_t)
     DFT_matrix_rx = generate_dft_codebook(args.M_r)
@@ -109,6 +111,8 @@ def run_sim_withUMa(
     assert args.random_factor_range4data_rate >= 0 and args.random_factor_range4data_rate <= 1
     for veh in veh_set_all:
         veh_data_rate_dict[veh] = args.data_rate * np.random.uniform(1-args.random_factor_range4data_rate, 1+args.random_factor_range4data_rate)
+    # import ipdb;ipdb.set_trace()
+    # print("veh_data_rate_dict:", veh_data_rate_dict)  # debug
     
     Q_ub_dict = collections.OrderedDict()  # 各车辆的队列长度上限阈值
     for veh in veh_set_all:
@@ -195,12 +199,14 @@ def run_sim_withUMa(
         pred_beamPairId_dict = collections.OrderedDict()
         for veh in veh_set_cur:
             if beampred_model is None:
-                pred_beamPairId_dict[veh] = timeline_dir[frame_cur][veh]["best_beam_pair_idx"].reshape(-1,1).repeat(args.K,axis=-1)
+                pred_beamPairId_dict[veh] = timeline_dir[frame_cur][veh]["best_beam_pair_idx"].reshape(-1,1).repeat(K_BF,axis=-1)
             else:
-                pred_beamPairId_dict[veh] = beampred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device, K=args.K)[0]
+                pred_beamPairId_dict[veh] = beampred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device, K=K_BF)[0]
                 # pred_beamPairId_dict[veh].shape = (4,K)
         
-        pred_g_macroBS_dict = get_g_macroBS_dict(args, pred_loc_dict, MacroBS_loc, fc_ghz=2.8, Gt_macro=17, scenario='los')
+        pred_g_macroBS_dict = get_g_macroBS_dict(args, pred_loc_dict, MacroBS_loc, fc_ghz=2.8, Gt_macro=0, scenario='los')
+        # print('snr_macro_pred', {veh:10*np.log10(dB2lin(pred_g_macroBS_dict[veh]) * args.p_macro / (args.N0 * args.RB_intervel_macro * dB2lin(args.NF_macro_dB))).item() for veh in pred_g_macroBS_dict.keys()})
+        
         pred_g_dict = collections.OrderedDict()
         pred_infer_g_dict = collections.OrderedDict() if inferpred_model is not None else None
         for veh in pred_g_macroBS_dict.keys():
@@ -208,16 +214,18 @@ def run_sim_withUMa(
             if inferpred_model is not None:
                 pred_infer_g_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], inferpred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device)[0]), axis=0)
 
-        
-        # 让各车对各MicroBS的K个波束对进行测量
+        # 在每一帧内，让各车对各MicroBS的K个波束对进行测量
         if No_BF:
-            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = measure_gain_NoBeamforming(frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list)
+            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = \
+                measure_gain_NoBeamforming(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, rician_fading=False)
         elif save_pilot:
-            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = measure_gain_for_topKbeam_savePilot(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
-                                                                     pred_beamPairId_dict, pred_gain_opt_beam_dict, DFT_matrix_tx, DFT_matrix_rx)
+            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = \
+                measure_gain_for_topKbeam_savePilot(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
+                                                    pred_beamPairId_dict, pred_gain_opt_beam_dict, DFT_matrix_tx, DFT_matrix_rx, rician_fading=False, K_BF=K_BF)
         else:
-            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = measure_gain_for_topKbeam(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
-                                                                         pred_beamPairId_dict, DFT_matrix_tx, DFT_matrix_rx)
+            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = \
+                measure_gain_for_topKbeam(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
+                                          pred_beamPairId_dict, DFT_matrix_tx, DFT_matrix_rx, rician_fading=False, K_BF=K_BF)
         g_dict = collections.OrderedDict()
         g_NoBF_dict = collections.OrderedDict()
         for veh in pred_g_macroBS_dict.keys():
@@ -225,12 +233,6 @@ def run_sim_withUMa(
             g_NoBF_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], g_microBS_NoBF_dict[veh]), axis=0)
         measured_g_record_dict_cur = update_measured_g_record_dict(g_dict, measured_g_record_dict_prev, veh_set_cur, connection_dict_cur, BS_loc_list)    
                       
-        # num_pilot_dict[veh][BS_id]记录了各车与各基站基于pred_beamPairId_dict进行beamforming所用的平均导频数量
-        pilot_record[x] = np.array([num_pilot_dict[veh][connection_dict_cur[veh]-1] if connection_dict_cur[veh]!=0 else 0 
-                                    for veh in veh_set_cur]).mean()
-        # print([num_pilot_dict[veh][connection_dict_cur[veh]-1] if connection_dict_cur[veh]!=0 else 0 for veh in veh_set_cur])
-        # import ipdb;ipdb.set_trace()
-        
         def predict_g_from_measured_g_record_dict(measured_g_record_dict, pred_g_dict, veh_set_cur, gamma=0.9):
             for veh in veh_set_cur:
                 elapsed_frame = measured_g_record_dict[veh][:,0]
@@ -262,14 +264,45 @@ def run_sim_withUMa(
             )
         
         energy4frame = 0  # 统计当前帧的能耗
-        g_slot_dict = collections.OrderedDict()
-        for veh_id in g_dict.keys():
-            rician_factor = lin2dB(rician_channel_gain(args.K_rician, size=len(g_dict[veh_id])))
-            # rician_factor[0] = 0  # 宏基站不受Rician衰落影响
-            g_slot_dict[veh_id] = g_dict[veh_id] + rician_factor
-        # import ipdb;ipdb.set_trace()
             
+        pilot_slot_record = np.zeros((args.slots_per_frame,))  # 记录当前帧的每个时隙所用pilot数量
         for i in range(0, args.slots_per_frame):
+            
+            # # 在每一【时隙】内，让各车对各MicroBS的K个波束对进行测量
+            if beampred_model is not None:
+                if No_BF:
+                    g_microBS_slot_dict, g_microBS_NoBF_slot_dict, bpID_microBS_dict, num_pilot_slot_dict = \
+                        measure_gain_NoBeamforming(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, rician_fading=True)
+                elif save_pilot:
+                    g_microBS_slot_dict, g_microBS_NoBF_slot_dict, bpID_microBS_dict, num_pilot_slot_dict = \
+                        measure_gain_for_topKbeam_savePilot(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
+                                                            pred_beamPairId_dict, pred_gain_opt_beam_dict, DFT_matrix_tx, DFT_matrix_rx, rician_fading=True, K_BF=K_BF)
+                else:
+                    g_microBS_slot_dict, g_microBS_NoBF_slot_dict, bpID_microBS_dict, num_pilot_slot_dict = \
+                        measure_gain_for_topKbeam(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
+                                                pred_beamPairId_dict, DFT_matrix_tx, DFT_matrix_rx, rician_fading=True, K_BF=K_BF)
+            else:
+                g_microBS_slot_dict = g_microBS_dict
+                g_microBS_NoBF_slot_dict = g_microBS_NoBF_dict
+                num_pilot_slot_dict = num_pilot_dict
+            g_slot_dict = collections.OrderedDict()
+            g_slot_NoBF_dict = collections.OrderedDict()
+            
+            for veh in pred_g_macroBS_dict.keys():
+                g_slot_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], g_microBS_slot_dict[veh]), axis=0)
+                g_slot_NoBF_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], g_microBS_NoBF_slot_dict[veh]), axis=0)
+            
+            # g_slot_dict = g_dict
+            # g_slot_NoBF_dict = g_NoBF_dict
+            # num_pilot_slot_dict = num_pilot_dict
+            
+            pilot_slot_record[i] = np.array([num_pilot_slot_dict[veh][connection_dict_cur[veh]-1] if connection_dict_cur[veh]!=0 else 0 
+                                        for veh in veh_set_cur]).mean()
+            # g_slot_dict = collections.OrderedDict()
+            # for veh_id in g_dict.keys():
+            #     rician_factor = lin2dB(rician_channel_gain(args.K_rician, size=len(g_dict[veh_id])))
+            #     g_slot_dict[veh_id] = g_dict[veh_id] + rician_factor
+            
             RA_dict = collections.OrderedDict()
             num_RB_allocated_perBS = np.zeros((len(BS_loc_list),), dtype=int) #各基站分配的子载波数
             # 各基站逐时隙进行子载波分配
@@ -284,7 +317,7 @@ def run_sim_withUMa(
                     q_dict=Q_dict_cur,
                     a_dict=a_dict,
                     g_dict=g_slot_dict,
-                    num_pilot_dict=num_pilot_dict,
+                    num_pilot_dict=num_pilot_slot_dict,
                     BS_association_dict=BS_association_dict,
                     infer_g_dict=g_NoBF_dict,
                     est_num_RB_allocated_perBS=est_num_RB_allocated_perBS,
@@ -310,9 +343,12 @@ def run_sim_withUMa(
                 g_dict=g_slot_dict,
                 infer_g_dict=g_NoBF_dict,
                 num_RB_allocated_perBS=num_RB_allocated_perBS,
-                num_pilot_dict=num_pilot_dict,
+                num_pilot_dict=num_pilot_slot_dict,
                 sinr_flag=True,
             )
+        
+        # 统计当前帧所用pilot数量        
+        pilot_record[x] = pilot_slot_record.mean()
         
         violation_cnt = sum(
             [(Q_dict_cur[veh][1:] > Q_ub_dict[veh]).sum() for veh in veh_set_cur]
@@ -358,7 +394,7 @@ def run_sim_withUMa(
         measured_g_record_dict_prev = measured_g_record_dict_cur
         HO_cmd_prev4cur = HO_cmd_cur4next
         # End
-
+    
     return (
         energy_record,  # 存储各帧的系统能耗（单位：J）
         HO_time_record,  # 存储各帧的HO次数

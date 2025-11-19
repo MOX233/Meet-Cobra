@@ -22,12 +22,9 @@ from utils.options import args_parser
 from utils.alg_utils import (
     RA_unlimitRB_SINR,
     RA_fqb_SINR,
-    RA_b_SINR,
-    RA_b_UpRound_SINR,
-    RA_b_DownRound_SINR,
-    RA_q_SINR,
     RA_PF_SINR,
     RA_UTO_SINR,
+    RA_b_SINR,
     RA_UTPF_SINR,
     HO_EE_Greedy,
     HO_EE_GAP_APX_with_offload,
@@ -56,6 +53,7 @@ if __name__ == "__main__":
     # Urban Micro LoS: PL = 32.4 + 21*log10(d)+20*log10(f)
     # data_rate_list = np.logspace(7, 8, 10)
     # data_rate_list = np.linspace(10e6, 200e6, 20)
+    # data_rate_list = np.linspace(30e6, 50e6, 11)
     N_bs = 4
     freq = 28e9
     DS_start, DS_end = 800, 950 # test on a different scenario
@@ -69,7 +67,7 @@ if __name__ == "__main__":
     P_noise = 1e-14 # -174dBm/Hz * 1.8MHz = 7.165929069962946e-15 W
     lbd = 1
     sample_interval = int(M_t/n_pilot)
-    gpu = 2
+    gpu = 5
     device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
     print('device: ',device)
     args = args_parser()
@@ -87,24 +85,24 @@ if __name__ == "__main__":
     args.NF_macro_dB = 5
     args.NF_micro_dB = 10
     # args.data_rate = 10 * 1e6
-    args.random_factor_range4data_rate = 0.
+    args.random_factor_range4data_rate = 0.0
     args.lat_slot_ub = 20
     args.eta = 1e6
     args.device = device
-    args.K = 5 # 每次beam tracking 时选K个最有可能的波束对进行测试
+    args.K = 3 # 每次beam tracking 时选K个最有可能的波束对进行测试
     args.Lambda = lbd # 车辆到达率
     args.note = ""
     match args.Lambda:
         case 1:
-            data_rate_list = np.linspace(2e6, 40e6, 20)[4:]
+            data_rate_list = np.linspace(5e6, 35e6, 10+1)
         case _:
-            data_rate_list = np.linspace(2e6, 40e6, 20)[4:]
+            data_rate_list = np.linspace(5e6, 35e6, 10+1)
     args.trajectoryInfo_path = f'./sumo_data/trajectory_Lbd{args.Lambda:.2f}.csv'
     # 对测试数据集进行截断
-    cut_ratio = 0.02
+    cut_ratio = 0.01
     cut_end = DS_start + cut_ratio*(DS_end-DS_start)
-    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"results_exp2/lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
-        + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"results_exp9/lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
+        + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + (f"_{args.note}" if args.note != "" else ""))
     os.makedirs(save_path, exist_ok=True)
     os.makedirs('./sionna_result', exist_ok=True)
     os.makedirs('./data4sim', exist_ok=True)
@@ -196,165 +194,77 @@ if __name__ == "__main__":
     # 给出所需要仿真的方案名和PHO,RA策略
     sim_strategy_dict = collections.OrderedDict()
     
-    # UTO-RA Urgency-Tiered Opportunistic Resource Allocation
-    sim_strategy_dict["UTO-RA (PredInfo)"] = {
-        "RA": RA_UTO_SINR,
+    # E-PHO+P-BF+UTO-RA
+    sim_strategy_dict["Proposed"] = {
+        "RA": RA_b_SINR, 
         "HO": HO_EE_GAP_APX_SINR,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
         "inferpred_model": inferpred_model,
         "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "solid",
-        "color": "red",
-        "marker": "o",
-    }
-    
-    sim_strategy_dict["UTO-RA (TrueInfo)"] = {
-        "RA": RA_UTO_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "red",
-        "marker": "o",
-    }
-    
-    # OTR-RA Opportunistic Tiered-Rounding Resource Allocation
-    sim_strategy_dict["OTR-RA (PredInfo)"] = {
-        "RA": RA_b_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": gainpred_model,
-        "beampred_model": beampred_model,
-        "inferpred_model": inferpred_model,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "solid",
-        "color": "green",
-        "marker": "v",
-    }
-    
-    sim_strategy_dict["OTR-RA (TrueInfo)"] = {
-        "RA": RA_b_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "green",
-        "marker": "v",
-    }
-    
-    # OUR-RA Opportunistic Up-Rounding Resource Allocation
-    sim_strategy_dict["OUR-RA (PredInfo)"] = {
-        "RA": RA_b_UpRound_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": gainpred_model,
-        "beampred_model": beampred_model,
-        "inferpred_model": inferpred_model,
-        "NoBF": False,
-        "K_BF": 5,
         "linestyle": "solid",
         "color": "orange",
         "marker": "*",
     }
     
-    sim_strategy_dict["OUR-RA (TrueInfo)"] = {
-        "RA": RA_b_UpRound_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
+    # GreedyPHO+P-BF+UTO-RA
+    sim_strategy_dict["GreedyPHO+P-BF+UTO-RA"] = {
+        "RA": RA_b_SINR, 
+        "HO": HO_EE_Greedy,
         "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "inferpred_model": inferpred_model,
         "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "orange",
-        "marker": "*",
+        "linestyle": "solid",
+        "color": "blue",
+        "marker": "+",
     }
     
-    # ODR-RA Opportunistic Down-Rounding Resource Allocation
-    sim_strategy_dict["ODR-RA (PredInfo)"] = {
-        "RA": RA_b_DownRound_SINR,
+    # E-PHO+TOPK-BF+UTO-RA
+    sim_strategy_dict["E-PHO+TOPK-BF+UTO-RA"] = {
+        "RA": RA_b_SINR, 
+        "HO": HO_EE_GAP_APX_SINR,
+        "save_pilot": False,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "inferpred_model": inferpred_model,
+        "NoBF": False,
+        "linestyle": "solid",
+        "color": "purple",
+        "marker": "x",
+    }
+    
+    # E-PHO+P-BF+PF-RA
+    sim_strategy_dict["E-PHO+P-BF+PF-RA"] = {
+        "RA": RA_PF_SINR, 
         "HO": HO_EE_GAP_APX_SINR,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
         "inferpred_model": inferpred_model,
         "NoBF": False,
-        "K_BF": 5,
         "linestyle": "solid",
-        "color": "blue",
-        "marker": "+",
-    }
-    
-    sim_strategy_dict["ODR-RA (TrueInfo)"] = {
-        "RA": RA_b_DownRound_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "blue",
-        "marker": "+",
-    }
-    
-    # PFTR-RA Proportional Fair Tiered Rounding Resource Allocation    
-    sim_strategy_dict["PFTR-RA (PredInfo)"] = {
-        "RA": RA_PF_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": gainpred_model,
-        "beampred_model": beampred_model,
-        "inferpred_model": inferpred_model,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "solid",
-        "color": "purple",
-        "marker": "x",
-    }
-    
-    sim_strategy_dict["PFTR-RA (TrueInfo)"] = {
-        "RA": RA_PF_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "purple",
-        "marker": "x",
+        "color": "red",
+        "marker": ".",
     }
     
     
-    sim_strategy_dict["LowerBound"] = {
-        "RA": RA_unlimitRB_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "black",
-        "marker": "<",
-    }
+    
+    # sim_strategy_dict["GAP (TrueInfo)"] = {
+    #     "RA": RA_b_SINR, 
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": None,
+    #     "beampred_model": None,
+    #     "inferpred_model": None,
+    #     "NoBF": False,
+    #     "linestyle": "dashed",
+    #     "color": "orange",
+    #     "marker": "*",
+    # }
+    
     
     sim_result_dict = collections.OrderedDict()
     for strategy_name in sim_strategy_dict.keys():
@@ -394,7 +304,6 @@ if __name__ == "__main__":
                 prt=False,
                 save_pilot=sim_strategy_dict[strategy_name]["save_pilot"],
                 No_BF=sim_strategy_dict[strategy_name]["NoBF"],
-                K_BF=sim_strategy_dict[strategy_name]["K_BF"],
             )
             # TODO：HO_cmd_record
             carnum_under_BS = np.zeros((len(HO_cmd_record.keys())-1,len(BS_loc_list)+1,))
