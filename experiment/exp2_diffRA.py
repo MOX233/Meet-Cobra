@@ -19,23 +19,7 @@ sys.path.append(os.getcwd())
 from utils.NN_utils import BeamPredictionLSTMModel, BestGainPredictionLSTMModel
 from utils.sim_utils import run_sim_withUMa
 from utils.options import args_parser
-from utils.alg_utils import (
-    RA_unlimitRB_SINR,
-    RA_fqb_SINR,
-    RA_b_SINR,
-    RA_b_UpRound_SINR,
-    RA_b_DownRound_SINR,
-    RA_q_SINR,
-    RA_PF_SINR,
-    RA_UTO_SINR,
-    RA_UTPF_SINR,
-    HO_EE_Greedy,
-    HO_EE_GAP_APX_with_offload,
-    HO_EE_GAP_APX_SINR,
-    HO_EE_GAP_APX_SINR_Rician,
-    HO_EE_GAP_APX_with_offload_SINR,
-    HO_EE_Greedy_offload,
-)
+from utils.alg_utils import *
 from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch, lin2dB, dB2lin, generate_1Dsamples
 from utils.data_utils import get_prepared_dataset, generate_complex_gaussian_vector
 from utils.plot_utils import plot_beampred
@@ -96,12 +80,12 @@ if __name__ == "__main__":
     args.note = ""
     match args.Lambda:
         case 1:
-            data_rate_list = np.linspace(2e6, 40e6, 20)[4:]
+            data_rate_list = np.linspace(2e6, 36e6, 18)[9:]
         case _:
-            data_rate_list = np.linspace(2e6, 40e6, 20)[4:]
+            data_rate_list = np.linspace(2e6, 36e6, 18)[9:]
     args.trajectoryInfo_path = f'./sumo_data/trajectory_Lbd{args.Lambda:.2f}.csv'
     # 对测试数据集进行截断
-    cut_ratio = 0.02
+    cut_ratio = 0.01
     cut_end = DS_start + cut_ratio*(DS_end-DS_start)
     save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"results_exp2/lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
         + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
@@ -197,9 +181,9 @@ if __name__ == "__main__":
     sim_strategy_dict = collections.OrderedDict()
     
     # UTO-RA Urgency-Tiered Opportunistic Resource Allocation
-    sim_strategy_dict["UTO-RA (PredInfo)"] = {
-        "RA": RA_UTO_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
+    sim_strategy_dict["OTR2-RA (PredInfo)"] = {
+        "RA": RA_OTR2_SINR,
+        "HO": HO_EE_GAP_APX_SINR_conservative,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
@@ -207,144 +191,13 @@ if __name__ == "__main__":
         "NoBF": False,
         "K_BF": 5,
         "linestyle": "solid",
-        "color": "red",
-        "marker": "o",
-    }
-    
-    sim_strategy_dict["UTO-RA (TrueInfo)"] = {
-        "RA": RA_UTO_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "red",
-        "marker": "o",
-    }
-    
-    # OTR-RA Opportunistic Tiered-Rounding Resource Allocation
-    sim_strategy_dict["OTR-RA (PredInfo)"] = {
-        "RA": RA_b_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": gainpred_model,
-        "beampred_model": beampred_model,
-        "inferpred_model": inferpred_model,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "solid",
-        "color": "green",
-        "marker": "v",
-    }
-    
-    sim_strategy_dict["OTR-RA (TrueInfo)"] = {
-        "RA": RA_b_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "green",
-        "marker": "v",
-    }
-    
-    # OUR-RA Opportunistic Up-Rounding Resource Allocation
-    sim_strategy_dict["OUR-RA (PredInfo)"] = {
-        "RA": RA_b_UpRound_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": gainpred_model,
-        "beampred_model": beampred_model,
-        "inferpred_model": inferpred_model,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "solid",
-        "color": "orange",
-        "marker": "*",
-    }
-    
-    sim_strategy_dict["OUR-RA (TrueInfo)"] = {
-        "RA": RA_b_UpRound_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "orange",
-        "marker": "*",
-    }
-    
-    # ODR-RA Opportunistic Down-Rounding Resource Allocation
-    sim_strategy_dict["ODR-RA (PredInfo)"] = {
-        "RA": RA_b_DownRound_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": gainpred_model,
-        "beampred_model": beampred_model,
-        "inferpred_model": inferpred_model,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "solid",
-        "color": "blue",
-        "marker": "+",
-    }
-    
-    sim_strategy_dict["ODR-RA (TrueInfo)"] = {
-        "RA": RA_b_DownRound_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "blue",
-        "marker": "+",
-    }
-    
-    # PFTR-RA Proportional Fair Tiered Rounding Resource Allocation    
-    sim_strategy_dict["PFTR-RA (PredInfo)"] = {
-        "RA": RA_PF_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": gainpred_model,
-        "beampred_model": beampred_model,
-        "inferpred_model": inferpred_model,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "solid",
-        "color": "purple",
+        "color": "black",
         "marker": "x",
     }
     
-    sim_strategy_dict["PFTR-RA (TrueInfo)"] = {
-        "RA": RA_PF_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
-        "save_pilot": True,
-        "gainpred_model": None,
-        "beampred_model": None,
-        "inferpred_model": None,
-        "NoBF": False,
-        "K_BF": 5,
-        "linestyle": "dashed",
-        "color": "purple",
-        "marker": "x",
-    }
-    
-    
-    sim_strategy_dict["LowerBound"] = {
-        "RA": RA_unlimitRB_SINR,
-        "HO": HO_EE_GAP_APX_SINR,
+    sim_strategy_dict["OTR2-RA (TrueInfo)"] = {
+        "RA": RA_OTR2_SINR,
+        "HO": HO_EE_GAP_APX_SINR_conservative,
         "save_pilot": True,
         "gainpred_model": None,
         "beampred_model": None,
@@ -353,8 +206,195 @@ if __name__ == "__main__":
         "K_BF": 5,
         "linestyle": "dashed",
         "color": "black",
-        "marker": "<",
+        "marker": "x",
     }
+    
+    sim_strategy_dict["continuousRB-RA (PredInfo)"] = {
+        "RA": RA_continuousRB_SINR,
+        "HO": HO_EE_GAP_APX_SINR_conservative,
+        "save_pilot": True,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "inferpred_model": inferpred_model,
+        "NoBF": False,
+        "K_BF": 5,
+        "linestyle": "solid",
+        "color": "orange",
+        "marker": "*",
+    }
+    
+    sim_strategy_dict["continuousRB-RA (TrueInfo)"] = {
+        "RA": RA_continuousRB_SINR,
+        "HO": HO_EE_GAP_APX_SINR_conservative,
+        "save_pilot": True,
+        "gainpred_model": None,
+        "beampred_model": None,
+        "inferpred_model": None,
+        "NoBF": False,
+        "K_BF": 5,
+        "linestyle": "dashed",
+        "color": "orange",
+        "marker": "*",
+    }
+    
+    # sim_strategy_dict["UTO-RA (PredInfo)"] = {
+    #     "RA": RA_UTO_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": gainpred_model,
+    #     "beampred_model": beampred_model,
+    #     "inferpred_model": inferpred_model,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "solid",
+    #     "color": "red",
+    #     "marker": "o",
+    # }
+    
+    # sim_strategy_dict["UTO-RA (TrueInfo)"] = {
+    #     "RA": RA_UTO_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": None,
+    #     "beampred_model": None,
+    #     "inferpred_model": None,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "dashed",
+    #     "color": "red",
+    #     "marker": "o",
+    # }
+    
+    # # OTR-RA Opportunistic Tiered-Rounding Resource Allocation
+    # sim_strategy_dict["OTR-RA (PredInfo)"] = {
+    #     "RA": RA_b_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": gainpred_model,
+    #     "beampred_model": beampred_model,
+    #     "inferpred_model": inferpred_model,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "solid",
+    #     "color": "green",
+    #     "marker": "v",
+    # }
+    
+    # sim_strategy_dict["OTR-RA (TrueInfo)"] = {
+    #     "RA": RA_b_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": None,
+    #     "beampred_model": None,
+    #     "inferpred_model": None,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "dashed",
+    #     "color": "green",
+    #     "marker": "v",
+    # }
+    
+    # # OUR-RA Opportunistic Up-Rounding Resource Allocation
+    # sim_strategy_dict["OUR-RA (PredInfo)"] = {
+    #     "RA": RA_b_UpRound_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": gainpred_model,
+    #     "beampred_model": beampred_model,
+    #     "inferpred_model": inferpred_model,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "solid",
+    #     "color": "orange",
+    #     "marker": "*",
+    # }
+    
+    # sim_strategy_dict["OUR-RA (TrueInfo)"] = {
+    #     "RA": RA_b_UpRound_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": None,
+    #     "beampred_model": None,
+    #     "inferpred_model": None,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "dashed",
+    #     "color": "orange",
+    #     "marker": "*",
+    # }
+    
+    # ODR-RA Opportunistic Down-Rounding Resource Allocation
+    # sim_strategy_dict["ODR-RA (PredInfo)"] = {
+    #     "RA": RA_b_DownRound_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": gainpred_model,
+    #     "beampred_model": beampred_model,
+    #     "inferpred_model": inferpred_model,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "solid",
+    #     "color": "blue",
+    #     "marker": "+",
+    # }
+    
+    # sim_strategy_dict["ODR-RA (TrueInfo)"] = {
+    #     "RA": RA_b_DownRound_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": None,
+    #     "beampred_model": None,
+    #     "inferpred_model": None,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "dashed",
+    #     "color": "blue",
+    #     "marker": "+",
+    # }
+    
+    # # PFTR-RA Proportional Fair Tiered Rounding Resource Allocation    
+    # sim_strategy_dict["PFTR-RA (PredInfo)"] = {
+    #     "RA": RA_PF_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": gainpred_model,
+    #     "beampred_model": beampred_model,
+    #     "inferpred_model": inferpred_model,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "solid",
+    #     "color": "purple",
+    #     "marker": "x",
+    # }
+    
+    # sim_strategy_dict["PFTR-RA (TrueInfo)"] = {
+    #     "RA": RA_PF_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": None,
+    #     "beampred_model": None,
+    #     "inferpred_model": None,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "dashed",
+    #     "color": "purple",
+    #     "marker": "x",
+    # }
+    
+    
+    # sim_strategy_dict["LowerBound"] = {
+    #     "RA": RA_unlimitRB_SINR,
+    #     "HO": HO_EE_GAP_APX_SINR,
+    #     "save_pilot": True,
+    #     "gainpred_model": None,
+    #     "beampred_model": None,
+    #     "inferpred_model": None,
+    #     "NoBF": False,
+    #     "K_BF": 5,
+    #     "linestyle": "dashed",
+    #     "color": "black",
+    #     "marker": "<",
+    # }
     
     sim_result_dict = collections.OrderedDict()
     for strategy_name in sim_strategy_dict.keys():
@@ -366,6 +406,7 @@ if __name__ == "__main__":
             "avg_queue_len_list": [],
             "avg_latency_list": [],
             "avg_pilot_list": [],
+            "RB_allocated_record_list": [],
         }
 
     # 进行仿真实验
@@ -383,6 +424,7 @@ if __name__ == "__main__":
                 violation_prob_record,
                 avg_queuelen_record,
                 pilot_record,
+                RB_allocated_record,
             ) = run_sim_withUMa(
                 args, BS_loc_list, timeline_dir, 
                 pospred_model, 
@@ -417,6 +459,7 @@ if __name__ == "__main__":
             sim_result_dict[strategy_name]["avg_latency_list"].append(avg_latency)
             sim_result_dict[strategy_name]["avg_pilot_list"].append(avg_pilot)
             sim_result_dict[strategy_name]["carnum_under_BS_list"].append(carnum_under_BS)
+            sim_result_dict[strategy_name]["RB_allocated_record_list"].append(RB_allocated_record)
            
         print("Elapsed time: ", time.time() - _time)
 
@@ -514,6 +557,26 @@ if __name__ == "__main__":
             plt.legend()
         plt.savefig(os.path.join(save_path, "Average car number under each BS.png"))
         plt.savefig(os.path.join(save_path, "Average car number under each BS.pdf"))
+        plt.close()
+        
+        plt.figure(figsize=(6, 4*len(BS_loc_list)))
+        plt.xlabel("data rate (Mbps)")
+        plt.ylabel("Average number of allocated RBs for each BS")
+        for BS_id in range(len(BS_loc_list)+1):
+            plt.subplot(len(BS_loc_list)+1, 1, BS_id + 1)
+            for strategy_name in sim_strategy_dict.keys():
+                avg_RB_allocated_under_BS_list = np.array(sim_result_dict[strategy_name]["RB_allocated_record_list"][: data_rate_idx + 1]).mean(axis=-2)
+                plt.plot(
+                    data_rate_list[: data_rate_idx + 1]/1e6,
+                    avg_RB_allocated_under_BS_list[:, BS_id],
+                    linestyle=sim_strategy_dict[strategy_name]["linestyle"],
+                    color=sim_strategy_dict[strategy_name]["color"],
+                    marker=sim_strategy_dict[strategy_name]["marker"],
+                    label=f"{strategy_name} BS{BS_id}",
+                )
+            plt.legend()
+        plt.savefig(os.path.join(save_path, "Average number of allocated RBs for each BS.png"))
+        plt.savefig(os.path.join(save_path, "Average number of allocated RBs for each BS.pdf"))
         plt.close()
         
 

@@ -19,21 +19,7 @@ sys.path.append(os.getcwd())
 from utils.NN_utils import BeamPredictionLSTMModel, BestGainPredictionLSTMModel
 from utils.sim_utils import run_sim_withUMa
 from utils.options import args_parser
-from utils.alg_utils import (
-    RA_unlimitRB_SINR,
-    RA_fqb_SINR,
-    RA_PF_SINR,
-    RA_b_SINR,
-    RA_UTPF_SINR,
-    HO_EE_Greedy,
-    HO_EE_GAP_APX_with_offload,
-    HO_EE_GAP_APX_SINR,
-    HO_EE_GAP_APX_SINR_Rician,
-    HO_EE_GAP_APX_with_offload_SINR,
-    HO_EE_Greedy_offload,
-    HO_RBE_Greedy_offload,
-    HO_EE_Greedy_offload,
-)
+from utils.alg_utils import *
 from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch, lin2dB, dB2lin, generate_1Dsamples
 from utils.data_utils import get_prepared_dataset, generate_complex_gaussian_vector
 from utils.plot_utils import plot_beampred
@@ -338,6 +324,7 @@ if __name__ == "__main__":
                 violation_prob_record,
                 avg_queuelen_record,
                 pilot_record,
+                RB_allocated_record,
             ) = run_sim_withUMa(
                 args, BS_loc_list, timeline_dir, 
                 pospred_model, 

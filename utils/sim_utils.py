@@ -39,7 +39,9 @@ from utils.alg_utils import (
     measure_gain_NoBeamforming,
     estimate_num_RB_allocated_perBS,
     RA_Lyapunov,
+    RA_b_SINR,
     HO_EE_Greedy,
+    HO_LowerBound_SINR,
 )
 from utils.mox_utils import lin2dB, dB2lin
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
@@ -52,7 +54,7 @@ def run_sim_withUMa(
     beampred_model,
     gainpred_model,
     inferpred_model,
-    RA_func=RA_Lyapunov,  # 资源分配算法
+    RA_func=RA_b_SINR,  # 资源分配算法
     HO_func=HO_EE_Greedy,  # 越区切换算法
     prt=True,  # 是否在仿真运行时实时打印相关信息
     save_pilot=False, # 是否执行pilot-saved的测量方法
@@ -61,6 +63,7 @@ def run_sim_withUMa(
     **kwargs,
 ):
     K_BF = kwargs.get('K_BF', None) 
+    NoPHO = kwargs.get('NoPHO', False) #TODO
     K_BF = K_BF if K_BF is not None else args.K
     device = args.device
     DFT_matrix_tx = generate_dft_codebook(args.M_t)
@@ -88,8 +91,8 @@ def run_sim_withUMa(
     CSI_dict_prev = collections.OrderedDict()  # 前一帧的车辆CSI 
     CSI_dict_cur = collections.OrderedDict()  # 当前帧的车辆CSI
     # CSI_dict[veh].shape =  (args.frames_per_sample, 2*M_r*N_pilot)
-    measured_g_record_dict_prev = collections.OrderedDict()  # 前一帧的车辆历史接入基站的信道增益记录 #TODO
-    measured_g_record_dict_cur = collections.OrderedDict()  # 当前帧的车辆历史接入基站的信道增益记录 #TODO
+    measured_g_record_dict_prev = collections.OrderedDict()  # 前一帧的车辆历史接入基站的信道增益记录
+    measured_g_record_dict_cur = collections.OrderedDict()  # 当前帧的车辆历史接入基站的信道增益记录
 
     HO_cmd_prev4cur = (
         collections.OrderedDict()
@@ -125,6 +128,7 @@ def run_sim_withUMa(
     violation_prob_record = np.zeros((num_frame,))  # 记录每帧的队列长度违规频率
     avg_queuelen_record = np.zeros((num_frame,))  # 记录每帧平均队列长度
     pilot_record = np.zeros((num_frame,))  # 记录每帧所用pilot数量
+    RB_allocated_record = np.zeros((num_frame,len(BS_loc_list)))  # 记录每帧各基站分配的子载波数
 
     # 初始化车辆业务数据积压队列
     Q_dict_prev = init_vehset_backlog_queue(
@@ -285,6 +289,7 @@ def run_sim_withUMa(
                 g_microBS_slot_dict = g_microBS_dict
                 g_microBS_NoBF_slot_dict = g_microBS_NoBF_dict
                 num_pilot_slot_dict = num_pilot_dict
+                
             g_slot_dict = collections.OrderedDict()
             g_slot_NoBF_dict = collections.OrderedDict()
             
@@ -346,9 +351,16 @@ def run_sim_withUMa(
                 num_pilot_dict=num_pilot_slot_dict,
                 sinr_flag=True,
             )
+            # import ipdb;ipdb.set_trace()
+            # print(num_pilot_slot_dict)
+            # for veh, num_pilot in num_pilot_slot_dict.items():
+            #     print(f'veh: {veh}, num_pilot: {num_pilot[connection_dict_cur[veh]-1] if connection_dict_cur[veh]!=0 else None}')
+            RB_allocated_record[x,:] += num_RB_allocated_perBS
         
         # 统计当前帧所用pilot数量        
         pilot_record[x] = pilot_slot_record.mean()
+        # 统计当前帧各基站平均分配的子载波数
+        RB_allocated_record[x,:] /= args.slots_per_frame
         
         violation_cnt = sum(
             [(Q_dict_cur[veh][1:] > Q_ub_dict[veh]).sum() for veh in veh_set_cur]
@@ -402,4 +414,157 @@ def run_sim_withUMa(
         violation_prob_record,  # 存储各帧的UE业务积压队列长度超阈值的频率
         avg_queuelen_record,  # 存储各帧的UE业务积压队列长度均值
         pilot_record,
+        RB_allocated_record,
+    )
+
+
+def run_sim_withUMa_analyzed_lowerbound(
+    args,  # 存储仿真参数设置的args对象
+    MicroBS_loc_list,  # 存储各基站位置的list
+    timeline_dir,  # 对SUMO生成的车流数据（详细版）进行处理后得到的交通车流信息
+    pospred_model,  # 基于CSI预测车辆移动性的AI模型
+    beampred_model,
+    gainpred_model,
+    inferpred_model,
+    RA_func=RA_b_SINR,  # 资源分配算法
+    HO_func=HO_LowerBound_SINR,  # 越区切换算法
+    prt=True,  # 是否在仿真运行时实时打印相关信息
+    No_BF=False, # 是否不使用Beamforming
+    MacroBS_loc = [0, 0],  # 宏基站位置，默认在原点
+    **kwargs,
+):
+    K_BF = kwargs.get('K_BF', None) 
+    K_BF = K_BF if K_BF is not None else args.K
+    device = args.device
+    DFT_matrix_tx = generate_dft_codebook(args.M_t)
+    DFT_matrix_rx = generate_dft_codebook(args.M_r)
+    # 加入MacroBS
+    BS_loc_list = copy.copy(MicroBS_loc_list)
+    BS_loc_list.insert(0, MacroBS_loc)  # 在列表开头插入宏基站位置
+    BS_loc_array = np.array(BS_loc_list)
+    BS_loc_dict = collections.OrderedDict()
+    for i, loc in enumerate(BS_loc_list):
+        BS_loc_dict[i] = loc
+    frame_list = list(timeline_dir.keys())
+    num_frame = len(frame_list) - 1
+    frame_prev = frame_list[0]
+    veh_set_prev = set(timeline_dir[frame_prev].keys())  # 前一帧的车辆集合
+    veh_set_cur = set()  # 当前帧的车辆集合
+    CSI_dict_prev = collections.OrderedDict()  # 前一帧的车辆CSI 
+    CSI_dict_cur = collections.OrderedDict()  # 当前帧的车辆CSI
+    # CSI_dict[veh].shape =  (args.frames_per_sample, 2*M_r*N_pilot)
+    
+    # 仿真中出现的所有用户
+    veh_set_all = set()
+    for frame in frame_list:
+        veh_set_all.update(set(timeline_dir[frame].keys()))
+    
+    # 初始化各用户的平均业务数据到达率，基于所有车辆的平均业务数据到达率args.data_rate，乘上均匀分布因子作为随机扰动
+    veh_data_rate_dict = collections.OrderedDict()
+    assert args.random_factor_range4data_rate >= 0 and args.random_factor_range4data_rate <= 1
+    for veh in veh_set_all:
+        veh_data_rate_dict[veh] = args.data_rate * np.random.uniform(1-args.random_factor_range4data_rate, 1+args.random_factor_range4data_rate)
+    # import ipdb;ipdb.set_trace()
+    # print("veh_data_rate_dict:", veh_data_rate_dict)  # debug
+    
+    Q_ub_dict = collections.OrderedDict()  # 各车辆的队列长度上限阈值
+    for veh in veh_set_all:
+        Q_ub_dict[veh] = args.lat_slot_ub * veh_data_rate_dict[veh] * args.slot_len
+
+    # 仿真输出结果记录
+    energy_record = np.zeros((num_frame,))  # 记录每帧能耗
+    violation_prob_record = np.zeros((num_frame,))  # 记录每帧的队列长度违规频率
+
+
+    # 初始化车辆-基站信道状态信息(CSI)
+    for veh in veh_set_prev:
+        CSI_dict_prev[veh] = timeline_dir[frame_prev][veh]["CSI_preprocessed"]
+        
+    for x, frame_cur in enumerate(frame_list[1:]):
+        veh_set_cur = set(timeline_dir[frame_cur].keys())
+        # print("frame: ", frame_cur, " veh num: ", len(veh_set_cur)) #debug
+        veh_set_in = veh_set_cur.difference(veh_set_prev)
+        veh_set_out = veh_set_prev.difference(veh_set_cur)
+        veh_set_remain = veh_set_cur.intersection(veh_set_prev)
+        CSI_dict_cur = collections.OrderedDict() #
+        for veh in veh_set_cur:
+            CSI_dict_cur[veh] = timeline_dir[frame_cur][veh]["CSI_preprocessed"].astype(np.float32)
+
+
+        # 基于历史信道状态信息, 通过AI/ML算法预测各车辆在下一PHO周期的期望位置
+        pred_loc_dict = collections.OrderedDict()
+        for veh in veh_set_cur:
+            if pospred_model is None:
+                pred_loc_dict[veh] = timeline_dir[frame_cur][veh]["pos"]
+            else:
+                pred_loc_dict[veh] = pospred_model.predict(CSI_dict_cur[veh],device)
+                
+        # 基于历史信道状态信息, 通过AI/ML算法预测各车辆在下一PHO周期与各MicroBS间的最优波束增益     
+        pred_gain_opt_beam_dict = collections.OrderedDict()
+        for veh in veh_set_cur:
+            if gainpred_model is None:
+                pred_gain_opt_beam_dict[veh] = timeline_dir[frame_cur][veh]["g_opt_beam"]
+            else:
+                pred_gain_opt_beam_dict[veh] = gainpred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device)[0]
+                # pred_gain_opt_beam_dict[veh].shape = (4,)
+            # if timeline_dir[frame_cur][veh]["g_opt_beam"][pred_gain_opt_beam_dict[veh].argmax()] <= -180:
+            #     print('bug!')
+                # ipdb.set_trace()
+        # 基于历史信道状态信息, 通过AI/ML算法预测各车辆在下一PHO周期与各MicroBS间的最优波束方向
+        pred_beamPairId_dict = collections.OrderedDict()
+        for veh in veh_set_cur:
+            if beampred_model is None:
+                pred_beamPairId_dict[veh] = timeline_dir[frame_cur][veh]["best_beam_pair_idx"].reshape(-1,1).repeat(K_BF,axis=-1)
+            else:
+                pred_beamPairId_dict[veh] = beampred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device, K=K_BF)[0]
+                # pred_beamPairId_dict[veh].shape = (4,K)
+        
+        pred_g_macroBS_dict = get_g_macroBS_dict(args, pred_loc_dict, MacroBS_loc, fc_ghz=2.8, Gt_macro=0, scenario='los')
+        # print('snr_macro_pred', {veh:10*np.log10(dB2lin(pred_g_macroBS_dict[veh]) * args.p_macro / (args.N0 * args.RB_intervel_macro * dB2lin(args.NF_macro_dB))).item() for veh in pred_g_macroBS_dict.keys()})
+        
+        pred_g_dict = collections.OrderedDict()
+        pred_infer_g_dict = collections.OrderedDict() if inferpred_model is not None else None
+        for veh in pred_g_macroBS_dict.keys():
+            pred_g_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], pred_gain_opt_beam_dict[veh]), axis=0)
+            if inferpred_model is not None:
+                pred_infer_g_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], inferpred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device)[0]), axis=0)
+
+        # 在每一帧内，让各车对各MicroBS的K个波束对进行测量
+        if No_BF:
+            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = \
+                measure_gain_NoBeamforming(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, rician_fading=False)
+        else:
+            g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = \
+                measure_gain_for_topKbeam(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, \
+                                          pred_beamPairId_dict, DFT_matrix_tx, DFT_matrix_rx, rician_fading=False, K_BF=K_BF)
+        g_dict = collections.OrderedDict()
+        g_NoBF_dict = collections.OrderedDict()
+        for veh in pred_g_macroBS_dict.keys():
+            g_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], g_microBS_dict[veh]), axis=0)
+            g_NoBF_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], g_microBS_NoBF_dict[veh]), axis=0)
+        
+        # 基于积压队列、预测位置、BS位置等信息进行PHO决策
+        HO_cmd, energy4frame, pred_num_RB_allocated_perBS = HO_func(
+            args, veh_set_cur, None, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array,
+            infer_g_dict=pred_infer_g_dict if inferpred_model is not None else g_NoBF_dict,
+            num_pilot_dict=num_pilot_dict,
+        )
+        violation_prob_record4frame = 1 if HO_cmd is None else 0
+
+        energy_record[x] = energy4frame
+        violation_prob_record[x] = violation_prob_record4frame
+        if prt:
+            print("\n\nframe: ", x, frame_cur)
+            print("energy_record: ", energy_record[x])
+            print("violation_prob_record: ", violation_prob_record[x])
+
+        # 记录当前帧各状态，为下一帧做准备
+        frame_prev = frame_cur
+        veh_set_prev = veh_set_cur
+        CSI_dict_prev = CSI_dict_cur
+        # End
+    
+    return (
+        energy_record,  # 存储各帧的系统能耗（单位：J）
+        violation_prob_record,  # 存储各帧的UE业务积压队列长度超阈值的频率
     )

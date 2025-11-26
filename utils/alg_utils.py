@@ -359,6 +359,43 @@ def RA_b_DownRound_SINR(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub
     return RA_dict
 
 
+def RA_OTR2_SINR(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
+    if not veh_set:  # 如果没有车辆，则返回空字典
+        return collections.OrderedDict()
+    RA_dict, num_RB, veh_id_list, q, b, backlog_flag = _CALCULATE_RA_INFO_SINR(args, kwargs, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict, num_pilot_dict, Q_ub_dict)
+
+    priority = (-b).argsort()
+    
+    resRB = num_RB
+    for v in priority:
+        if backlog_flag[v]:
+            RB_alloc = min(math.ceil(q[v] / b[v] / 2), resRB)
+        else:
+            RB_alloc = min(int(q[v] / b[v] / 2), resRB)
+        RA_dict[veh_id_list[v]] = RB_alloc
+        resRB -= RB_alloc
+    return RA_dict
+
+
+def RA_OTR3_SINR(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
+    if not veh_set:  # 如果没有车辆，则返回空字典
+        return collections.OrderedDict()
+    RA_dict, num_RB, veh_id_list, q, b, backlog_flag = _CALCULATE_RA_INFO_SINR(args, kwargs, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict, num_pilot_dict, Q_ub_dict)
+    lbd = np.array([veh_data_rate_dict[veh_id] for veh_id in veh_id_list])
+
+    priority = (-b).argsort()
+    
+    resRB = num_RB
+    for v in priority:
+        if backlog_flag[v]:
+            RB_alloc = min(math.ceil(lbd[v] * args.slot_len / b[v]), resRB)
+        else:
+            RB_alloc = min(int(lbd[v] * args.slot_len / b[v]), resRB)
+        RA_dict[veh_id_list[v]] = RB_alloc
+        resRB -= RB_alloc
+    return RA_dict
+
+
 def RA_q_SINR(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
     if not veh_set:  # 如果没有车辆，则返回空字典
         return collections.OrderedDict()
@@ -472,12 +509,29 @@ def RA_unlimitRB(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, 
     return RA_dict
 
 
+def RA_continuousRB_SINR(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
+    if not veh_set:  # 如果没有车辆，则返回空字典
+        return collections.OrderedDict()
+    RA_dict, num_RB, veh_id_list, q, b, backlog_flag = _CALCULATE_RA_INFO_SINR(args, kwargs, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict, num_pilot_dict, Q_ub_dict)
+    
+    priority = (-b).argsort()
+    
+    resRB = num_RB
+    for v in priority:
+        # 仅取消了RB是整数的约束
+        RB_alloc = min(q[v] / b[v], resRB)
+        RA_dict[veh_id_list[v]] = RB_alloc
+        resRB -= RB_alloc
+    # print("BS_id=", BS_id, "RA_dict=", RA_dict)
+    return RA_dict
+
+
 def RA_unlimitRB_SINR(args, slot_idx, BS_id, veh_set, veh_data_rate_dict, Q_ub_dict, q_dict, a_dict, g_dict, num_pilot_dict, **kwargs):
     if not veh_set:  # 如果没有车辆，则返回空字典
         return collections.OrderedDict()
     RA_dict, num_RB, veh_id_list, q, b, backlog_flag = _CALCULATE_RA_INFO_SINR(args, kwargs, slot_idx, BS_id, veh_set, q_dict, a_dict, g_dict, num_pilot_dict, Q_ub_dict)
     
-    priority = (-q).argsort()
+    priority = (-b).argsort()
     for v in priority:
         # 不仅取消了RB上限，还取消了RB是整数的约束
         if q[v] >= Q_ub_dict[veh_id_list[v]] / 2:
@@ -765,13 +819,9 @@ def HO_EE_GAP_APX_SINR(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict
     return HO_cmd, num_RB_allocated_perBS
 
 
-def HO_EE_GAP_APX_SINR_Rician(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
+def HO_EE_GAP_APX_SINR_conservative(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
     # Spectral Efficiency
     HO_cmd = collections.OrderedDict()
-    g_var = (2*args.K_rician + 1) / (args.K_rician + 1)**2
-    g_std = np.sqrt(g_var)
-    g_std_factor = 0.2 * g_std    
-    
     infer_g_dict = kwargs.get('infer_g_dict', None) 
     num_pilot_dict = kwargs.get('num_pilot_dict', None)
     points = np.zeros((len(veh_set_cur), 2))
@@ -810,8 +860,9 @@ def HO_EE_GAP_APX_SINR_Rician(args, veh_set_cur, backlog_queue_dict, veh_data_ra
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
                 BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+        
         k_tilde_matrix[:, BS_id] = lbd_array / (
-            (1-BF_overhad_array) * delta_f * (np.log2(1 + p * pred_G_array * (1-g_std_factor) / (N0 * delta_f * dB2lin(NF_dB) + interference_array)))
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     
@@ -819,6 +870,7 @@ def HO_EE_GAP_APX_SINR_Rician(args, veh_set_cur, backlog_queue_dict, veh_data_ra
     pm_table = np.zeros(len(BS_loc_array))
     for BS_id in range(len(BS_loc_array)):
         RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        RB_num_table[BS_id] = int(RB_num_table[BS_id] * 0.9)  # 保守分配，预留10%的资源
         pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
     T_HO, feasible_flag = _HO_GAP_APX(
         T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
@@ -864,6 +916,7 @@ def HO_EE_GAP_APX_SINR_Rician(args, veh_set_cur, backlog_queue_dict, veh_data_ra
     pm_table = np.zeros(len(BS_loc_array))
     for BS_id in range(len(BS_loc_array)):
         RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        RB_num_table[BS_id] = int(RB_num_table[BS_id] * 0.9)  # 保守分配，预留10%的资源
         pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
     T_HO, feasible_flag = _HO_GAP_APX_with_offload(
         T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
@@ -1447,3 +1500,134 @@ def E_log2_R2(KR, tol=1e-12, nmax=100000):
     for k in it:
         out[it.multi_index] = _E_log2_R2_scalar(float(k), tol=tol, nmax=nmax)
     return out
+
+
+def HO_LowerBound_SINR(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
+    # Spectral Efficiency
+    HO_cmd = collections.OrderedDict() # key: veh_id, value: np.array(num_BS,)
+    infer_g_dict = kwargs.get('infer_g_dict', None) 
+    num_pilot_dict = kwargs.get('num_pilot_dict', None)
+    points = np.zeros((len(veh_set_cur), 2))
+    pred_G_dB = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    for i, veh in enumerate(veh_set_cur):
+        points[i, :] = pred_loc_dict[veh]
+        pred_G_dB[i, :] = pred_g_dict[veh]
+    power_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    k_tilde_matrix = np.zeros((len(veh_set_cur), len(BS_loc_array)))
+    N0 = args.N0
+    for BS_id in range(len(BS_loc_array)):
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
+        NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
+        lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+        if infer_g_dict is not None:
+            interference_array = np.array([
+                sum([
+                    dB2lin(infer_g_dict[veh][other_BS_id]) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])  
+        else:
+            interference_array = np.array([
+                sum([
+                    dB2lin(pred_g_dict[veh][other_BS_id] - min_bf_gain_dB) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])
+        if BS_id == 0:
+            interference_array *= 0  # macro BS不考虑微基站的干扰
+        BF_overhad_array = np.zeros(len(veh_set_cur))
+        if num_pilot_dict is not None:
+            for i, veh in enumerate(veh_set_cur):
+                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+        
+        k_tilde_matrix[:, BS_id] = lbd_array / (
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+        )
+        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
+    
+    RB_num_table = np.zeros(len(BS_loc_array))
+    pm_table = np.zeros(len(BS_loc_array))
+    for BS_id in range(len(BS_loc_array)):
+        RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
+        
+    # 求得GAP松弛问题所得解与下界
+    def _HO_LowerBound(T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray):
+        # T_KR.shape == (num_BS, num_UE)
+        num_BS, num_UE = T_KR.shape
+        T_HO = None
+        T_LR = np.zeros((num_BS))  # left RB table
+        T_PK = T_KR * T_PM[:, np.newaxis]
+        lp_result = solve_gap_lp(c=T_PK, a=T_KR, b=T_TR)
+        if lp_result is None:
+            T_HO, total_cost = None, None
+        else:
+            T_HO, total_cost = lp_result
+            # import ipdb; ipdb.set_trace()
+        return T_HO, total_cost   
+    T_HO, total_cost = _HO_LowerBound(
+        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+    )
+    if T_HO is not None:
+        _num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+        _T_HO = T_HO
+    else:
+        return None, None, None
+    
+    # 在上次迭代的基础上，进行微调
+    for BS_id in range(len(BS_loc_array)):
+        delta_f = args.RB_intervel_micro if BS_id > 0 else args.RB_intervel_macro
+        p = args.p_micro if BS_id > 0 else args.p_macro
+        NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
+        pred_G_array = dB2lin(pred_G_dB[:, BS_id])
+        lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
+        if infer_g_dict is not None:
+            interference_array = np.array([
+                sum([
+                    dB2lin(infer_g_dict[veh][other_BS_id]) * args.p_micro * (_num_RB_allocated_perBS[other_BS_id]/args.num_RB_micro)
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])  
+        else:
+            interference_array = np.array([
+                sum([
+                    dB2lin(pred_g_dict[veh][other_BS_id] - min_bf_gain_dB) * args.p_micro
+                    for other_BS_id in range(1,len(BS_loc_array)) if other_BS_id != BS_id
+                ])
+                for veh in veh_set_cur
+            ])
+        if BS_id == 0:
+            interference_array *= 0  # macro BS不考虑微基站的干扰
+        BF_overhad_array = np.zeros(len(veh_set_cur))
+        if num_pilot_dict is not None:
+            for i, veh in enumerate(veh_set_cur):
+                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+        k_tilde_matrix[:, BS_id] = lbd_array / (
+            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+        )
+        power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
+    
+    RB_num_table = np.zeros(len(BS_loc_array))
+    pm_table = np.zeros(len(BS_loc_array))
+    for BS_id in range(len(BS_loc_array)):
+        RB_num_table[BS_id] = args.num_RB_micro if BS_id > 0 else args.num_RB_macro
+        pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
+    T_HO, total_cost = _HO_LowerBound(
+        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+    )
+    
+    
+    energy4frame = total_cost * args.slots_per_frame * args.slot_len if total_cost is not None else None
+    if T_HO is None:
+        return None, None, None
+    else:
+        num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+        
+        for i, veh in enumerate(veh_set_cur):
+            HO_cmd[veh] = T_HO[:, i]
+        return HO_cmd, energy4frame, num_RB_allocated_perBS
