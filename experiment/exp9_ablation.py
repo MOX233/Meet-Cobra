@@ -183,7 +183,7 @@ if __name__ == "__main__":
     
     # E-PHO+P-BF+UTO-RA
     sim_strategy_dict["Proposed"] = {
-        "RA": RA_b_SINR, 
+        "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     
     # GreedyPHO+P-BF+UTO-RA
     sim_strategy_dict["GreedyPHO+P-BF+UTO-RA"] = {
-        "RA": RA_b_SINR, 
+        "RA": RA_OTR_SINR, 
         "HO": HO_EE_Greedy,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
@@ -211,7 +211,7 @@ if __name__ == "__main__":
     
     # E-PHO+TOPK-BF+UTO-RA
     sim_strategy_dict["E-PHO+TOPK-BF+UTO-RA"] = {
-        "RA": RA_b_SINR, 
+        "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR,
         "save_pilot": False,
         "gainpred_model": gainpred_model,

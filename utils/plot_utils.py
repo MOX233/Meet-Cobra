@@ -3,6 +3,54 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
+class CyclicList(list):
+    def __getitem__(self, i):
+        # 自动对长度取模，实现循环索引
+        return super().__getitem__(i % len(self))
+
+# 线型列表（linestyle）
+plt_linestyle_list = CyclicList([
+    '-',    # 0 实线
+    '--',   # 1 虚线
+    '-.',   # 2 点划线
+    ':',    # 3 点线
+    '-',    # 4
+    '--',   # 5
+    '-.',   # 6
+    ':',    # 7
+    '-',    # 8
+    '--',   # 9
+])
+
+# 颜色列表（color）——使用 Matplotlib 默认颜色循环，更通用
+plt_color_list = CyclicList([
+    'C3',   # 3 红
+    'C0',   # 0 蓝
+    'C1',   # 1 橙
+    'C2',   # 2 绿
+    'C4',   # 4 紫
+    'C5',   # 5 棕
+    'C6',   # 6 粉
+    'C7',   # 7 灰
+    'C8',   # 8 黄绿
+    'C9',   # 9 蓝绿
+])
+
+# 标记列表（marker）
+plt_marker_list = CyclicList([
+    'o',    # 0 圆点
+    's',    # 1 正方形
+    '^',    # 2 三角形（上）
+    'D',    # 3 菱形
+    'v',    # 4 三角形（下）
+    '>',    # 5 三角形（右）
+    '<',    # 6 三角形（左）
+    'p',    # 7 五边形
+    'h',    # 8 六边形
+    'x',    # 9 叉号
+])
+
+
 def plot_record_metrics(record_metrics, plt_save_dir, save_name):
         """Plot the training and validation loss and accuracy."""
         train_record_metrics = dict()

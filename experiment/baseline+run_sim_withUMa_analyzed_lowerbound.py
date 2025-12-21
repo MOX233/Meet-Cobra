@@ -23,7 +23,7 @@ from utils.alg_utils import (
     RA_unlimitRB_SINR,
     RA_fqb_SINR,
     RA_PF_SINR,
-    RA_b_SINR,
+    RA_OTR_SINR,
     RA_UTPF_SINR,
     HO_EE_Greedy,
     HO_EE_GAP_APX_with_offload,
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     
     # GAP-HO: Generalized Assignment Problem based Handover
     sim_strategy_dict["LowerBound"] = {
-        "RA": RA_b_SINR, 
+        "RA": RA_OTR_SINR, 
         "HO": HO_LowerBound_SINR,
         "save_pilot": True,
         "gainpred_model": None,

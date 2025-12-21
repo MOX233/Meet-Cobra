@@ -256,9 +256,6 @@ class BeamPredictionLSTMModel(BasePredictionModel):
             dropout=0
         )
         
-        # self.shared_layers = self._build_shared_layers(
-        #     layer_dim_list=[128, 64, 32, 64, 128]
-        # )
         self.shared_layers = self._build_shared_layers()
         
         # 多任务输出层（每个基站一个输出头）
@@ -308,9 +305,6 @@ class BlockPredictionLSTMModel(BasePredictionModel):
             dropout=0
         )
         
-        # self.shared_layers = self._build_shared_layers(
-        #     layer_dim_list=[128, 64, 32, 64, 128]
-        # )
         self.shared_layers = self._build_shared_layers()
         
         # 多任务输出层（每个基站一个输出头）
@@ -354,9 +348,6 @@ class BestGainPredictionLSTMModel(BasePredictionModel):
             dropout=0
         )
         
-        # self.shared_layers = self._build_shared_layers(
-        #     layer_dim_list=[256, 256, 128]
-        # )
         self.shared_layers = self._build_shared_layers()
         
         # 多任务输出层（每个基站一个输出头）

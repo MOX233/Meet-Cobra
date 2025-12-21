@@ -45,6 +45,12 @@ def args_parser():
         default=10,
         help="The upper bound of the delay slot number, default (10)",
     )
+    parser.add_argument(
+        "--vio_prob_threshold",
+        type=float,
+        default=0.01,
+        help="The constraint violation probability threshold, default (0.01)",
+    )
 
     # MIMO arguments
     parser.add_argument(

@@ -183,7 +183,7 @@ if __name__ == "__main__":
     
     # PET-BF ($N_{BF}$=N_BF): Predictive Early-Termination Beamforming with each time selecting the best beam from N_BF candidates
     sim_strategy_dict["PET-BF ($N_{BF}$=5)"] = {
-        "RA": RA_b_SINR, 
+        "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR,
         "save_pilot": True,
         "gainpred_model": gainpred_model,
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     
     # P-BF ($N_{BF}$=N_BF): Predictive Beamforming with each time selecting the best beam from N_BF candidates
     sim_strategy_dict["P-BF ($N_{BF}$=1)"] = {
-        "RA": RA_b_SINR, 
+        "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR,
         "save_pilot": False,
         "gainpred_model": gainpred_model,
@@ -212,7 +212,7 @@ if __name__ == "__main__":
     }
     
     sim_strategy_dict["P-BF ($N_{BF}$=2)"] = {
-        "RA": RA_b_SINR, 
+        "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR,
         "save_pilot": False,
         "gainpred_model": gainpred_model,
@@ -226,7 +226,7 @@ if __name__ == "__main__":
     }
     
     sim_strategy_dict["P-BF ($N_{BF}$=3)"] = {
-        "RA": RA_b_SINR, 
+        "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR,
         "save_pilot": False,
         "gainpred_model": gainpred_model,
@@ -240,7 +240,7 @@ if __name__ == "__main__":
     }
     
     sim_strategy_dict["P-BF ($N_{BF}$=4)"] = {
-        "RA": RA_b_SINR, 
+        "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR,
         "save_pilot": False,
         "gainpred_model": gainpred_model,
@@ -254,7 +254,7 @@ if __name__ == "__main__":
     }
     
     sim_strategy_dict["P-BF ($N_{BF}$=5)"] = {
-        "RA": RA_b_SINR, 
+        "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR,
         "save_pilot": False,
         "gainpred_model": gainpred_model,

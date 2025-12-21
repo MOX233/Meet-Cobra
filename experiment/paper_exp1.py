@@ -27,10 +27,10 @@ from utils.plot_utils import plt_color_list, plt_linestyle_list, plt_marker_list
 if __name__ == "__main__":
     gpu = 1
     lbd = 1
-    # cut_ratio = 0.01
-    cut_ratio = 1/3
-    data_rate_list = np.linspace(2e6, 36e6, 18)[8:]
-    save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_exp1")
+    cut_ratio = 0.01
+    # cut_ratio = 1/3
+    data_rate_list = np.linspace(1e6, 35e6, 18)[:]
+    save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_paper_exp1")
     
     args, BS_loc_list, timeline_dir, pospred_model, beampred_model, gainpred_model, inferpred_model, save_path = \
         get_default_sim_params(save_dir, gpu, lbd, cut_ratio)
@@ -38,98 +38,29 @@ if __name__ == "__main__":
     # 给出所需要仿真的方案名和PHO,RA策略
     sim_strategy_dict = collections.OrderedDict()
     
-    # GAP-HO: Generalized Assignment Problem based Handover
-    # sim_strategy_dict["GAP cnsrv adap (PredInfo)"] = {
-    #     "RA": RA_OTR_SINR, 
-    #     "HO": HO_EE_GAP_APX_SINR_conservative_adaptive,
-    #     "save_pilot": True,
-    #     "gainpred_model": gainpred_model,
-    #     "beampred_model": beampred_model,
-    #     "inferpred_model": inferpred_model,
-    #     "NoBF": False,
-    #     "K_BF": 5,
-    # }
+    sim_strategy_dict["Proposed"] = {
+        "RA": RA_OTR_SINR, 
+        "HO": HO_EE_GAP_APX_SINR_conservative_adaptive,
+        "save_pilot": True,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "inferpred_model": inferpred_model,
+        "NoBF": False,
+        "K_BF": 5,
+    }
     
-    # sim_strategy_dict["GAP cnsrv adap (TrueInfo)"] = {
-    #     "RA": RA_OTR_SINR, 
-    #     "HO": HO_EE_GAP_APX_SINR_conservative_adaptive,
-    #     "save_pilot": True,
-    #     "gainpred_model": None,
-    #     "beampred_model": None,
-    #     "inferpred_model": None,
-    #     "NoBF": False,
-    #     "K_BF": 5,
-    # }
+    sim_strategy_dict["Oracle-MC"] = {
+        "RA": RA_OTR_SINR, 
+        "HO": HO_EE_GAP_APX_SINR_conservative_adaptive,
+        "save_pilot": True,
+        "gainpred_model": None,
+        "beampred_model": None,
+        "inferpred_model": None,
+        "NoBF": False,
+        "K_BF": 5,
+    }
     
-    # sim_strategy_dict["GAP (PredInfo)"] = {
-    #     "RA": RA_OTR_SINR, 
-    #     "HO": HO_EE_GAP_APX_with_offload_SINR,
-    #     "save_pilot": True,
-    #     "gainpred_model": gainpred_model,
-    #     "beampred_model": beampred_model,
-    #     "inferpred_model": inferpred_model,
-    #     "NoBF": False,
-    #     "K_BF": 5,
-    # }
-    
-    # sim_strategy_dict["GAP (TrueInfo)"] = {
-    #     "RA": RA_OTR_SINR, 
-    #     "HO": HO_EE_GAP_APX_with_offload_SINR,
-    #     "save_pilot": True,
-    #     "gainpred_model": None,
-    #     "beampred_model": None,
-    #     "inferpred_model": None,
-    #     "NoBF": False,
-    #     "K_BF": 5,
-    # }
-        
-    # # # EG-HO: Energy-Greedy Handover
-    # sim_strategy_dict["EG-HO (PredInfo)"] = {
-    #     "RA": RA_OTR_SINR, 
-    #     "HO": HO_EE_Greedy,
-    #     "save_pilot": True,
-    #     "gainpred_model": gainpred_model,
-    #     "beampred_model": beampred_model,
-    #     "inferpred_model": inferpred_model,
-    #     "NoBF": False,
-    #     "K_BF": 5,
-    # }
-    
-    # sim_strategy_dict["EG-HO (TrueInfo)"] = {
-    #     "RA": RA_OTR_SINR, 
-    #     "HO": HO_EE_Greedy,
-    #     "save_pilot": True,
-    #     "gainpred_model": None,
-    #     "beampred_model": None,
-    #     "inferpred_model": None,
-    #     "NoBF": False,
-    #     "K_BF": 5,
-    # }
-    
-    # # # EGLA-HO: Energy-Greedy and Load-Aware Handover 
-    # sim_strategy_dict["EGLA-HO (PredInfo)"] = {
-    #     "RA": RA_OTR_SINR, 
-    #     "HO": HO_EE_Greedy_offload,
-    #     "save_pilot": True,
-    #     "gainpred_model": gainpred_model,
-    #     "beampred_model": beampred_model,
-    #     "inferpred_model": inferpred_model,
-    #     "NoBF": False,
-    #     "K_BF": 5,
-    # }
-    
-    # sim_strategy_dict["EGLA-HO (TrueInfo)"] = {
-    #     "RA": RA_OTR_SINR, 
-    #     "HO": HO_EE_Greedy_offload,
-    #     "save_pilot": True,
-    #     "gainpred_model": None,
-    #     "beampred_model": None,
-    #     "inferpred_model": None,
-    #     "NoBF": False,
-    #     "K_BF": 5,
-    # }
-    
-    sim_strategy_dict["LowerBound"] = {
+    sim_strategy_dict["Oracle-LP-LB"] = {
         "RA": RA_OTR_SINR, 
         "HO": HO_LowerBound_SINR,
         "save_pilot": True,
@@ -139,29 +70,41 @@ if __name__ == "__main__":
         "NoBF": False,
         "K_BF": 1,
     }
+        
+    # # EGLA-HO: Energy-Greedy and Load-Aware Handover 
+    sim_strategy_dict["w/o GAP-HO"] = {
+        "RA": RA_OTR_SINR, 
+        "HO": HO_EE_Greedy_offload,
+        "save_pilot": True,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "inferpred_model": inferpred_model,
+        "NoBF": False,
+        "K_BF": 5,
+    }
     
-    # # RGLA-HO: Resouce-Greedy and Load-Aware Handover 
-    # sim_strategy_dict["RGLA-HO (PredInfo)"] = {
-    #     "RA": RA_OTR_SINR, 
-    #     "HO": HO_RBE_Greedy_offload,
-    #     "save_pilot": True,
-    #     "gainpred_model": gainpred_model,
-    #     "beampred_model": beampred_model,
-    #     "inferpred_model": inferpred_model,
-    #     "NoBF": False,
-    #     "K_BF": 5,
-    # }
+    sim_strategy_dict["w/o PET-BF"] = {
+        "RA": RA_OTR_SINR, 
+        "HO": HO_EE_GAP_APX_SINR_conservative_adaptive,
+        "save_pilot": False,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "inferpred_model": inferpred_model,
+        "NoBF": False,
+        "K_BF": 5,
+    }
     
-    # sim_strategy_dict["RGLA-HO (TrueInfo)"] = {
-    #     "RA": RA_OTR_SINR, 
-    #     "HO": HO_RBE_Greedy_offload,
-    #     "save_pilot": True,
-    #     "gainpred_model": None,
-    #     "beampred_model": None,
-    #     "inferpred_model": None,
-    #     "NoBF": False,
-    #     "K_BF": 5,
-    # }
+    sim_strategy_dict["w/o OTR-RA"] = {
+        "RA": RA_OTR3_SINR, 
+        "HO": HO_EE_GAP_APX_SINR_conservative_adaptive,
+        "save_pilot": True,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "inferpred_model": inferpred_model,
+        "NoBF": False,
+        "K_BF": 5,
+    }
+    
     
     sim_result_dict = collections.OrderedDict()
     for i, strategy_name in enumerate(sim_strategy_dict.keys()):
@@ -252,15 +195,14 @@ if __name__ == "__main__":
 
         plt.figure()
         for i, strategy_name in enumerate(sim_strategy_dict.keys()):
-            pred_flag = sim_strategy_dict[strategy_name]["gainpred_model"] is not None
             plt.plot(
                 data_rate_list[: data_rate_idx + 1]/1e6,
                 sim_result_dict[strategy_name]["avg_system_power_list"][
                     : data_rate_idx + 1
                 ],
-                linestyle=plt_linestyle_list[0] if pred_flag else plt_linestyle_list[1],
-                color=plt_color_list[i] if pred_flag else plt_color_list[i-1],
-                marker=plt_marker_list[i] if pred_flag else plt_marker_list[i-1],
+                linestyle=plt_linestyle_list[0],
+                color=plt_color_list[i],
+                marker=plt_marker_list[i],
                 label=strategy_name,
             )
         plt.legend()
@@ -274,15 +216,14 @@ if __name__ == "__main__":
         plt.figure()
         avg_car_num = sum([len(timeline_dir[frame]) for frame in timeline_dir.keys()]) / len(timeline_dir.keys())
         for i, strategy_name in enumerate(sim_strategy_dict.keys()):
-            pred_flag = sim_strategy_dict[strategy_name]["gainpred_model"] is not None
             if sim_strategy_dict[strategy_name]["HO"] == HO_LowerBound_SINR:
                 continue
             plt.plot(
                 data_rate_list[: data_rate_idx + 1]/1e6,
                 np.array(sim_result_dict[strategy_name]["HOps_list"][: data_rate_idx + 1]) / avg_car_num,
-                linestyle=plt_linestyle_list[0] if pred_flag else plt_linestyle_list[1],
-                color=plt_color_list[i] if pred_flag else plt_color_list[i-1],
-                marker=plt_marker_list[i] if pred_flag else plt_marker_list[i-1],
+                linestyle=plt_linestyle_list[0],
+                color=plt_color_list[i],
+                marker=plt_marker_list[i],
                 label=strategy_name,
             )
         plt.legend()
@@ -295,13 +236,12 @@ if __name__ == "__main__":
 
         plt.figure()
         for i, strategy_name in enumerate(sim_strategy_dict.keys()):
-            pred_flag = sim_strategy_dict[strategy_name]["gainpred_model"] is not None
             plt.plot(
                 data_rate_list[: data_rate_idx + 1]/1e6,
                 sim_result_dict[strategy_name]["vio_prob_list"][: data_rate_idx + 1],
-                linestyle=plt_linestyle_list[0] if pred_flag else plt_linestyle_list[1],
-                color=plt_color_list[i] if pred_flag else plt_color_list[i-1],
-                marker=plt_marker_list[i] if pred_flag else plt_marker_list[i-1],
+                linestyle=plt_linestyle_list[0],
+                color=plt_color_list[i],
+                marker=plt_marker_list[i],
                 label=strategy_name,
             )
         plt.legend()
@@ -315,15 +255,14 @@ if __name__ == "__main__":
 
         plt.figure()
         for i, strategy_name in enumerate(sim_strategy_dict.keys()):
-            pred_flag = sim_strategy_dict[strategy_name]["gainpred_model"] is not None
             if sim_strategy_dict[strategy_name]["HO"] == HO_LowerBound_SINR:
                 continue
             plt.plot(
                 data_rate_list[: data_rate_idx + 1]/1e6,
                 sim_result_dict[strategy_name]["avg_latency_list"][: data_rate_idx + 1],
-                linestyle=plt_linestyle_list[0] if pred_flag else plt_linestyle_list[1],
-                color=plt_color_list[i] if pred_flag else plt_color_list[i-1],
-                marker=plt_marker_list[i] if pred_flag else plt_marker_list[i-1],
+                linestyle=plt_linestyle_list[0],
+                color=plt_color_list[i],
+                marker=plt_marker_list[i],
                 label=strategy_name,
             )
         plt.legend()
@@ -341,16 +280,15 @@ if __name__ == "__main__":
         for BS_id in range(len(BS_loc_list)+1):
             plt.subplot(len(BS_loc_list)+1, 1, BS_id + 1)
             for i, strategy_name in enumerate(sim_strategy_dict.keys()):
-                pred_flag = sim_strategy_dict[strategy_name]["gainpred_model"] is not None
                 if sim_strategy_dict[strategy_name]["HO"] == HO_LowerBound_SINR:
                     continue
                 avg_carnum_under_BS_list = np.array(sim_result_dict[strategy_name]["carnum_under_BS_list"][: data_rate_idx + 1]).mean(axis=-2)
                 plt.plot(
                     data_rate_list[: data_rate_idx + 1]/1e6,
                     avg_carnum_under_BS_list[:, BS_id],
-                    linestyle=plt_linestyle_list[0] if pred_flag else plt_linestyle_list[1],
-                    color=plt_color_list[i] if pred_flag else plt_color_list[i-1],
-                    marker=plt_marker_list[i] if pred_flag else plt_marker_list[i-1],
+                    linestyle=plt_linestyle_list[0],
+                    color=plt_color_list[i],
+                    marker=plt_marker_list[i],
                     label=f"{strategy_name} BS{BS_id}",
                 )
             plt.legend()

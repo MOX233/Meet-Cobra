@@ -3,19 +3,18 @@ from __future__ import print_function
 
 import os
 import sys
+import time
 import collections
 import ipdb
+import pickle
 import torch
 import copy
+import tqdm
 sys.argv = [""]
 sys.path.append(os.getcwd())
 import numpy as np
 from utils.options import args_parser
-from utils.sumo_utils import (
-    read_trajectoryInfo_carindex,
-    read_trajectoryInfo_carindex_matrix,
-    read_trajectoryInfo_timeindex,
-)
+from utils.NN_utils import BeamPredictionLSTMModel, BestGainPredictionLSTMModel
 from utils.channel_utils import (
     generate_CSI_oneUE_multiBS_onlyiidshd,
     update_CSI,
@@ -39,12 +38,151 @@ from utils.alg_utils import (
     measure_gain_NoBeamforming,
     estimate_num_RB_allocated_perBS,
     RA_Lyapunov,
-    RA_b_SINR,
+    RA_OTR_SINR,
     HO_EE_Greedy,
     HO_LowerBound_SINR,
 )
-from utils.mox_utils import lin2dB, dB2lin
+from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch, lin2dB, dB2lin, generate_1Dsamples
+
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair, generate_dft_codebook
+from utils.mox_utils import setup_seed, get_save_dirs, split_string, save_log, np2torch, lin2dB, dB2lin, generate_1Dsamples
+from utils.data_utils import preprocess_input_np, generate_complex_gaussian_vector
+from utils.beam_utils import generate_dft_codebook, beamPairId_to_beamIdPair
+
+
+def get_default_sim_params(save_dir, gpu=0, lbd=1, cut_ratio=1):
+    # Urban Macro LoS: PL = 28 + 22*log10(d)+20*log10(f)
+    # Urban Micro LoS: PL = 32.4 + 21*log10(d)+20*log10(f)
+    # data_rate_list = np.logspace(7, 8, 10)
+    # data_rate_list = np.linspace(10e6, 200e6, 20)
+    # data_rate_list = np.linspace(30e6, 50e6, 11)
+    N_bs = 4
+    freq = 28e9
+    DS_start, DS_end = 800, 950 # test on a different scenario
+    preprocess_mode = 0
+    pos_in_data = preprocess_mode==2
+    look_ahead_len = 10
+    M_t = 32
+    M_r = 8
+    n_pilot = 8
+    P_t = 1e-1
+    P_noise = 1e-14 # -174dBm/Hz * 1.8MHz = 7.165929069962946e-15 W
+    sample_interval = int(M_t/n_pilot)
+    device = f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu'
+    print('device: ',device)
+    args = args_parser()
+    args.from_sionna = True
+    args.M_t = M_t
+    args.M_r = M_r
+    args.slots_per_frame = 100
+    args.frames_per_sample = 10
+    args.num_RB_macro = 133
+    args.num_RB_micro = 66
+    args.RB_intervel_macro = 0.36 * 1e6
+    args.RB_intervel_micro = 1.44 * 1e6
+    args.p_macro = 1
+    args.p_micro = 0.2
+    args.NF_macro_dB = 5
+    args.NF_micro_dB = 10
+    # args.data_rate = 10 * 1e6
+    args.random_factor_range4data_rate = 0.
+    args.lat_slot_ub = 20
+    args.eta = 1e6
+    args.device = device
+    args.K = 5 # 每次beam tracking 时选K个最有可能的波束对进行测试
+    args.Lambda = lbd # 车辆到达率
+    args.note = ""
+    args.trajectoryInfo_path = f'./sumo_data/trajectory_Lbd{args.Lambda:.2f}.csv'
+    # 对测试数据集进行截断
+    cut_end = DS_start + cut_ratio*(DS_end-DS_start)
+    save_path = os.path.join(save_dir, f"lbd{args.Lambda:.2f}_{DS_start}_{cut_end}_"
+        + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + (f"_{args.note}" if args.note != "" else ""))
+    os.makedirs(save_path, exist_ok=True)
+    os.makedirs('./sionna_result', exist_ok=True)
+    os.makedirs('./data4sim', exist_ok=True)
+    sionna_result_filepath = f'./sionna_result/trajectoryInfo_lbd{args.Lambda:.2f}_{DS_start}_{DS_end}_3Dbeam_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}.pkl'
+    data4sim_filepath = f'./data4sim/lbd{args.Lambda:.2f}_{DS_start}_{DS_end}_tx(1,{M_t})_rx(1,{M_r})_freq{freq:.1e}_Np{n_pilot}_mode{preprocess_mode}_lookahead{look_ahead_len}.pkl'
+    
+    setup_seed(args.seed)
+    
+    if os.path.exists(data4sim_filepath):
+        with open(data4sim_filepath, 'rb') as f:
+            timeline_dir = pickle.load(f)
+    else:
+        with open(sionna_result_filepath, 'rb') as f:
+            timeline_dir = pickle.load(f)
+        DFT_matrix_tx = generate_dft_codebook(M_t)
+        DFT_matrix_rx = generate_dft_codebook(M_r)
+        frame_prev = None
+        for frame in timeline_dir.keys():
+            print(f'prepare simulation data: frame[{frame-DS_start:.1f}/{DS_end-DS_start}]',)
+            for veh in timeline_dir[frame].keys():
+                veh_h = timeline_dir[frame][veh]['h']
+                best_beam_pair_index = np.abs(np.matmul(np.matmul(veh_h, DFT_matrix_tx).T.conjugate(),DFT_matrix_rx).transpose([1,0,2]).reshape(N_bs,-1)).argmax(axis=-1)
+                best_beam_index_pair = beamPairId_to_beamIdPair(best_beam_pair_index,M_t,M_r)
+                timeline_dir[frame][veh]['best_beam_pair_idx'] = best_beam_pair_index
+                timeline_dir[frame][veh]['best_beam_idx_pair'] = best_beam_index_pair
+                g_opt = np.zeros((N_bs)).astype(np.float32)
+                for bs in range(N_bs):
+                    g_opt[bs] = 1/np.sqrt(M_r*M_t)*np.abs(np.matmul(np.matmul(veh_h[:,bs,:], DFT_matrix_tx[:,best_beam_index_pair[bs,0]]).T.conjugate(),DFT_matrix_rx[:,best_beam_index_pair[bs,1]]))
+                    g_opt[bs] = 2 * lin2dB(g_opt[bs])
+                timeline_dir[frame][veh]['g_opt_beam'] = g_opt
+                timeline_dir[frame][veh]['g_avg'] = 2 * lin2dB(np.abs(veh_h).mean(axis=0).mean(axis=-1))
+                veh_CSI = np.sqrt(P_t)*np.matmul(veh_h, DFT_matrix_tx)[:,:,:n_pilot*sample_interval:sample_interval].sum(axis=-2).reshape(-1)
+                n = generate_complex_gaussian_vector(veh_CSI.shape, scale=np.sqrt(P_noise), mean=0.0)
+                veh_CSI = (veh_CSI + n).astype(np.complex64)
+                # timeline_dir[frame][veh]['CSI'] = veh_CSI
+                timeline_dir[frame][veh]['CSI_preprocessed'] = preprocess_input_np(veh_CSI)
+                if preprocess_mode == 2:
+                    veh_pos = timeline_dir[frame][veh]['pos']
+                    timeline_dir[frame][veh]['CSI_preprocessed'] = \
+                        np.concatenate((timeline_dir[frame][veh]['CSI_preprocessed'], veh_pos/100), axis=-1)
+                if frame_prev is not None and veh in timeline_dir[frame_prev].keys():
+                    timeline_dir[frame][veh]['CSI_preprocessed'] = \
+                        np.concatenate((timeline_dir[frame_prev][veh]['CSI_preprocessed'], 
+                                        timeline_dir[frame][veh]['CSI_preprocessed'].reshape(1, -1)),
+                                        axis=0)[-look_ahead_len:,...]
+                else:
+                    timeline_dir[frame][veh]['CSI_preprocessed'] = timeline_dir[frame][veh]['CSI_preprocessed'].reshape(1, -1)
+            frame_prev = frame
+        with open(data4sim_filepath, 'wb') as f:
+            pickle.dump(timeline_dir,f)
+    
+    _timeline_dir = collections.OrderedDict()
+    for frame,v in timeline_dir.items():
+        if frame>=cut_end:
+            break
+        _timeline_dir[frame] = v
+    timeline_dir = _timeline_dir
+           
+    feature_input_dim = 2 * M_r * n_pilot + 2 * int(preprocess_mode == 2)
+    num_bs = N_bs
+    num_beampair = M_r * M_t
+
+    beampred_model = BeamPredictionLSTMModel(feature_input_dim, num_bs, num_beampair).to(device)
+    beampred_model.load_state_dict(torch.load('./NN_result/200_800_3Dbeam_tx(1,32)_rx(1,8)_freq2.8e+10_Np8_mode0_lookahead10/models/beampred_lstm_valAcc89.73%_2025-09-19_21:48:48.pth'))
+    beampred_model.eval()
+    gainpred_model = BestGainPredictionLSTMModel(feature_input_dim, num_bs).to(device)
+    gainpred_model.load_state_dict(torch.load('./NN_result/200_800_3Dbeam_tx(1,32)_rx(1,8)_freq2.8e+10_Np8_mode0_lookahead10/models/gainpred_lstm_valMae4.07dB_2025-09-25_02:04:34.pth'))
+    gainpred_model.eval()
+    inferpred_model = BestGainPredictionLSTMModel(feature_input_dim, num_bs).to(device)
+    inferpred_model.load_state_dict(torch.load('./NN_result/200_800_3Dbeam_tx(1,32)_rx(1,8)_freq2.8e+10_Np8_mode0_lookahead10/models/inferpred_lstm_valMae3.20dB_2025-11-05_01:24:36.pth'))
+    inferpred_model.eval()
+    pospred_model = None
+        
+    # 给定各个基站的位置
+    # BS0_loc = np.array([0, 0])
+    BS1_loc = np.array([300, 300])
+    BS2_loc = np.array([-300, 300])
+    BS3_loc = np.array([300, -300])
+    BS4_loc = np.array([-300, -300])
+    # BS_loc_list = [BS0_loc, BS1_loc, BS2_loc, BS3_loc, BS4_loc]
+    BS_loc_list = [BS1_loc, BS2_loc, BS3_loc, BS4_loc]
+    # BS_loc_dict = collections.OrderedDict()
+    # for i, loc in enumerate(BS_loc_list):
+    #     BS_loc_dict[i] = loc
+    return args, BS_loc_list, timeline_dir, pospred_model, beampred_model, gainpred_model, inferpred_model, save_path
+
 
 def run_sim_withUMa(
     args,  # 存储仿真参数设置的args对象
@@ -54,7 +192,7 @@ def run_sim_withUMa(
     beampred_model,
     gainpred_model,
     inferpred_model,
-    RA_func=RA_b_SINR,  # 资源分配算法
+    RA_func=RA_OTR_SINR,  # 资源分配算法
     HO_func=HO_EE_Greedy,  # 越区切换算法
     prt=True,  # 是否在仿真运行时实时打印相关信息
     save_pilot=False, # 是否执行pilot-saved的测量方法
@@ -148,7 +286,10 @@ def run_sim_withUMa(
         measured_g_record_dict_prev[veh][:,0] = -1 # 车辆与各基站上一次连接的经过时间(帧数)
         measured_g_record_dict_prev[veh][:,1] = -180 # 车辆与各基站上一次连接时的信道增益(dB)
         
-    for x, frame_cur in enumerate(frame_list[1:]):
+    sim_start_time = time.time()
+    # 用 tqdm 进行进度条显示
+    for x, frame_cur in tqdm.tqdm(enumerate(frame_list[1:]), total=num_frame, desc='Simulating'):
+    #for x, frame_cur in tqdm(enumerate(frame_list[1:])):
         veh_set_cur = set(timeline_dir[frame_cur].keys())
         # print("frame: ", frame_cur, " veh num: ", len(veh_set_cur)) #debug
         veh_set_in = veh_set_cur.difference(veh_set_prev)
@@ -253,10 +394,12 @@ def run_sim_withUMa(
                                                                      veh_data_rate_dict, infer_g_dict=pred_infer_g_dict if inferpred_model is not None else g_NoBF_dict)
 
         # PHO决策
+        vio_prob_history = violation_prob_record[:x]
         HO_cmd_cur4next, pred_num_RB_allocated_perBS = HO_func(
             args, veh_set_cur, Q_dict_cur, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array,
             infer_g_dict=pred_infer_g_dict if inferpred_model is not None else g_NoBF_dict,
             num_pilot_dict=num_pilot_dict,
+            vio_prob_history=vio_prob_history,
         )
         
         # 模拟车辆业务数据到达过程 in a frame
@@ -368,16 +511,15 @@ def run_sim_withUMa(
         judgement_cnt = (
             len(veh_set_cur) * args.slots_per_frame
         )  # 判定队列是否超上限的次数
-        if prt:
-            print(
-                "violation_cnt",
-                violation_cnt,
-                "judgement_cnt",
-                judgement_cnt,
-                "violation_cnt/judgement_cnt",
-                violation_cnt / judgement_cnt,
-            )
-            # print('Q_dict_cur/[veh/]',Q_dict_cur[veh])
+        # if prt:
+        #     print(
+        #         "violation_cnt",
+        #         violation_cnt,
+        #         "judgement_cnt",
+        #         judgement_cnt,
+        #         "violation_cnt/judgement_cnt",
+        #         violation_cnt / judgement_cnt,
+        #     )
 
         energy_record[x] = energy4frame
         HO_time_record[x] = HO_cnt4frame
@@ -387,15 +529,14 @@ def run_sim_withUMa(
             / judgement_cnt
         )
         HO_cmd_record[x] = HO_cmd_prev4cur
-        if prt:
-            print("\n\nframe: ", x, frame_cur)
-            print("BS_association_num: ", BS_association_num)
-            print("energy_record: ", energy_record[x])
-            print("HO_time_record: ", HO_time_record[x])
-            print("violation_prob_record: ", violation_prob_record[x])
-            print("avg_queuelen_record: ", avg_queuelen_record[x])
-            print("pilot_record: ", pilot_record[x])
-            # print('HO_cmd_record: ',HO_cmd_record[x])
+        # if prt:
+        #     print("\n\nframe: ", x, frame_cur)
+        #     print("BS_association_num: ", BS_association_num)
+        #     print("energy_record: ", energy_record[x])
+        #     print("HO_time_record: ", HO_time_record[x])
+        #     print("violation_prob_record: ", violation_prob_record[x])
+        #     print("avg_queuelen_record: ", avg_queuelen_record[x])
+        #     print("pilot_record: ", pilot_record[x])
 
         # 记录当前帧各状态，为下一帧做准备
         frame_prev = frame_cur
@@ -405,7 +546,23 @@ def run_sim_withUMa(
         CSI_dict_prev = CSI_dict_cur
         measured_g_record_dict_prev = measured_g_record_dict_cur
         HO_cmd_prev4cur = HO_cmd_cur4next
-        # End
+        
+        # 使用tqdm库，通过进度条的形式展示仿真进度，并以时分秒的格式显示已消耗的时间和预计等待的时间
+        if prt:
+            progress = (x + 1) / num_frame * 100
+            bar_length = 50
+            filled_length = int(bar_length * progress // 100)
+            bar = '█' * filled_length + '-' * (bar_length - filled_length)
+            if x + 1 == num_frame:
+                print()
+            elapsed_time = time.time() - sim_start_time
+            estimated_total_time = elapsed_time / (x + 1) * num_frame
+            remaining_time = estimated_total_time - elapsed_time
+            elapsed_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+            remaining_str = time.strftime("%H:%M:%S", time.gmtime(remaining_time))
+            print(f"\rProgress: |{bar}| {progress:.2f}% Elapsed Time: {elapsed_str} Remaining Time: {remaining_str}", end='')
+    if prt:
+        print("")
     
     return (
         energy_record,  # 存储各帧的系统能耗（单位：J）
@@ -426,7 +583,7 @@ def run_sim_withUMa_analyzed_lowerbound(
     beampred_model,
     gainpred_model,
     inferpred_model,
-    RA_func=RA_b_SINR,  # 资源分配算法
+    RA_func=RA_OTR_SINR,  # 资源分配算法
     HO_func=HO_LowerBound_SINR,  # 越区切换算法
     prt=True,  # 是否在仿真运行时实时打印相关信息
     No_BF=False, # 是否不使用Beamforming
@@ -480,7 +637,8 @@ def run_sim_withUMa_analyzed_lowerbound(
     for veh in veh_set_prev:
         CSI_dict_prev[veh] = timeline_dir[frame_prev][veh]["CSI_preprocessed"]
         
-    for x, frame_cur in enumerate(frame_list[1:]):
+    # 用 tqdm 进行进度条显示
+    for x, frame_cur in tqdm.tqdm(enumerate(frame_list[1:]), total=num_frame, desc='Simulating'):
         veh_set_cur = set(timeline_dir[frame_cur].keys())
         # print("frame: ", frame_cur, " veh num: ", len(veh_set_cur)) #debug
         veh_set_in = veh_set_cur.difference(veh_set_prev)
@@ -490,7 +648,6 @@ def run_sim_withUMa_analyzed_lowerbound(
         for veh in veh_set_cur:
             CSI_dict_cur[veh] = timeline_dir[frame_cur][veh]["CSI_preprocessed"].astype(np.float32)
 
-
         # 基于历史信道状态信息, 通过AI/ML算法预测各车辆在下一PHO周期的期望位置
         pred_loc_dict = collections.OrderedDict()
         for veh in veh_set_cur:
@@ -498,7 +655,6 @@ def run_sim_withUMa_analyzed_lowerbound(
                 pred_loc_dict[veh] = timeline_dir[frame_cur][veh]["pos"]
             else:
                 pred_loc_dict[veh] = pospred_model.predict(CSI_dict_cur[veh],device)
-                
         # 基于历史信道状态信息, 通过AI/ML算法预测各车辆在下一PHO周期与各MicroBS间的最优波束增益     
         pred_gain_opt_beam_dict = collections.OrderedDict()
         for veh in veh_set_cur:
@@ -544,19 +700,21 @@ def run_sim_withUMa_analyzed_lowerbound(
             g_NoBF_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], g_microBS_NoBF_dict[veh]), axis=0)
         
         # 基于积压队列、预测位置、BS位置等信息进行PHO决策
+        vio_prob_history = violation_prob_record[:x]
         HO_cmd, energy4frame, pred_num_RB_allocated_perBS = HO_func(
             args, veh_set_cur, None, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array,
             infer_g_dict=pred_infer_g_dict if inferpred_model is not None else g_NoBF_dict,
             num_pilot_dict=num_pilot_dict,
+            vio_prob_history=vio_prob_history,
         )
         violation_prob_record4frame = 1 if HO_cmd is None else 0
 
         energy_record[x] = energy4frame
         violation_prob_record[x] = violation_prob_record4frame
-        if prt:
-            print("\n\nframe: ", x, frame_cur)
-            print("energy_record: ", energy_record[x])
-            print("violation_prob_record: ", violation_prob_record[x])
+        # if prt:
+        #     print("\n\nframe: ", x, frame_cur)
+        #     print("energy_record: ", energy_record[x])
+        #     print("violation_prob_record: ", violation_prob_record[x])
 
         # 记录当前帧各状态，为下一帧做准备
         frame_prev = frame_cur

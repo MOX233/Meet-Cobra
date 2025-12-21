@@ -333,6 +333,16 @@ def get_prepared_dataset(preprocess_mode, DS_start, DS_end, M_t, M_r, freq, n_pi
     return prepared_dataset_filename, data_np, veh_h_np, veh_pos_np, best_beam_pair_index_np
 
 
+def preprocess_input_np(x, params_norm=[20,7], EPS=1e-9):
+    assert (x.dtype == np.complex64) or (x.dtype == np.complex128)
+    # 将复数类型的信道增益转为实数类型的幅值(dB+normalization)与相位
+    amplitude = np.abs(x)
+    dB = 20*np.log10(amplitude+EPS)
+    phase = np.angle(x)
+    preprocessed = np.concatenate(((dB/params_norm[0]+params_norm[1], phase)),axis=-1)
+    return preprocessed
+
+
 def augment_dataset(data_np, label_np, look_ahead_len, augment_dataset_ratio=2.0):
     """数据增强函数
     Args:
@@ -380,6 +390,7 @@ def augment_dataset(data_np, label_np, look_ahead_len, augment_dataset_ratio=2.0
     lengths = torch.tensor(lengths, dtype=torch.int64)
     
     return data_torch, label_torch, lengths
+
 
 def random_truncate_tensor_sequence(inputs, lengths):
     # inputs: [batch_size, max_seq_len, ...]
