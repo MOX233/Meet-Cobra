@@ -25,10 +25,10 @@ from utils.plot_utils import plt_color_list, plt_linestyle_list, plt_marker_list
 
 
 if __name__ == "__main__":
-    gpu = 1
+    gpu = 2
     lbd = 1
     cut_ratio = 0.01
-    # cut_ratio = 1/3
+    # cut_ratio = 1/5
     data_rate_list = np.linspace(1e6, 35e6, 18)[:]
     save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_paper_exp1")
     
@@ -41,6 +41,7 @@ if __name__ == "__main__":
     sim_strategy_dict["Proposed"] = {
         "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR_conservative_adaptive,
+        "BF": "topKbeam_savePilot",
         "save_pilot": True,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
@@ -52,6 +53,7 @@ if __name__ == "__main__":
     sim_strategy_dict["Oracle-MC"] = {
         "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR_conservative_adaptive,
+        "BF": "topKbeam_savePilot",
         "save_pilot": True,
         "gainpred_model": None,
         "beampred_model": None,
@@ -63,6 +65,7 @@ if __name__ == "__main__":
     sim_strategy_dict["Oracle-LP-LB"] = {
         "RA": RA_OTR_SINR, 
         "HO": HO_LowerBound_SINR,
+        "BF": "topKbeam_savePilot",
         "save_pilot": True,
         "gainpred_model": None,
         "beampred_model": None,
@@ -70,11 +73,26 @@ if __name__ == "__main__":
         "NoBF": False,
         "K_BF": 1,
     }
+    
+    # Reactive-OBRA
+    sim_strategy_dict["Reactive-OBRA"] = {
+        "RA": RA_OTR3_SINR, 
+        "HO": HO_EE_Greedy_offload,
+        "BF": "topKbeam_NoPred",
+        "save_pilot": False,
+        "gainpred_model": gainpred_model,
+        "beampred_model": beampred_model,
+        "inferpred_model": inferpred_model,
+        "NoBF": False,
+        "K_BF": 5,
+    }
+    
         
     # # EGLA-HO: Energy-Greedy and Load-Aware Handover 
     sim_strategy_dict["w/o GAP-HO"] = {
         "RA": RA_OTR_SINR, 
         "HO": HO_EE_Greedy_offload,
+        "BF": "topKbeam_savePilot",
         "save_pilot": True,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
@@ -86,6 +104,7 @@ if __name__ == "__main__":
     sim_strategy_dict["w/o PET-BF"] = {
         "RA": RA_OTR_SINR, 
         "HO": HO_EE_GAP_APX_SINR_conservative_adaptive,
+        "BF": "topKbeam_NoPred",
         "save_pilot": False,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
@@ -97,6 +116,7 @@ if __name__ == "__main__":
     sim_strategy_dict["w/o OTR-RA"] = {
         "RA": RA_OTR3_SINR, 
         "HO": HO_EE_GAP_APX_SINR_conservative_adaptive,
+        "BF": "topKbeam_savePilot",
         "save_pilot": True,
         "gainpred_model": gainpred_model,
         "beampred_model": beampred_model,
@@ -116,6 +136,7 @@ if __name__ == "__main__":
             "avg_queue_len_list": [],
             "avg_latency_list": [],
             "avg_pilot_list": [],
+            "queuelen_4eachVeh_record_list": [],
         }
 
     # 进行仿真实验
@@ -157,6 +178,7 @@ if __name__ == "__main__":
                     avg_queuelen_record,
                     pilot_record,
                     RB_allocated_record,
+                    queuelen_4eachVeh_record,
                 ) = run_sim_withUMa(
                     args, BS_loc_list, timeline_dir, 
                     pospred_model, 
@@ -165,6 +187,7 @@ if __name__ == "__main__":
                     inferpred_model=sim_strategy_dict[strategy_name]["inferpred_model"],
                     RA_func=sim_strategy_dict[strategy_name]["RA"], 
                     HO_func=sim_strategy_dict[strategy_name]["HO"],
+                    BF_func=sim_strategy_dict[strategy_name]["BF"],
                     prt=False,
                     save_pilot=sim_strategy_dict[strategy_name]["save_pilot"],
                     No_BF=sim_strategy_dict[strategy_name]["NoBF"],
@@ -190,6 +213,9 @@ if __name__ == "__main__":
                 sim_result_dict[strategy_name]["avg_latency_list"].append(avg_latency)
                 sim_result_dict[strategy_name]["avg_pilot_list"].append(avg_pilot)
                 sim_result_dict[strategy_name]["carnum_under_BS_list"].append(carnum_under_BS)
+                sim_result_dict[strategy_name]["queuelen_4eachVeh_record_list"].append(queuelen_4eachVeh_record)
+        
+        # import ipdb;ipdb.set_trace()
            
         print("Elapsed time: ", time.time() - _time)
 
@@ -273,6 +299,73 @@ if __name__ == "__main__":
         plt.savefig(os.path.join(save_path, "Average latency.png"))
         plt.savefig(os.path.join(save_path, "Average latency.pdf"))
         plt.close()
+        
+        # plot the avg latency of the 90th percentile users using sim_result_dict[strategy_name]["queuelen_4eachVeh_record_list"]
+        plt.figure()
+        for i, strategy_name in enumerate(sim_strategy_dict.keys()):
+            if sim_strategy_dict[strategy_name]["HO"] == HO_LowerBound_SINR:
+                continue
+            avg_latency_90th_list = []
+            for queuelen_4eachVeh_record in sim_result_dict[strategy_name]["queuelen_4eachVeh_record_list"][: data_rate_idx + 1]:
+                all_veh_queuelens = []
+                for frame_record in queuelen_4eachVeh_record.values():
+                    all_veh_queuelens.extend(frame_record.values())
+                all_veh_queuelens = np.array(all_veh_queuelens)
+                queuelen_90th = np.percentile(all_veh_queuelens, 90)
+                latency_90th = queuelen_90th / args.data_rate * 1000
+                avg_latency_90th_list.append(latency_90th)
+            plt.plot(
+                data_rate_list[: data_rate_idx + 1]/1e6,
+                avg_latency_90th_list,
+                linestyle=plt_linestyle_list[0],
+                color=plt_color_list[i],
+                marker=plt_marker_list[i],
+                label=strategy_name,
+            )
+        plt.legend()
+        plt.xlabel("data rate (Mbps)")
+        # plt.xscale("log")
+        plt.yscale("log")
+        plt.ylabel("Average latency of 90th percentile users (ms)")
+        plt.savefig(os.path.join(save_path, "Average latency of 90th percentile users.png"))
+        plt.savefig(os.path.join(save_path, "Average latency of 90th percentile users.pdf"))
+        plt.close() 
+        
+        
+        # plot the QoS violation probability of the 90th percentile users using sim_result_dict[strategy_name]["queuelen_4eachVeh_record_list"]
+        plt.figure()
+        for i, strategy_name in enumerate(sim_strategy_dict.keys()):
+            if sim_strategy_dict[strategy_name]["HO"] == HO_LowerBound_SINR:
+                continue
+            vio_prob_90th_list = []
+            for data_rate, queuelen_4eachVeh_record in zip(data_rate_list[: data_rate_idx + 1],sim_result_dict[strategy_name]["queuelen_4eachVeh_record_list"][: data_rate_idx + 1]):
+                all_veh_queuelens = []
+                for frame_record in queuelen_4eachVeh_record.values():
+                    all_veh_queuelens.extend(frame_record.values())
+                all_veh_queuelens = np.array(all_veh_queuelens)
+                latency_90th = np.percentile(all_veh_queuelens, 90) / args.data_rate
+                
+                latency_threshold = args.lat_slot_ub * args.slot_len
+                
+                vio_prob_90th = (latency_90th > latency_threshold) * 100
+                vio_prob_90th_list.append(vio_prob_90th)
+            plt.plot(
+                data_rate_list[: data_rate_idx + 1]/1e6,
+                vio_prob_90th_list,
+                linestyle=plt_linestyle_list[0],
+                color=plt_color_list[i],
+                marker=plt_marker_list[i],
+                label=strategy_name,
+            )
+        plt.legend()
+        plt.xlabel("data rate (Mbps)")
+        # plt.xscale("log")
+        plt.ylim(0, 100)
+        plt.ylabel("QoS violation probability of 90th percentile users (%)")
+        plt.savefig(os.path.join(save_path, "QoS violation probability of 90th percentile users.png"))
+        plt.savefig(os.path.join(save_path, "QoS violation probability of 90th percentile users.pdf"))
+        plt.close() 
+                
         
         plt.figure(figsize=(6, 4*len(BS_loc_list)))
         plt.xlabel("data rate (Mbps)")

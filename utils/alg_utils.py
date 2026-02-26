@@ -78,6 +78,73 @@ def update_measured_g_record_dict(g_dict, measured_g_record_dict_prev, veh_set_c
                     measured_g_record_dict_cur[veh][BS_id,0] += 1 # 车辆与非连接基站的经过时间(帧数)加1
     return measured_g_record_dict_cur
 
+def measure_gain(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairId_dict, pred_gain_opt_beam_dict, DFT_matrix_tx, DFT_matrix_rx, BF_func, bpID_dict_lastslot, db_err_th=5, db_lb=-100, rician_fading=False, K_BF=None):
+    K_BF = K_BF if K_BF is not None else args.K
+    num_pilot_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming所用的导频数量
+    g_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益
+    g_NoBF_dict = collections.OrderedDict() # 统计各车与各基站间不进行beamforming的信道增益
+    bpID_dict = collections.OrderedDict() # 统计各车与各基站的波束对ID
+    for v, veh in enumerate(veh_set):
+        num_pilot_dict[veh] = np.zeros((len(BS_loc_list)))
+        g_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
+        g_NoBF_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
+        bpID_dict[veh] = np.zeros((len(BS_loc_list))) # ()  size = (num_bs)
+        if rician_fading:
+            rician_factor = rician_channel_gain(args.K_rician, size=timeline_dir[frame][veh]['h'].shape)
+            # rician_factor[0] = 0  # 宏基站不受Rician衰落影响
+            veh_h = timeline_dir[frame][veh]['h'] * np.sqrt(rician_factor)  # (M_r, N_bs, M_t)
+        else:
+            veh_h = timeline_dir[frame][veh]['h'] # (M_r, N_bs, M_t)
+        for BS_id in range(len(BS_loc_list)):
+            g_NoBF_dict[veh][BS_id] = 2 * lin2dB(np.abs(veh_h[:,BS_id,:]).max())
+        ### TODO
+        
+        if BF_func=='topKbeam':
+            candidate_beam_index_pair = beamPairId_to_beamIdPair(pred_beamPairId_dict[veh], M_t=args.M_t, M_r=args.M_r) # (N_bs,args.K,2)
+            for BS_id in range(len(BS_loc_list)):
+                g_bf = 2 * lin2dB(np.zeros((K_BF)))
+                num_pilot_dict[veh][BS_id] = K_BF
+                for k in range(K_BF):
+                    g_bf[k] = 1/np.sqrt(args.M_r*args.M_t) * \
+                        np.abs(np.matmul(np.matmul(veh_h[:,BS_id,:], DFT_matrix_tx[:,candidate_beam_index_pair[BS_id,k,0]]).T.conjugate(),DFT_matrix_rx[:,candidate_beam_index_pair[BS_id,k,1]]))
+                    g_bf[k] = 2 * lin2dB(g_bf[k])
+                g_dict[veh][BS_id] = g_bf.max()
+                bpID_dict[veh][BS_id] = pred_beamPairId_dict[veh][BS_id, g_bf.argmax()]
+        elif BF_func=='topKbeam_NoPred':
+            # randomly select K beams
+            candidate_beamPairId = np.random.randint(0, args.M_t*args.M_r, size=(len(BS_loc_list),K_BF))
+            if veh in bpID_dict_lastslot:
+                candidate_beamPairId[:,0] = bpID_dict_lastslot[veh]  # 保留上次帧的最佳波束对ID
+            candidate_beam_index_pair = beamPairId_to_beamIdPair(candidate_beamPairId, M_t=args.M_t, M_r=args.M_r) # (N_bs,args.K,2)
+            for BS_id in range(len(BS_loc_list)):
+                g_bf = 2 * lin2dB(np.zeros((K_BF)))
+                num_pilot_dict[veh][BS_id] = K_BF
+                for k in range(K_BF):
+                    g_bf[k] = 1/np.sqrt(args.M_r*args.M_t) * \
+                        np.abs(np.matmul(np.matmul(veh_h[:,BS_id,:], DFT_matrix_tx[:,candidate_beam_index_pair[BS_id,k,0]]).T.conjugate(),DFT_matrix_rx[:,candidate_beam_index_pair[BS_id,k,1]]))
+                    g_bf[k] = 2 * lin2dB(g_bf[k])
+                g_dict[veh][BS_id] = g_bf.max()
+                bpID_dict[veh][BS_id] = pred_beamPairId_dict[veh][BS_id, g_bf.argmax()]
+        elif BF_func=='topKbeam_savePilot':
+            candidate_beam_index_pair = beamPairId_to_beamIdPair(pred_beamPairId_dict[veh], M_t=args.M_t, M_r=args.M_r) # (N_bs,args.K,2)
+            for BS_id in range(len(BS_loc_list)):
+                g_bf = 2 * lin2dB(np.zeros((K_BF)))
+                for k in range(K_BF):
+                    g_bf[k] = 1/np.sqrt(args.M_r*args.M_t) * \
+                        np.abs(np.matmul(np.matmul(veh_h[:,BS_id,:], DFT_matrix_tx[:,candidate_beam_index_pair[BS_id,k,0]]).T.conjugate(),DFT_matrix_rx[:,candidate_beam_index_pair[BS_id,k,1]]))
+                    g_bf[k] = 2 * lin2dB(g_bf[k])
+                    num_pilot_dict[veh][BS_id] += 1
+                    if (g_bf[k] > pred_gain_opt_beam_dict[veh][BS_id] - db_err_th) and (g_bf[k] > db_lb):
+                        break
+                g_dict[veh][BS_id] = g_bf.max()
+                bpID_dict[veh][BS_id] = pred_beamPairId_dict[veh][BS_id, g_bf.argmax()]
+        elif BF_func=='NoBeamforming':
+            for BS_id in range(len(BS_loc_list)):
+                num_pilot_dict[veh][BS_id] = 0
+                g_dict[veh][BS_id] = g_NoBF_dict[veh][BS_id]
+    return g_dict, g_NoBF_dict, bpID_dict, num_pilot_dict
+
+
 def measure_gain_for_topKbeam(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairId_dict, DFT_matrix_tx, DFT_matrix_rx, rician_fading=False, K_BF=None):
     K_BF = K_BF if K_BF is not None else args.K
     num_pilot_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming所用的导频数量
@@ -97,7 +164,7 @@ def measure_gain_for_topKbeam(args, frame, veh_set, timeline_dir, BS_loc_list, p
             veh_h = timeline_dir[frame][veh]['h'] # (M_r, N_bs, M_t)
         best_beam_index_pair = beamPairId_to_beamIdPair(pred_beamPairId_dict[veh], M_t=args.M_t, M_r=args.M_r) # (N_bs,args.K,2)
         for BS_id in range(len(BS_loc_list)):
-            g_bf = np.zeros((K_BF))
+            g_bf = 2 * lin2dB(np.zeros((K_BF)))
             for k in range(K_BF):
                 g_bf[k] = 1/np.sqrt(args.M_r*args.M_t) * \
                     np.abs(np.matmul(np.matmul(veh_h[:,BS_id,:], DFT_matrix_tx[:,best_beam_index_pair[BS_id,k,0]]).T.conjugate(),DFT_matrix_rx[:,best_beam_index_pair[BS_id,k,1]]))
@@ -107,6 +174,7 @@ def measure_gain_for_topKbeam(args, frame, veh_set, timeline_dir, BS_loc_list, p
             g_NoBF_dict[veh][BS_id] = 2 * lin2dB(np.abs(veh_h[:,BS_id,:]).max())
             bpID_dict[veh][BS_id] = pred_beamPairId_dict[veh][BS_id, g_bf.argmax()]
     return g_dict, g_NoBF_dict, bpID_dict, num_pilot_dict
+
 
 def measure_gain_for_topKbeam_savePilot(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairId_dict, pred_gain_opt_beam_dict, DFT_matrix_tx, DFT_matrix_rx, db_err_th=5, db_lb=-100, rician_fading=False, K_BF=None):
     K_BF = K_BF if K_BF is not None else args.K
@@ -682,12 +750,12 @@ def HO_EE_Greedy_offload(args, veh_set_cur, backlog_queue_dict, veh_data_rate_di
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     RB_num_table = np.zeros(len(BS_loc_array))
@@ -744,12 +812,12 @@ def HO_RBE_Greedy_offload(args, veh_set_cur, backlog_queue_dict, veh_data_rate_d
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     RB_num_table = np.zeros(len(BS_loc_array))
@@ -806,13 +874,13 @@ def HO_EE_GAP_APX_SINR(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     
@@ -852,12 +920,12 @@ def HO_EE_GAP_APX_SINR(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     
@@ -915,13 +983,13 @@ def HO_EE_GAP_APX_SINR_conservative(args, veh_set_cur, backlog_queue_dict, veh_d
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     
@@ -962,12 +1030,12 @@ def HO_EE_GAP_APX_SINR_conservative(args, veh_set_cur, backlog_queue_dict, veh_d
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     
@@ -1036,13 +1104,13 @@ def HO_EE_GAP_APX_SINR_conservative_adaptive(args, veh_set_cur, backlog_queue_di
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     
@@ -1083,12 +1151,12 @@ def HO_EE_GAP_APX_SINR_conservative_adaptive(args, veh_set_cur, backlog_queue_di
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     
@@ -1127,12 +1195,12 @@ def HO_EE_GAP_APX_with_offload(args, veh_set_cur, backlog_queue_dict, veh_data_r
         NF_dB = args.NF_micro_dB if BS_id > 0 else args.NF_macro_dB
         pred_G_array = dB2lin(pred_G_dB[:, BS_id])
         lbd_array = np.array([veh_data_rate_dict[veh] for veh in veh_set_cur])
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB)))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB)))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     RB_num_table = np.zeros(len(BS_loc_array))
@@ -1187,12 +1255,12 @@ def HO_EE_GAP_APX_with_offload_SINR(args, veh_set_cur, backlog_queue_dict, veh_d
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     
@@ -1232,12 +1300,12 @@ def HO_EE_GAP_APX_with_offload_SINR(args, veh_set_cur, backlog_queue_dict, veh_d
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     
@@ -1725,13 +1793,13 @@ def HO_LowerBound_SINR(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     
@@ -1793,12 +1861,12 @@ def HO_LowerBound_SINR(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict
             ])
         if BS_id == 0:
             interference_array *= 0  # macro BS不考虑微基站的干扰
-        BF_overhad_array = np.zeros(len(veh_set_cur))
+        BF_overhead_array = np.zeros(len(veh_set_cur))
         if num_pilot_dict is not None:
             for i, veh in enumerate(veh_set_cur):
-                BF_overhad_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
+                BF_overhead_array[i] = min(num_pilot_dict[veh][BS_id-1] * args.pilot_overhead_factor,1) if BS_id > 0 else 0
         k_tilde_matrix[:, BS_id] = lbd_array / ( 1e-10 +
-            (1-BF_overhad_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
+            (1-BF_overhead_array) * delta_f * np.log2(1 + p * pred_G_array / (N0 * delta_f * dB2lin(NF_dB) + interference_array))
         )
         power_matrix[:, BS_id] = k_tilde_matrix[:, BS_id] * p
     

@@ -4,6 +4,7 @@
 *_result
 save**
 old_*
+**.csv
 trajectory*
 .ipynb_checkpoints
 experiment/results_*

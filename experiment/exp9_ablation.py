@@ -280,6 +280,7 @@ if __name__ == "__main__":
                 violation_prob_record,
                 avg_queuelen_record,
                 pilot_record,
+                queuelen_4eachVeh_record,
             ) = run_sim_withUMa(
                 args, BS_loc_list, timeline_dir, 
                 pospred_model, 
