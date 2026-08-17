@@ -1,0 +1,91 @@
+IEEE TWC- Decision on Manuscript ID Paper-TW-Feb-26-0360
+
+17-Aug-2026
+
+*** Please submit your revision in double-column. The detailed format requirements can be found on the TWC website (https://www.comsoc.org/publications/journals/ieee-twc/submit-manuscript).
+
+Dear Mr. Xie:
+
+Manuscript ID Paper-TW-Feb-26-0360, titled "MEET-COBRA: Machine-learning-based Energy-Efficient proacTive Coordination of handOver, Beamforming and Resource Allocation" and submitted to the IEEE Transactions on Wireless Communications, has been reviewed. The comments of the reviewer(s) are included at the bottom of this letter.
+
+While the work is regarded positively in general, the reviews have identified several areas that need major improvement, e.g., regarding problem formulation, technical rigor/consistency, evaluation, and presentation. Therefore, I invite you to respond to the reviewer(s)' comments and revise your manuscript.
+
+It should be emphasized that a major revision decision does not imply eventual acceptance. A future version of the paper will only be accepted if the revision addresses the major concerns, and the reply is highly persuasive to the Editors and Reviewers. 
+
+Once the revised manuscript and a point-by-point reply to the reviewer comments is prepared, you can upload them both and submit through your Corresponding Author Center. The reply should be designated as a "supplementary file.
+
+When you are ready to submit your revision, visit the following link:
+https://ieee.atyponrex.com/submission/submissionBoard/REX-PROD-2-486EDA32-262C-4773-8F85-85F2DFC883D6-7809324C-51BA-4F4C-AFE8-9148F9A931A0-70318/current?idtype=external
+
+IMPORTANT: Your original files are available to you when you upload your revised manuscript. Please delete any redundant files before completing the submission.
+
+When you revise your manuscript, please make sure that you comply with our manuscript length requirements. Your revised manuscript should be returned within EIGHT WEEKS. We will consider the manuscript as rejected if the revised manuscript is not received within EIGHT WEEKS from the date of this letter.
+
+Once again, thank you for submitting your manuscript to the IEEE Transactions on Wireless Communications and I look forward to your revision.
+
+Sincerely,
+
+Dr. Hongwei Zhang
+Editor, IEEE Transactions on Wireless Communications
+hongwei@iastate.edu
+
+Reviewer(s)' Comments to Author:
+Reviewer: 1
+
+Comments to the Corresponding Author
+1. The paper explains the coupling among handover, beamforming, and resource allocation in HetNets. It would be beneficial to further strengthen the motivation by more clearly articulating why this problem becomes fundamentally more unique and challenging in heterogeneous networks, beyond differences in system architecture. In particular, additional discussion on the new optimization challenges introduced by cross-tier heterogeneity could further improve the clarity of the problem formulation.
+
+2. The latency formulation is currently based on queue-length constraints. The paper could be further strengthened by discussing the relationship between queueing delay and actual end-to-end latency in a two-tier vehicular HetNet. Incorporating or discussing additional latency components, such as handover interruption, beam training overhead, retransmissions, and signaling delay, would improve the realism of the latency evaluation.
+
+3. In Fig. 1, the use of the term “Optimal” beam-pair and gain prediction may be slightly strong given that the neural network provides estimated outputs. The presentation could be made more precise by adopting terminology such as “Predicted” or “Estimated” beam-pair/gain.
+
+4. The paper presents promising prediction accuracy results. It would be valuable to further analyze how prediction errors propagate to higher-layer decisions, particularly proactive handover performance. Additional experiments quantifying the impact of prediction errors on HO reliability, association accuracy, or latency performance would provide deeper insight into the robustness of the proposed framework.
+
+5. The notation is relatively dense, and multiple related symbols are introduced throughout the paper. Adding a notation table summarizing the main variables and symbols would significantly improve readability and make the paper easier to follow.
+
+6. Several heuristic parameters, such as ζ, MP, and Niter, are introduced in the framework. Providing additional discussion on their selection criteria, practical interpretation, or parameter sensitivity would further improve the reproducibility and robustness evaluation of the proposed method.
+
+7. The paper emphasizes the lightweight nature of the ML inference process. Including quantitative information regarding neural network complexity, such as model size, inference latency, FLOPs, or runtime overhead, would further strengthen the practicality claims of the proposed framework.
+
+Reviewer: 2
+
+Comments to the Corresponding Author
+Strengths
+The joint treatment of proactive handover, beamforming, and resource allocation is a real and underexplored gap, and using the per-link resource-block demand as the common currency that links prediction, association, and scheduling is clean and well motivated. The evaluation platform is credible, since combining SUMO traces with Sionna RT ray tracing is more realistic than the stochastic channel models most comparable papers use. The algorithmic engineering is careful, with per-module complexity analysis, a Shmoys-Tardos approximation for the assignment step with a stated two-factor capacity bound, and a reasonable ablation and oracle design. Theorem 1 gives a principled starting point for the demand estimate. Overall the work is competent and the writing is mostly clear.
+
+
+Weak Points:
+1. The interference model is crude and inconsistent with the proposed algorithms. The interference-link gain in Eq. (10) uses a Frobenius-norm average, justified by random transmit and receive beam directions, and the resource-block overlap term in Eq. (16) assumes independent and uniformly random allocation across base stations. Neither holds in the proposed system, because every interfering micro base station runs the same deterministic PET-BF, directing beams at its own vehicles, and the same deterministic OTR-RA, which places resource blocks by efficiency rather than at random. Since the SINR in Eq. (17), and therefore the entire power and latency story, rests on this approximation, please quantify how far these surrogates deviate from directional interference, for example against a beam-aware interference computation from Sionna RT, or justify why the bias is negligible at the reported loads.
+
+2. The latency constraint is a mean-rate queue proxy, not a delay guarantee, yet the results are framed as uRLLC-grade reliability. Section II-C invokes Little's law to write the per-slot constraint in Eq. (23). Little's law is a long-run average identity, not a per-slot map from instantaneous backlog to instantaneous delay, so Eq. (23) bounds a scaled queue length rather than actual packet latency, and the metric U in Eq. (24) inherits this. Given the repeated uRLLC framing in the introduction, please either justify this rigorously.
+
+3. Gain-prediction error is not propagated into the performance metrics, and 4 dB MAE is large for mmWave link budgeting. Figure 4(b) reports validation MAE around 4.07 dB for the desired-link gain. At mmWave, 4 dB can move a link across the boundary between a usable and unusable beam, and it perturbs the demand estimate in Eq. (38) and hence U. Please add an error-propagation study, or at least plot U against injected gain-prediction noise, to show the accuracy achieved is actually sufficient.
+
+4. Generalization of the learned models is untested. The network is trained and validated on 6000 frames from a single map, a fixed four-micro-BS layout, and one traffic regime, with the split taken over non-overlapping time intervals of the same scenario, so all reported accuracy is in-distribution. There is no evaluation under a different topology, base-station placement, or arrival pattern, and the limitation is not acknowledged beyond a vague mention of online adaptation. Please add an out-of-scenario test, or state plainly that the model is site-specific and must be retrained per deployment.
+
+5. The authors cite learning-based proactive handover and reinforcement-learning beam tracking, yet none appears as a baseline, and there is no conventional optimization comparator. A 32 percent gain over a deliberately weak baseline is not strong evidence of an advance. Please add at least one learning-based or optimization-based comparator.
+
+6. The paper claims lightweight inference overhead but gives no inference latency, FLOPs, or control-plane bit budget. More importantly, the central selling point of proactive handover is reduced failures and interruption, yet handover signaling and interruption latency are deferred to future work and excluded from U. Please add a like-for-like overhead comparison and at least a first-order handover-latency model.
+
+7. The traffic and QoS model is thinner than the motivation promises. The arrival process in Eq. (22) is characterized only by its mean, with no stated distribution, yet for a study whose headline metric is a violation tail, arrival burstiness dominates the result and U is hard to interpret without it. In addition, the introduction motivates heterogeneous QoS across eMBB, uRLLC, and energy, but the model carries a single backlog queue and a single latency class. Please specify the arrival process and either add a second QoS class or narrow the motivation.
+
+8. Figure 2 labels the resource-allocation block OUR-RA, while the text and Algorithm 3 use OTR-RA. Please fix the acronym.
+
+
+Reviewer: 3
+
+Comments to the Corresponding Author
+Summary
+This manuscript proposes MEET-COBRA, a framework for jointly coordinating handover, beamforming, and resource allocation in a two-tier vehicular network, using machine learning (LSTM) to predict channel gains and beam pairs ahead of time. The authors argue that solving this joint problem exactly is computationally impractical and instead propose a two-timescale approach: predictions drive the handover decision once per frame, while beamforming and resource allocation adapt every slot based on those predictions and on real-time measurements. The simulation setup combines SUMO mobility traces with Sionna ray-tracing channel data and the evaluation includes both oracle bounds and per-module ablations that give a fairly complete picture of where the reported gains come from. The proposed scheme shows a meaningful reduction in transmit power and latency violations compared to a reactive baseline. I have a number of concerns detailed below that should be addressed in a revision.
+
+Major Comments
+● This work reads as an extension of the authors' own earlier conference paper, which focused on joint handover and resource allocation for a similar vehicular HetNet setup. The framework here appears to build on that by adding beamforming as a third coordinated decision, along with a more detailed channel model and simulation setup. Given this overlap, I would encourage the authors to state clearly, early in the paper, that this is an extended version of that prior work, and to briefly summarize what is specifically new here, since it would give readers a complete picture of what this paper contributes.
+● One of the paper's central motivations is reducing the overhead of channel state acquisition, which is a reasonable goal. That said, in the proposed design, each vehicle needs to run three separate ML prediction models locally every frame, one each for beam-pair selection, desired-link gain, and interference-link gain, with all of it reported to the macro base station each frame. This introduces its own computational and reporting overhead, and it isn't clear from the paper how that overhead compares to the CSI overhead the framework is designed to avoid in the first place. A brief discussion of this would strengthen the paper's claim of achieving lower overhead with lightweight ML inference.
+● The comparison in Section V is against a reactive baseline, and that baseline is fairly weak on all three fronts at once: handover triggered by signal-strength thresholds, beam selection through random probing, and resource allocation under a worst-case interference assumption. The per-module ablation study shown in the paper is a nice complement to this, since it shows what each of the three proposed modules is individually contributing. It would also help to compare against a coordinated handover and beamforming baseline from existing literature.
+● Despite high-mobility vehicular scenarios being the paper's central motivation, it does not report any information on vehicle speed anywhere in the manuscript. Speed is arguably one of the main factors driving how quickly channel conditions change from one frame to the next, so it directly affects how difficult the prediction problem actually is. The authors do state that training and validation samples are drawn from non-overlapping time intervals of the same simulated traffic, but the vehicle speed distribution within that dataset is never reported. It would help to see the speed distribution used, and a result showing how performance of the proposed framework changes across different mobility levels.
+
+Minor Comments
+● Fig. 2 labels the resource allocation block "OUR-RA," while the surrounding text and Algorithm 3 consistently use "OTR-RA."
+● A few parameters used in the handover algorithm aren't listed in the main parameter table: Niter (the maximum number of iterations in the fixed-point refinement step), ζ (the factor used to relax the capacity constraint when the relaxation is infeasible), and ε (the convergence tolerance for that iteration) in Algorithm 1. Worth adding for reproducibility.
+● The related work section covers handover, beamforming, and resource allocation as separate lines of work, even though the paper's central claim rests on coordinating them. It would strengthen the positioning of the contribution to also discuss prior work that combines two or more of these problems.
+● Overall the writing is clear and well organized, no major language concerns.
