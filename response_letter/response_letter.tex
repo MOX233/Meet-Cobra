@@ -1,0 +1,408 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{xcolor}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{responseblue}{RGB}{0,70,140}
+\definecolor{changeblue}{RGB}{0,90,170}
+\definecolor{commentgray}{RGB}{70,70,70}
+
+\setstretch{1.08}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\setlength{\headheight}{14pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Paper-TW-Feb-26-0360}
+\rhead{Response to the Editor and Reviewers}
+\cfoot{\thepage}
+
+\newcounter{reviewcomment}[section]
+\renewcommand{\thereviewcomment}{\arabic{reviewcomment}}
+
+\newenvironment{quotedcomment}
+{%
+  \begin{list}{}{
+    \setlength{\leftmargin}{1.5em}%
+    \setlength{\rightmargin}{0.5em}%
+    \setlength{\topsep}{0.25em}%
+    \setlength{\parsep}{0.35em}%
+  }
+  \item\relax\color{commentgray}\itshape
+}
+{\end{list}}
+
+\newcommand{\commentheading}[1]{%
+  \refstepcounter{reviewcomment}%
+  \par\medskip\noindent\textbf{Comment \thereviewcomment\ (#1)}
+}
+
+\newcommand{\generalheading}[1]{%
+  \par\medskip\noindent\textbf{#1}
+}
+
+\newenvironment{authorresponse}
+{\par\noindent\textcolor{responseblue}{\textbf{Response from the Authors:}}\par\color{responseblue}}
+{\par}
+
+\newenvironment{manuscriptchanges}
+{\par\noindent\textcolor{changeblue}{\textbf{Changes in the Revised Manuscript:}}\par\color{changeblue}}
+{\par}
+
+\newcommand{\revisionlocation}[1]{%
+  \par\noindent\textbf{Location in the Revised Manuscript:} #1\par
+}
+
+\newcommand{\blankreply}{%
+  \begin{authorresponse}
+  % To be completed after the corresponding revision is finalized.
+  \vspace{1.2\baselineskip}
+  \end{authorresponse}
+  \begin{manuscriptchanges}
+  % Insert the exact revised text, equation, figure, table, or a concise description here.
+  \vspace{1.2\baselineskip}
+  \end{manuscriptchanges}
+  \revisionlocation{}
+}
+
+\begin{document}
+
+\begin{center}
+  {\Large\bfseries Responses to the Comments of the Editor and Reviewers}\par
+  \vspace{0.8em}
+  {\large\bfseries MEET-COBRA: Machine-learning-based Energy-Efficient proacTive\\
+  Coordination of handOver, Beamforming and Resource Allocation}\par
+  \vspace{0.6em}
+  {\large Manuscript ID: Paper-TW-Feb-26-0360}\par
+  \vspace{0.8em}
+  Bowen Xie, Sheng Zhou, and Zhisheng Niu\par
+  Beijing National Research Center for Information Science and Technology,\par
+  Department of Electronic Engineering, Tsinghua University, Beijing 100084, China\par
+  E-mail: xbw22@mails.tsinghua.edu.cn, \{sheng.zhou, niuzhs\}@tsinghua.edu.cn
+\end{center}
+
+\vspace{0.8em}
+
+Dear Editor and Reviewers,
+
+% Replace this paragraph with the finalized cover note after all revisions are complete.
+We sincerely thank the Editor and the Reviewers for their careful evaluation of our manuscript
+and for their constructive comments. A concise summary of the major revisions will be provided
+below, followed by our detailed point-by-point responses. In the marked-up manuscript, all
+changes made in this revision will be highlighted in blue.
+
+\section*{Summary of Major Revisions}
+
+% To be completed after the technical revisions and additional experiments are finalized.
+\vspace{4\baselineskip}
+
+\clearpage
+\section{Editor}
+
+\setcounter{reviewcomment}{0}
+\commentheading{Major revision decision and overall concerns}
+\begin{quotedcomment}
+While the work is regarded positively in general, the reviews have identified several areas
+that need major improvement, e.g., regarding problem formulation, technical rigor/consistency,
+evaluation, and presentation. Therefore, I invite you to respond to the reviewer(s)' comments
+and revise your manuscript.
+
+It should be emphasized that a major revision decision does not imply eventual acceptance.
+A future version of the paper will only be accepted if the revision addresses the major
+concerns, and the reply is highly persuasive to the Editors and Reviewers.
+\end{quotedcomment}
+\blankreply
+
+\clearpage
+\section{Reviewer 1}
+
+\setcounter{reviewcomment}{0}
+\commentheading{Motivation and cross-tier heterogeneity}
+\begin{quotedcomment}
+The paper explains the coupling among handover, beamforming, and resource allocation in
+HetNets. It would be beneficial to further strengthen the motivation by more clearly
+articulating why this problem becomes fundamentally more unique and challenging in
+heterogeneous networks, beyond differences in system architecture. In particular, additional
+discussion on the new optimization challenges introduced by cross-tier heterogeneity could
+further improve the clarity of the problem formulation.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Queueing delay and end-to-end latency}
+\begin{quotedcomment}
+The latency formulation is currently based on queue-length constraints. The paper could be
+further strengthened by discussing the relationship between queueing delay and actual
+end-to-end latency in a two-tier vehicular HetNet. Incorporating or discussing additional
+latency components, such as handover interruption, beam training overhead, retransmissions,
+and signaling delay, would improve the realism of the latency evaluation.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Terminology in Fig. 1}
+\begin{quotedcomment}
+In Fig. 1, the use of the term ``Optimal'' beam-pair and gain prediction may be slightly
+strong given that the neural network provides estimated outputs. The presentation could be
+made more precise by adopting terminology such as ``Predicted'' or ``Estimated'' beam-pair/gain.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Propagation of prediction errors}
+\begin{quotedcomment}
+The paper presents promising prediction accuracy results. It would be valuable to further
+analyze how prediction errors propagate to higher-layer decisions, particularly proactive
+handover performance. Additional experiments quantifying the impact of prediction errors on
+HO reliability, association accuracy, or latency performance would provide deeper insight
+into the robustness of the proposed framework.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Notation table}
+\begin{quotedcomment}
+The notation is relatively dense, and multiple related symbols are introduced throughout the
+paper. Adding a notation table summarizing the main variables and symbols would significantly
+improve readability and make the paper easier to follow.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Selection and sensitivity of heuristic parameters}
+\begin{quotedcomment}
+Several heuristic parameters, such as $\zeta$, $M_{\rm P}$, and $N_{\rm iter}$, are introduced
+in the framework. Providing additional discussion on their selection criteria, practical
+interpretation, or parameter sensitivity would further improve the reproducibility and
+robustness evaluation of the proposed method.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Neural-network complexity and inference overhead}
+\begin{quotedcomment}
+The paper emphasizes the lightweight nature of the ML inference process. Including
+quantitative information regarding neural network complexity, such as model size, inference
+latency, FLOPs, or runtime overhead, would further strengthen the practicality claims of the
+proposed framework.
+\end{quotedcomment}
+\blankreply
+
+\clearpage
+\section{Reviewer 2}
+
+\setcounter{reviewcomment}{0}
+\generalheading{Overall Assessment and Strengths}
+\begin{quotedcomment}
+The joint treatment of proactive handover, beamforming, and resource allocation is a real and
+underexplored gap, and using the per-link resource-block demand as the common currency that
+links prediction, association, and scheduling is clean and well motivated. The evaluation
+platform is credible, since combining SUMO traces with Sionna RT ray tracing is more realistic
+than the stochastic channel models most comparable papers use. The algorithmic engineering is
+careful, with per-module complexity analysis, a Shmoys--Tardos approximation for the assignment
+step with a stated two-factor capacity bound, and a reasonable ablation and oracle design.
+Theorem 1 gives a principled starting point for the demand estimate. Overall the work is
+competent and the writing is mostly clear.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Interference-model consistency and validation}
+\begin{quotedcomment}
+The interference model is crude and inconsistent with the proposed algorithms. The
+interference-link gain in Eq. (10) uses a Frobenius-norm average, justified by random transmit
+and receive beam directions, and the resource-block overlap term in Eq. (16) assumes
+independent and uniformly random allocation across base stations. Neither holds in the
+proposed system, because every interfering micro base station runs the same deterministic
+PET-BF, directing beams at its own vehicles, and the same deterministic OTR-RA, which places
+resource blocks by efficiency rather than at random. Since the SINR in Eq. (17), and therefore
+the entire power and latency story, rests on this approximation, please quantify how far these
+surrogates deviate from directional interference, for example against a beam-aware interference
+computation from Sionna RT, or justify why the bias is negligible at the reported loads.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Queue proxy versus delay guarantee}
+\begin{quotedcomment}
+The latency constraint is a mean-rate queue proxy, not a delay guarantee, yet the results are
+framed as uRLLC-grade reliability. Section II-C invokes Little's law to write the per-slot
+constraint in Eq. (23). Little's law is a long-run average identity, not a per-slot map from
+instantaneous backlog to instantaneous delay, so Eq. (23) bounds a scaled queue length rather
+than actual packet latency, and the metric $U$ in Eq. (24) inherits this. Given the repeated
+uRLLC framing in the introduction, please either justify this rigorously.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Impact of gain-prediction error}
+\begin{quotedcomment}
+Gain-prediction error is not propagated into the performance metrics, and 4 dB MAE is large
+for mmWave link budgeting. Figure 4(b) reports validation MAE around 4.07 dB for the
+desired-link gain. At mmWave, 4 dB can move a link across the boundary between a usable and
+unusable beam, and it perturbs the demand estimate in Eq. (38) and hence $U$. Please add an
+error-propagation study, or at least plot $U$ against injected gain-prediction noise, to show
+the accuracy achieved is actually sufficient.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Generalization of the learned models}
+\begin{quotedcomment}
+Generalization of the learned models is untested. The network is trained and validated on
+6000 frames from a single map, a fixed four-micro-BS layout, and one traffic regime, with the
+split taken over non-overlapping time intervals of the same scenario, so all reported accuracy
+is in-distribution. There is no evaluation under a different topology, base-station placement,
+or arrival pattern, and the limitation is not acknowledged beyond a vague mention of online
+adaptation. Please add an out-of-scenario test, or state plainly that the model is site-specific
+and must be retrained per deployment.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Learning-based or optimization-based comparator}
+\begin{quotedcomment}
+The authors cite learning-based proactive handover and reinforcement-learning beam tracking,
+yet none appears as a baseline, and there is no conventional optimization comparator. A
+32 percent gain over a deliberately weak baseline is not strong evidence of an advance.
+Please add at least one learning-based or optimization-based comparator.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Inference, control-plane, and handover overhead}
+\begin{quotedcomment}
+The paper claims lightweight inference overhead but gives no inference latency, FLOPs, or
+control-plane bit budget. More importantly, the central selling point of proactive handover is
+reduced failures and interruption, yet handover signaling and interruption latency are deferred
+to future work and excluded from $U$. Please add a like-for-like overhead comparison and at
+least a first-order handover-latency model.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Traffic arrival process and heterogeneous QoS}
+\begin{quotedcomment}
+The traffic and QoS model is thinner than the motivation promises. The arrival process in
+Eq. (22) is characterized only by its mean, with no stated distribution, yet for a study whose
+headline metric is a violation tail, arrival burstiness dominates the result and $U$ is hard to
+interpret without it. In addition, the introduction motivates heterogeneous QoS across eMBB,
+uRLLC, and energy, but the model carries a single backlog queue and a single latency class.
+Please specify the arrival process and either add a second QoS class or narrow the motivation.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{OTR-RA acronym in Fig. 2}
+\begin{quotedcomment}
+Figure 2 labels the resource-allocation block OUR-RA, while the text and Algorithm 3 use
+OTR-RA. Please fix the acronym.
+\end{quotedcomment}
+\blankreply
+
+\clearpage
+\section{Reviewer 3}
+
+\setcounter{reviewcomment}{0}
+\generalheading{Summary}
+\begin{quotedcomment}
+This manuscript proposes MEET-COBRA, a framework for jointly coordinating handover,
+beamforming, and resource allocation in a two-tier vehicular network, using machine learning
+(LSTM) to predict channel gains and beam pairs ahead of time. The authors argue that solving
+this joint problem exactly is computationally impractical and instead propose a two-timescale
+approach: predictions drive the handover decision once per frame, while beamforming and
+resource allocation adapt every slot based on those predictions and on real-time measurements.
+The simulation setup combines SUMO mobility traces with Sionna ray-tracing channel data and
+the evaluation includes both oracle bounds and per-module ablations that give a fairly complete
+picture of where the reported gains come from. The proposed scheme shows a meaningful
+reduction in transmit power and latency violations compared to a reactive baseline. I have a
+number of concerns detailed below that should be addressed in a revision.
+\end{quotedcomment}
+\blankreply
+
+\subsection*{Major Comments}
+
+\commentheading{Relationship to the authors' conference paper}
+\begin{quotedcomment}
+This work reads as an extension of the authors' own earlier conference paper, which focused
+on joint handover and resource allocation for a similar vehicular HetNet setup. The framework
+here appears to build on that by adding beamforming as a third coordinated decision, along
+with a more detailed channel model and simulation setup. Given this overlap, I would encourage
+the authors to state clearly, early in the paper, that this is an extended version of that prior
+work, and to briefly summarize what is specifically new here, since it would give readers a
+complete picture of what this paper contributes.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{ML computation and reporting overhead versus CSI overhead}
+\begin{quotedcomment}
+One of the paper's central motivations is reducing the overhead of channel state acquisition,
+which is a reasonable goal. That said, in the proposed design, each vehicle needs to run three
+separate ML prediction models locally every frame, one each for beam-pair selection,
+desired-link gain, and interference-link gain, with all of it reported to the macro base station
+each frame. This introduces its own computational and reporting overhead, and it isn't clear
+from the paper how that overhead compares to the CSI overhead the framework is designed to
+avoid in the first place. A brief discussion of this would strengthen the paper's claim of
+achieving lower overhead with lightweight ML inference.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Coordinated handover and beamforming baseline}
+\begin{quotedcomment}
+The comparison in Section V is against a reactive baseline, and that baseline is fairly weak on
+all three fronts at once: handover triggered by signal-strength thresholds, beam selection
+through random probing, and resource allocation under a worst-case interference assumption.
+The per-module ablation study shown in the paper is a nice complement to this, since it shows
+what each of the three proposed modules is individually contributing. It would also help to
+compare against a coordinated handover and beamforming baseline from existing literature.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Vehicle-speed distribution and mobility sensitivity}
+\begin{quotedcomment}
+Despite high-mobility vehicular scenarios being the paper's central motivation, it does not
+report any information on vehicle speed anywhere in the manuscript. Speed is arguably one of
+the main factors driving how quickly channel conditions change from one frame to the next, so
+it directly affects how difficult the prediction problem actually is. The authors do state that
+training and validation samples are drawn from non-overlapping time intervals of the same
+simulated traffic, but the vehicle speed distribution within that dataset is never reported. It
+would help to see the speed distribution used, and a result showing how performance of the
+proposed framework changes across different mobility levels.
+\end{quotedcomment}
+\blankreply
+
+\subsection*{Minor Comments}
+
+\commentheading{OTR-RA acronym in Fig. 2}
+\begin{quotedcomment}
+Fig. 2 labels the resource allocation block ``OUR-RA,'' while the surrounding text and
+Algorithm 3 consistently use ``OTR-RA.''
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Handover-algorithm parameters in the simulation table}
+\begin{quotedcomment}
+A few parameters used in the handover algorithm aren't listed in the main parameter table:
+$N_{\rm iter}$ (the maximum number of iterations in the fixed-point refinement step), $\zeta$
+(the factor used to relax the capacity constraint when the relaxation is infeasible), and
+$\epsilon$ (the convergence tolerance for that iteration) in Algorithm 1. Worth adding for
+reproducibility.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Related work on joint optimization}
+\begin{quotedcomment}
+The related work section covers handover, beamforming, and resource allocation as separate
+lines of work, even though the paper's central claim rests on coordinating them. It would
+strengthen the positioning of the contribution to also discuss prior work that combines two or
+more of these problems.
+\end{quotedcomment}
+\blankreply
+
+\commentheading{Writing quality}
+\begin{quotedcomment}
+Overall the writing is clear and well organized, no major language concerns.
+\end{quotedcomment}
+\blankreply
+
+\vfill
+\begin{flushleft}
+Yours sincerely,\\
+Bowen Xie, Sheng Zhou, and Zhisheng Niu
+\end{flushleft}
+
+\end{document}
