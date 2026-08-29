@@ -3,6 +3,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{mathptmx}
+\usepackage{amsmath,amssymb}
 \usepackage[a4paper,margin=1in]{geometry}
 \usepackage{xcolor}
 \usepackage{setspace}
@@ -134,7 +135,30 @@ heterogeneous networks, beyond differences in system architecture. In particular
 discussion on the new optimization challenges introduced by cross-tier heterogeneity could
 further improve the clarity of the problem formulation.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We agree that the earlier motivation described the architectural differences between the two
+tiers without making their optimization consequences sufficiently explicit. We have therefore
+expanded the Introduction to explain why a cross-tier HO changes several coupled quantities at
+once: carrier and RB configuration, power cost, beam-training requirement, link gain, RB demand,
+and interference footprint. We also explain how the frame-level association decision feeds into
+slot-level BF and RA through tier-dependent service rates and capacity constraints. This addition
+clarifies the specific difficulty of COBRA in a HetNet rather than treating heterogeneity merely
+as a deployment detail.
+\end{authorresponse}
+\begin{manuscriptchanges}
+We added the following paragraph:
+
+\emph{``The cross-tier heterogeneity creates an optimization problem that is qualitatively
+different from association among homogeneous BSs. A macro link offers robust wide-area coverage
+but has a different carrier frequency, RB bandwidth, power cost, and antenna configuration from
+a directional mmWave micro link. A handover therefore changes not only the serving BS but also
+the available RB budget, beam-training requirement, desired-link gain, and interference footprint.
+Moreover, directing a micro-BS beam toward one vehicle changes the RB demand of that link, while
+the resulting load and RB occupancy affect the interference experienced by vehicles in other
+micro cells. Consequently, frame-level cross-tier association and slot-level BF/RA decisions are
+coupled through tier-dependent service rates and capacity constraints.''}
+\end{manuscriptchanges}
+\revisionlocation{Pages 1--2, Section I (Introduction).}
 
 \commentheading{Queueing delay and end-to-end latency}
 \begin{quotedcomment}
@@ -144,7 +168,37 @@ end-to-end latency in a two-tier vehicular HetNet. Incorporating or discussing a
 latency components, such as handover interruption, beam training overhead, retransmissions,
 and signaling delay, would improve the realism of the latency evaluation.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We agree that the original presentation could be read as equating an instantaneous scaled
+backlog with actual end-to-end packet latency. That interpretation is not justified by Little's
+law. We have corrected the formulation and terminology throughout the manuscript. The revised
+paper now states that Little's law is a long-term average relation and defines
+$d_v^{\rm Q}(n)=q_v(n)/\lambda_v$ only as a normalized-backlog queueing-delay proxy. Accordingly,
+$U$ is now described as a queue-length constraint violation probability, not as a hard per-packet
+or end-to-end delay guarantee.
+
+We have also delineated the modeled latency components. Beam-search overhead affects the service
+rate through $\eta_{m,v}^{[x]}(i)$, whereas HO interruption, control signaling, processing,
+packetization, and retransmission delays are not included. We explicitly state this scope instead
+of implying that the present metric establishes uRLLC-grade end-to-end reliability. The abstract,
+problem statement, result discussion, figure captions, and the on-figure axis labels have been
+revised consistently.
+\end{authorresponse}
+\begin{manuscriptchanges}
+The revised definition and scope statement read:
+
+\emph{``Little's law relates the long-term average backlog and average queueing delay under
+stationarity; it does not provide a sample-path identity between the instantaneous backlog and
+the delay of an individual packet. Motivated by this average relation, we define the
+normalized-backlog quantity $d_v^{\rm Q}(n)\triangleq q_v(n)/\lambda_v$ as a queueing-delay
+proxy.''}
+
+\emph{``Accordingly, $U$ measures normalized-backlog violations rather than a hard per-packet or
+end-to-end delay guarantee. Beam-search overhead is included in the service rate through
+$\eta_{m,v}^{[x]}(i)$; however, HO interruption, control signaling, processing, packetization,
+and retransmission delays are outside the present model.''}
+\end{manuscriptchanges}
+\revisionlocation{Page 5, Section II-C, Eqs. (22)--(24); Pages 12--13, Figs. 6--7 and Section V-D; Page 14, Section VI.}
 
 \commentheading{Terminology in Fig. 1}
 \begin{quotedcomment}
@@ -152,7 +206,23 @@ In Fig. 1, the use of the term ``Optimal'' beam-pair and gain prediction may be 
 strong given that the neural network provides estimated outputs. The presentation could be
 made more precise by adopting terminology such as ``Predicted'' or ``Estimated'' beam-pair/gain.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We agree and have removed the potentially misleading use of ``Optimal'' for an NN output. Fig. 1
+now identifies the outputs as next-frame beam-pair probabilities and channel-gain predictions.
+The accompanying text distinguishes the predicted probability distribution from the
+ground-truth best-beam label used during offline training. For consistency, the corresponding
+terminology in Fig. 4 and its discussion has also been changed to ``best-beam desired-link gain.''
+\end{authorresponse}
+\begin{manuscriptchanges}
+The revised Fig. 1 caption is:
+
+\emph{``The architecture of the proposed neural network models for next-frame beam-pair
+probability and channel-gain prediction.''}
+
+The revised text states that the model predicts the \emph{``next-frame beam-pair probability
+distribution, best-beam desired-link gain, and interference-link gain.''}
+\end{manuscriptchanges}
+\revisionlocation{Page 6, Fig. 1 and Section IV-A; Page 11, Fig. 4 and Section V-B.}
 
 \commentheading{Propagation of prediction errors}
 \begin{quotedcomment}
@@ -170,7 +240,17 @@ The notation is relatively dense, and multiple related symbols are introduced th
 paper. Adding a notation table summarizing the main variables and symbols would significantly
 improve readability and make the paper easier to follow.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We agree that the original notation density made the model unnecessarily difficult to follow.
+We have added a two-column notation table that groups the principal sets and indices, time and
+association variables, channel/BF quantities, queue and resource variables, prediction outputs,
+and algorithm parameters. Symbols used only locally remain defined next to their equations so
+that the table remains compact.
+\end{authorresponse}
+\begin{manuscriptchanges}
+We added Table I, entitled \emph{``Summary of Main Notation.''}
+\end{manuscriptchanges}
+\revisionlocation{Page 4, Table I, at the beginning of Section II.}
 
 \commentheading{Selection and sensitivity of heuristic parameters}
 \begin{quotedcomment}
@@ -179,7 +259,26 @@ in the framework. Providing additional discussion on their selection criteria, p
 interpretation, or parameter sensitivity would further improve the reproducibility and
 robustness evaluation of the proposed method.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We have added both the numerical settings and their operational interpretations. In particular,
+$M_{\rm P}=5$ is the point at which the measured top-$M_{\rm P}$ beam reliability already exceeds
+99\%, while every additional candidate incurs another probe; $\zeta=1.1$ relaxes an infeasible RB
+budget in moderate 10\% increments; $\epsilon=1$ RB matches the granularity of the final integer
+allocation; and $N_{\rm iter}=3$ bounds the frame-level fixed-point computation. These values are
+now also listed in the simulation-parameter table, which makes the setup directly reproducible.
+\end{authorresponse}
+\begin{manuscriptchanges}
+We added the following explanation:
+
+\emph{``The heuristic parameters have direct algorithmic interpretations. We use
+$M_{\rm P}=5$ because the measured top-$M_{\rm P}$ beam reliability already exceeds 99\% around
+this operating point, while each additional candidate incurs another beam probe. The relaxation
+factor $\zeta=1.1$ expands an infeasible RB budget in moderate 10\% steps rather than making a
+single aggressive relaxation. We set $\epsilon=1$ RB, matching the granularity of the final
+integer allocation, and cap the fixed-point refinement at $N_{\rm iter}=3$ to bound the
+frame-level control computation.''}
+\end{manuscriptchanges}
+\revisionlocation{Page 8, Section IV-B; Page 11, Table II.}
 
 \commentheading{Neural-network complexity and inference overhead}
 \begin{quotedcomment}
@@ -206,7 +305,13 @@ step with a stated two-factor capacity bound, and a reasonable ablation and orac
 Theorem 1 gives a principled starting point for the demand estimate. Overall the work is
 competent and the writing is mostly clear.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We thank the Reviewer for recognizing the value of the three-way coordination framework, the
+RB-demand coupling, the SUMO/Sionna RT evaluation platform, and the algorithmic analysis. We
+have retained these elements and revised the manuscript carefully to address the formulation,
+evaluation, and presentation concerns raised below.
+\end{authorresponse}
+\revisionlocation{No manuscript change is required for this overall assessment.}
 
 \commentheading{Interference-model consistency and validation}
 \begin{quotedcomment}
@@ -232,7 +337,39 @@ instantaneous backlog to instantaneous delay, so Eq. (23) bounds a scaled queue 
 than actual packet latency, and the metric $U$ in Eq. (24) inherits this. Given the repeated
 uRLLC framing in the introduction, please either justify this rigorously.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We agree with the Reviewer's technical point. Little's law cannot justify a per-slot identity
+between $q_v(n)/\lambda_v$ and the delay of an individual packet, and we do not attempt to defend
+that interpretation in the revision. Instead, we have corrected the model statement: Little's
+law is used only as motivation for a normalized-backlog proxy
+$d_v^{\rm Q}(n)=q_v(n)/\lambda_v$, and Eq. (23) is explicitly described as a queue-length-based
+QoS constraint. Consequently, $U$ in Eq. (24) is a queue-length constraint violation probability,
+not a delay-reliability guarantee.
+
+We have removed the uRLLC-grade/end-to-end interpretation and narrowed the Introduction to a
+single class of delay-sensitive downlink traffic. We also list the latency components excluded
+from the present model and identify the one overhead component already included: beam-search
+overhead enters the service rate through $\eta_{m,v}^{[x]}(i)$. The abstract, formulation,
+result text, captions, and on-figure axis labels have all been made consistent with this corrected
+interpretation. Thus, the numerical results themselves are unchanged, but the claim attached to
+them is now the claim that the simulated metric can support.
+\end{authorresponse}
+\begin{manuscriptchanges}
+We replaced the original instantaneous-delay interpretation with:
+
+\emph{``Little's law relates the long-term average backlog and average queueing delay under
+stationarity; it does not provide a sample-path identity between the instantaneous backlog and
+the delay of an individual packet. Motivated by this average relation, we define the
+normalized-backlog quantity $d_v^{\rm Q}(n)\triangleq q_v(n)/\lambda_v$ as a queueing-delay
+proxy.''}
+
+We further clarify:
+
+\emph{``Accordingly, $U$ measures normalized-backlog violations rather than a hard per-packet or
+end-to-end delay guarantee. $\ldots$ The reported $d_v^{\rm Q}$ and $U$ should therefore be
+interpreted as radio-access queueing proxies, not as uRLLC-grade end-to-end reliability.''}
+\end{manuscriptchanges}
+\revisionlocation{Page 1, Abstract and Section I; Page 5, Section II-C and Eqs. (23)--(24); Pages 12--13, Figs. 6--7 and Section V-D; Page 14, Section VI.}
 
 \commentheading{Impact of gain-prediction error}
 \begin{quotedcomment}
@@ -255,7 +392,30 @@ or arrival pattern, and the limitation is not acknowledged beyond a vague mentio
 adaptation. Please add an out-of-scenario test, or state plainly that the model is site-specific
 and must be retrained per deployment.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We agree that the existing temporal split does not test cross-site generalization. We have taken
+the second route suggested by the Reviewer and now state this limitation plainly. Specifically,
+the revised paper identifies the model as site-specific, describes the 70/30 split as
+non-overlapping temporal segments from the same map, BS placement, and traffic setting, and calls
+the resulting accuracy in-distribution performance. We no longer imply that this experiment
+demonstrates zero-shot generalization. The paper also states that a substantially different map
+or BS layout would require site-specific fine-tuning or retraining from local measurements.
+\end{authorresponse}
+\begin{manuscriptchanges}
+We added the following scope statement:
+
+\emph{``Its parameters depend on the deployment geometry, BS placement, and channel/traffic
+distribution represented in the training traces. Consequently, the temporal validation
+conducted in this paper measures in-distribution performance within the same deployment and
+does not establish zero-shot generalization to a new map or BS layout. Deployment in a
+substantially different environment would require site-specific fine-tuning or retraining using
+local channel measurements.''}
+
+The dataset description now explicitly states that the 70/30 training/validation samples are
+drawn from non-overlapping temporal segments of the same map, four-micro-BS placement, and
+traffic-generation setting.
+\end{manuscriptchanges}
+\revisionlocation{Page 6, Section IV-A; Page 11, Section V-B.}
 
 \commentheading{Learning-based or optimization-based comparator}
 \begin{quotedcomment}
@@ -285,14 +445,40 @@ interpret without it. In addition, the introduction motivates heterogeneous QoS 
 uRLLC, and energy, but the model carries a single backlog queue and a single latency class.
 Please specify the arrival process and either add a second QoS class or narrow the motivation.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We agree on both points. First, the revised model now specifies independent Poisson arrivals:
+$a_v(n)$ has mean $\lambda_v\Delta t$ and is independent across vehicles and slots. This makes
+the traffic assumption and the interpretation of the reported tail metric explicit. Second,
+rather than adding a heterogeneous service model that is not supported by the current algorithms
+or experiments, we have narrowed the paper's motivation and scope. The revised Introduction and
+traffic model state that we consider one class of delay-sensitive downlink traffic with a common
+queueing requirement; differentiated packet classes, deadlines, reliability targets, and
+end-to-end uRLLC guarantees are outside the present scope.
+\end{authorresponse}
+\begin{manuscriptchanges}
+The traffic model now states:
+
+\emph{``We model $a_v(n)$ as an independent Poisson random variable with mean
+$\lambda_v\Delta t$, where $\lambda_v$ is the average data arrival rate of vehicle $v$;
+arrivals are independent across vehicles and slots. The model represents one class of
+delay-sensitive downlink traffic with a common queueing requirement. Differentiated packet
+classes, deadlines, and reliability targets are not considered.''}
+\end{manuscriptchanges}
+\revisionlocation{Page 1, Section I; Page 5, Section II-C, immediately below Eq. (22).}
 
 \commentheading{OTR-RA acronym in Fig. 2}
 \begin{quotedcomment}
 Figure 2 labels the resource-allocation block OUR-RA, while the text and Algorithm 3 use
 OTR-RA. Please fix the acronym.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We have corrected the typographical error. The resource-allocation block in Fig. 2 now reads
+``Algorithm 3 (OTR-RA),'' consistent with the text and Algorithm 3.
+\end{authorresponse}
+\begin{manuscriptchanges}
+In Fig. 2, ``OUR-RA'' was replaced by ``OTR-RA.''
+\end{manuscriptchanges}
+\revisionlocation{Page 10, Fig. 2.}
 
 \clearpage
 \section{Reviewer 3}
@@ -312,7 +498,15 @@ picture of where the reported gains come from. The proposed scheme shows a meani
 reduction in transmit power and latency violations compared to a reactive baseline. I have a
 number of concerns detailed below that should be addressed in a revision.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We thank the Reviewer for the accurate summary and for recognizing the value of the two-timescale
+coordination, the SUMO/Sionna RT platform, and the oracle and ablation studies. In response to the
+comments below, we have clarified the relationship to our conference paper, expanded the related
+work, corrected the queue-based QoS terminology, and improved the presentation and reproducibility.
+The comments that require additional overhead, baseline, and mobility studies are being addressed
+separately in the technical revision.
+\end{authorresponse}
+\revisionlocation{The corresponding manuscript changes are identified in the point-by-point responses below.}
 
 \subsection*{Major Comments}
 
@@ -326,7 +520,29 @@ the authors to state clearly, early in the paper, that this is an extended versi
 work, and to briefly summarize what is specifically new here, since it would give readers a
 complete picture of what this paper contributes.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We agree that the relationship and incremental technical contribution should be transparent near
+the beginning of the paper. We now explicitly identify AEPHORA as our conference paper and list
+three substantive extensions: (i) expanding joint PHO/RA to three-way PHO/BF/RA coordination,
+including beam-search overhead and inter-cell interference; (ii) replacing mobility-only
+prediction with beam-pair, desired-link-gain, and interference-link-gain predictions and adding
+the PET-BF and OTR-RA algorithms; and (iii) evaluating the full design with SUMO/Sionna RT MIMO
+channels, oracle benchmarks, and module-level ablations. This statement is placed before the main
+contribution list so that readers can assess the relationship immediately.
+\end{authorresponse}
+\begin{manuscriptchanges}
+We added:
+
+\emph{``This article substantially extends our conference paper AEPHORA. First, it expands the
+decision space from joint PHO/RA to the three-way coordination of PHO, BF, and RA and explicitly
+incorporates beam-search overhead and inter-cell interference. Second, it replaces mobility-only
+prediction with link-level predictions of beam-pair probabilities, desired-link gains, and
+interference-link gains, and introduces the new PET-BF and OTR-RA algorithms around a
+generalized-assignment-based PHO procedure. Third, it evaluates the complete framework using
+SUMO mobility and MIMO channels generated by Sionna RT, together with oracle benchmarks and
+module-level ablations.''}
+\end{manuscriptchanges}
+\revisionlocation{Page 2, Section I (Introduction), immediately before the problem statement and contribution list.}
 
 \commentheading{ML computation and reporting overhead versus CSI overhead}
 \begin{quotedcomment}
@@ -372,7 +588,14 @@ proposed framework changes across different mobility levels.
 Fig. 2 labels the resource allocation block ``OUR-RA,'' while the surrounding text and
 Algorithm 3 consistently use ``OTR-RA.''
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We have corrected the typographical error. The resource-allocation block in Fig. 2 now reads
+``Algorithm 3 (OTR-RA),'' consistently with Algorithm 3 and the surrounding text.
+\end{authorresponse}
+\begin{manuscriptchanges}
+In Fig. 2, ``OUR-RA'' was replaced by ``OTR-RA.''
+\end{manuscriptchanges}
+\revisionlocation{Page 10, Fig. 2.}
 
 \commentheading{Handover-algorithm parameters in the simulation table}
 \begin{quotedcomment}
@@ -382,7 +605,19 @@ $N_{\rm iter}$ (the maximum number of iterations in the fixed-point refinement s
 $\epsilon$ (the convergence tolerance for that iteration) in Algorithm 1. Worth adding for
 reproducibility.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We agree and have added all three parameters to the main simulation table:
+$N_{\rm iter}=3$, $\zeta=1.1$, and $\epsilon=1$ RB. In addition, the algorithm section now
+explains that $N_{\rm iter}$ caps the frame-level fixed-point computation, $\zeta$ applies
+10\% capacity-relaxation increments when the relaxed problem is infeasible, and $\epsilon$
+matches the one-RB granularity of the final integer allocation.
+\end{authorresponse}
+\begin{manuscriptchanges}
+Table II now contains the rows ``GAP-HO iteration cap $N_{\rm iter}$,''
+``Capacity-relaxation factor $\zeta$,'' and ``Convergence tolerance $\epsilon$,'' with values
+$3$, $1.1$, and $1$ RB, respectively.
+\end{manuscriptchanges}
+\revisionlocation{Page 8, Section IV-B; Page 11, Table II.}
 
 \commentheading{Related work on joint optimization}
 \begin{quotedcomment}
@@ -391,13 +626,37 @@ lines of work, even though the paper's central claim rests on coordinating them.
 strengthen the positioning of the contribution to also discuss prior work that combines two or
 more of these problems.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We agree and have supplemented the three separate literature streams with a paragraph organized
+around pairwise coordination. The revised discussion contrasts (i) AEPHORA's joint PHO and RA,
+(ii) learning-assisted joint scheduling and BF for mmWave vehicular links, and (iii) vertical-HO
+association in heterogeneous macro and mmWave networks. It then identifies what remains absent from these designs:
+closed-loop three-way coordination of cross-tier association, beam alignment, and queue-aware RA
+over the two decision timescales.
+\end{authorresponse}
+\begin{manuscriptchanges}
+We added:
+
+\emph{``Some studies jointly optimize subsets of these decisions. Our conference work AEPHORA
+coordinates PHO and RA using predicted mobility, but does not model BF or its training overhead.
+Learning-assisted scheduling and BF have also been jointly studied for mmWave vehicular links,
+but without cross-tier PHO, while vertical-HO studies in macro/mmWave HetNets focus on association
+rather than the closed-loop coordination of association, beam alignment, and queue-aware RA.
+Thus, existing pairwise designs do not capture the three-way, two-timescale coupling considered
+here.''}
+\end{manuscriptchanges}
+\revisionlocation{Page 2, Section I (Introduction), related-work discussion.}
 
 \commentheading{Writing quality}
 \begin{quotedcomment}
 Overall the writing is clear and well organized, no major language concerns.
 \end{quotedcomment}
-\blankreply
+\begin{authorresponse}
+We thank the Reviewer for this positive assessment. We have preserved the manuscript's overall
+organization while editing the revised and surrounding passages for terminology, consistency,
+and readability.
+\end{authorresponse}
+\revisionlocation{No specific manuscript change is required for this comment.}
 
 \vfill
 \begin{flushleft}
