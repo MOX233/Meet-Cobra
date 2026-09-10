@@ -9,6 +9,7 @@ import argparse
 import collections
 import concurrent.futures
 import csv
+import faulthandler
 import hashlib
 import json
 import multiprocessing
@@ -41,6 +42,23 @@ sys.argv = ARGV
 CHECKPOINT = '76078e5'
 WARMUP = 2
 CONTEXT = None
+
+
+def initialize_worker(context):
+    global CONTEXT
+    CONTEXT = context
+    torch.set_num_threads(1)
+
+
+class ProgressDiagnostics(list):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+
+    def append(self, value):
+        super().append(value)
+        if len(self) % 50 == 0:
+            print('FRAME', self.name, len(self), flush=True)
 
 
 def jsonable(value):
@@ -223,7 +241,7 @@ def run_pair(task):
                 continue
             print('START', name, flush=True)
             setup_seed(seed)
-            diagnostics = []
+            diagnostics = ProgressDiagnostics(name)
             started = time.monotonic()
             result = invoke(args, locations, timeline, oracle_ho_cache=cache,
                             traffic_trace=traffic, measured_gain_gamma=0,
@@ -295,6 +313,7 @@ def main():
     parser.add_argument('--durations-ms', type=float, nargs='+', default=[0, 5, 10])
     parser.add_argument('--seconds', type=float, default=30)
     parser.add_argument('--workers', type=int, default=4)
+    parser.add_argument('--start-method', choices=['spawn', 'fork'], default='spawn')
     parser.add_argument('--regression-only', action='store_true')
     parser.add_argument('--aggregate-only', action='store_true')
     parser.add_argument('--output', type=Path, default=ROOT / 'experiment/results_ho_interruption')
@@ -333,6 +352,7 @@ def main():
         initial_access_interruption=False, all_bs_transition_types=True,
         traffic='paired independent Poisson arrivals and entry queues; hash checked',
         preparation='outside data resources; fixed successful execution interruption only',
+        process_start_method=options.start_method,
         weights_or_inference_used=False, args=vars(args),
     )
     protocol_path = options.output / 'protocol.json'
@@ -350,7 +370,9 @@ def main():
             aggregate(options.output)
     else:
         with concurrent.futures.ProcessPoolExecutor(
-                max_workers=options.workers, mp_context=multiprocessing.get_context('fork')) as pool:
+                max_workers=options.workers,
+                mp_context=multiprocessing.get_context(options.start_method),
+                initializer=initialize_worker, initargs=(CONTEXT,)) as pool:
             for future in concurrent.futures.as_completed([pool.submit(run_pair, t) for t in tasks]):
                 future.result()
                 aggregate(options.output)
