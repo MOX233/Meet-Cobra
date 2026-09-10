@@ -51,6 +51,33 @@ from utils.data_utils import preprocess_input_np, generate_complex_gaussian_vect
 from utils.beam_utils import generate_dft_codebook, beamPairId_to_beamIdPair
 
 
+def _predict_vehicle_batch(model, CSI_dict, device, K=None, batch_size=512):
+    """Run deterministic per-vehicle predictors in length-homogeneous batches.
+
+    The historical CSI sequence is shorter for newly entering vehicles.  Grouping
+    records by array shape lets the existing LSTM ``predict`` methods be reused
+    without padding or changing their numerical definition.  This helper is only
+    used when a caller explicitly enables ``batch_prediction``.
+    """
+    predictions = collections.OrderedDict()
+    grouped_vehicles = collections.OrderedDict()
+    for veh, csi in CSI_dict.items():
+        grouped_vehicles.setdefault(tuple(csi.shape), []).append(veh)
+
+    with torch.inference_mode():
+        for vehicles in grouped_vehicles.values():
+            for start in range(0, len(vehicles), batch_size):
+                chunk = vehicles[start : start + batch_size]
+                inputs = np.stack([CSI_dict[veh] for veh in chunk], axis=0)
+                if K is None:
+                    outputs = model.predict(inputs, device)
+                else:
+                    outputs = model.predict(inputs, device, K=K)
+                for veh, output in zip(chunk, outputs):
+                    predictions[veh] = output
+    return predictions
+
+
 def get_default_sim_params(save_dir, gpu=0, lbd=1, cut_ratio=1):
     # Urban Macro LoS: PL = 28 + 22*log10(d)+20*log10(f)
     # Urban Micro LoS: PL = 32.4 + 21*log10(d)+20*log10(f)
@@ -213,6 +240,10 @@ def run_sim_withUMa(
     
     K_BF = kwargs.get('K_BF', None) 
     NoPHO = kwargs.get('NoPHO', False) #TODO
+    batch_prediction = kwargs.get('batch_prediction', False)
+    prediction_batch_size = kwargs.get('prediction_batch_size', 512)
+    prediction_cache = kwargs.get('prediction_cache', None)
+    measured_gain_gamma = kwargs.get('measured_gain_gamma', 0.1)
     K_BF = K_BF if K_BF is not None else args.K
     device = args.device
     DFT_matrix_tx = generate_dft_codebook(args.M_t)
@@ -300,7 +331,12 @@ def run_sim_withUMa(
         
     sim_start_time = time.time()
     # 用 tqdm 进行进度条显示
-    for x, frame_cur in tqdm.tqdm(enumerate(frame_list[1:]), total=num_frame, desc='Simulating'):
+    for x, frame_cur in tqdm.tqdm(
+        enumerate(frame_list[1:]),
+        total=num_frame,
+        desc='Simulating',
+        disable=not prt,
+    ):
     #for x, frame_cur in tqdm(enumerate(frame_list[1:])):
         veh_set_cur = set(timeline_dir[frame_cur].keys())
         # print("frame: ", frame_cur, " veh num: ", len(veh_set_cur)) #debug
@@ -343,22 +379,45 @@ def run_sim_withUMa(
                 
         # 基于历史信道状态信息, 通过AI/ML算法预测各车辆在下一PHO周期与各MicroBS间的最优波束增益     
         pred_gain_opt_beam_dict = collections.OrderedDict()
-        for veh in veh_set_cur:
-            if gainpred_model is None:
-                pred_gain_opt_beam_dict[veh] = timeline_dir[frame_cur][veh]["g_opt_beam"]
-            else:
-                pred_gain_opt_beam_dict[veh] = gainpred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device)[0]
-                # pred_gain_opt_beam_dict[veh].shape = (4,)
-            # if timeline_dir[frame_cur][veh]["g_opt_beam"][pred_gain_opt_beam_dict[veh].argmax()] <= -180:
-            #     print('bug!')
-                # ipdb.set_trace()
+        if gainpred_model is not None and prediction_cache is not None:
+            for veh in veh_set_cur:
+                pred_gain_opt_beam_dict[veh] = prediction_cache[frame_cur][veh]["gain"]
+        elif gainpred_model is not None and batch_prediction:
+            pred_gain_opt_beam_dict.update(
+                _predict_vehicle_batch(
+                    gainpred_model,
+                    CSI_dict_cur,
+                    device,
+                    batch_size=prediction_batch_size,
+                )
+            )
+        else:
+            for veh in veh_set_cur:
+                if gainpred_model is None:
+                    pred_gain_opt_beam_dict[veh] = timeline_dir[frame_cur][veh]["g_opt_beam"]
+                else:
+                    pred_gain_opt_beam_dict[veh] = gainpred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device)[0]
         # 基于历史信道状态信息, 通过AI/ML算法预测各车辆在下一PHO周期与各MicroBS间的最优波束方向
         pred_beamPairId_dict = collections.OrderedDict()
-        for veh in veh_set_cur:
-            if beampred_model is None:
-                pred_beamPairId_dict[veh] = timeline_dir[frame_cur][veh]["best_beam_pair_idx"].reshape(-1,1).repeat(K_BF,axis=-1)
-            else:
-                pred_beamPairId_dict[veh] = beampred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device, K=K_BF)[0]
+        if beampred_model is not None and prediction_cache is not None:
+            for veh in veh_set_cur:
+                pred_beamPairId_dict[veh] = prediction_cache[frame_cur][veh]["beam"][:, :K_BF]
+        elif beampred_model is not None and batch_prediction:
+            pred_beamPairId_dict.update(
+                _predict_vehicle_batch(
+                    beampred_model,
+                    CSI_dict_cur,
+                    device,
+                    K=K_BF,
+                    batch_size=prediction_batch_size,
+                )
+            )
+        else:
+            for veh in veh_set_cur:
+                if beampred_model is None:
+                    pred_beamPairId_dict[veh] = timeline_dir[frame_cur][veh]["best_beam_pair_idx"].reshape(-1,1).repeat(K_BF,axis=-1)
+                else:
+                    pred_beamPairId_dict[veh] = beampred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device, K=K_BF)[0]
                 # pred_beamPairId_dict[veh].shape = (4,K)
         
         pred_g_macroBS_dict = get_g_macroBS_dict(args, pred_loc_dict, MacroBS_loc, fc_ghz=2.8, Gt_macro=0, scenario='los')
@@ -366,10 +425,24 @@ def run_sim_withUMa(
         
         pred_g_dict = collections.OrderedDict()
         pred_infer_g_dict = collections.OrderedDict() if inferpred_model is not None else None
+        pred_infer_micro_dict = None
+        if inferpred_model is not None and prediction_cache is not None:
+            pred_infer_micro_dict = {
+                veh: prediction_cache[frame_cur][veh]["interference"]
+                for veh in veh_set_cur
+            }
+        elif inferpred_model is not None and batch_prediction:
+            pred_infer_micro_dict = _predict_vehicle_batch(
+                inferpred_model,
+                CSI_dict_cur,
+                device,
+                batch_size=prediction_batch_size,
+            )
         for veh in pred_g_macroBS_dict.keys():
             pred_g_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], pred_gain_opt_beam_dict[veh]), axis=0)
             if inferpred_model is not None:
-                pred_infer_g_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], inferpred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device)[0]), axis=0)
+                infer_micro = pred_infer_micro_dict[veh] if pred_infer_micro_dict is not None else inferpred_model.predict(CSI_dict_cur[veh][np.newaxis,...],device)[0]
+                pred_infer_g_dict[veh] = np.concatenate(([pred_g_macroBS_dict[veh]], infer_micro), axis=0)
 
         # 在每一帧内，让各车对各MicroBS的K个波束对进行测量
         g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = \
@@ -391,7 +464,12 @@ def run_sim_withUMa(
                 pred_g_dict[veh] = ~valid_mask * pred_g_dict[veh] + \
                     valid_mask * (gamma**(elapsed_frame+1)*last_measured_g + (1-gamma**(elapsed_frame+1)) * pred_g_dict[veh])
             return pred_g_dict
-        pred_g_dict = predict_g_from_measured_g_record_dict(measured_g_record_dict_cur, pred_g_dict, veh_set_cur)
+        pred_g_dict = predict_g_from_measured_g_record_dict(
+            measured_g_record_dict_cur,
+            pred_g_dict,
+            veh_set_cur,
+            gamma=measured_gain_gamma,
+        )
         
         # 基于积压队列、预测位置、BS位置等信息进行PHO决策
         # 将num_RB_allocated_perBS的估计转到在本程序中进行
@@ -640,7 +718,12 @@ def run_sim_withUMa_analyzed_lowerbound(
         CSI_dict_prev[veh] = timeline_dir[frame_prev][veh]["CSI_preprocessed"]
         
     # 用 tqdm 进行进度条显示
-    for x, frame_cur in tqdm.tqdm(enumerate(frame_list[1:]), total=num_frame, desc='Simulating'):
+    for x, frame_cur in tqdm.tqdm(
+        enumerate(frame_list[1:]),
+        total=num_frame,
+        desc='Simulating',
+        disable=not prt,
+    ):
         veh_set_cur = set(timeline_dir[frame_cur].keys())
         # print("frame: ", frame_cur, " veh num: ", len(veh_set_cur)) #debug
         veh_set_in = veh_set_cur.difference(veh_set_prev)

@@ -117,8 +117,8 @@ def measure_gain(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairI
                 candidate_beamPairId[:,0] = bpID_dict_lastslot[veh]  # 保留上次帧的最佳波束对ID
             candidate_beam_index_pair = beamPairId_to_beamIdPair(candidate_beamPairId, M_t=args.M_t, M_r=args.M_r) # (N_bs,args.K,2)
             for BS_id in range(len(BS_loc_list)):
-                g_bf = 2 * lin2dB(np.zeros((K_BF)))
                 num_pilot_dict[veh][BS_id] = K_BF
+                g_bf = 2 * lin2dB(np.zeros((K_BF)))
                 for k in range(K_BF):
                     g_bf[k] = 1/np.sqrt(args.M_r*args.M_t) * \
                         np.abs(np.matmul(np.matmul(veh_h[:,BS_id,:], DFT_matrix_tx[:,candidate_beam_index_pair[BS_id,k,0]]).T.conjugate(),DFT_matrix_rx[:,candidate_beam_index_pair[BS_id,k,1]]))
