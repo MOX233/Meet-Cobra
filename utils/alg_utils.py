@@ -8,6 +8,7 @@ from scipy.optimize import linprog
 from utils.beam_utils import beamIdPair_to_beamPairId, beamPairId_to_beamIdPair
 from utils.mox_utils import lin2dB, dB2lin
 from utils.channel_utils import rician_channel_gain
+from utils.ho_utils import capacity_factors
 
 min_bf_gain_dB = 20
 
@@ -1056,6 +1057,14 @@ def HO_EE_GAP_APX_SINR_conservative(args, veh_set_cur, backlog_queue_dict, veh_d
 
 
 def HO_EE_GAP_APX_SINR_conservative_adaptive(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
+    # Only capacities use active-service RB demand. Costs and interference use
+    # full-frame average RB demand. Both options default to the legacy behavior.
+    capacity_correction = kwargs.get('ho_capacity_correction', False)
+    factors = capacity_factors(
+        list(veh_set_cur), len(BS_loc_array), kwargs.get('current_connection'),
+        kwargs.get('ho_interruption_slots', 0) if capacity_correction else 0,
+        args.slots_per_frame,
+    )
     # 根据历史约束违规率来计算预留资源比例
     vio_prob_history = kwargs.get('vio_prob_history', [])
     vio_prob_threshold = args.vio_prob_threshold    
@@ -1121,7 +1130,8 @@ def HO_EE_GAP_APX_SINR_conservative_adaptive(args, veh_set_cur, backlog_queue_di
         RB_num_table[BS_id] = int(RB_num_table[BS_id] * (1-reserve_ratio))  # 保守分配，预留10%的资源
         pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
     T_HO, feasible_flag = _HO_GAP_APX(
-        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+        T_KR=k_tilde_matrix.swapaxes(0, 1) * factors, T_TR=RB_num_table, T_PM=pm_table,
+        T_COST=k_tilde_matrix.swapaxes(0, 1) * pm_table[:, None],
     )
     _num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
     _T_HO = T_HO
@@ -1167,7 +1177,8 @@ def HO_EE_GAP_APX_SINR_conservative_adaptive(args, veh_set_cur, backlog_queue_di
         RB_num_table[BS_id] = int(RB_num_table[BS_id] * (1-reserve_ratio))  # 保守分配，预留10%的资源
         pm_table[BS_id] = args.p_micro if BS_id > 0 else args.p_macro
     T_HO, feasible_flag = _HO_GAP_APX_with_offload(
-        T_KR=k_tilde_matrix.swapaxes(0, 1), T_TR=RB_num_table, T_PM=pm_table
+        T_KR=k_tilde_matrix.swapaxes(0, 1) * factors, T_TR=RB_num_table, T_PM=pm_table,
+        T_COST=k_tilde_matrix.swapaxes(0, 1) * pm_table[:, None],
     )
     num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
     
@@ -1577,8 +1588,8 @@ def alg_GAP_APX_adap(c, a, b, adap_mtp=1.1, debug=False):
     return sche_matrix
 
 
-def _ITERATIVE_OFFLOAD(init_T_HO: np.ndarray, T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray):
-    T_PK = T_KR * T_PM[:, np.newaxis]
+def _ITERATIVE_OFFLOAD(init_T_HO: np.ndarray, T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray, T_COST=None):
+    T_PK = T_KR * T_PM[:, np.newaxis] if T_COST is None else T_COST
     T_HO = init_T_HO
     T_LR = T_TR - (T_KR * T_HO).sum(1)
 
@@ -1669,22 +1680,22 @@ def _HO_RBE_greedy_offload(T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray)
     return T_HO, feasible_flag
 
 
-def _HO_GAP_APX(T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray):
+def _HO_GAP_APX(T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray, T_COST=None):
     # T_KR.shape == (num_BS, num_UE)
     num_BS, num_UE = T_KR.shape
     T_LR = np.zeros((num_BS))  # left RB table
-    T_PK = T_KR * T_PM[:, np.newaxis]
+    T_PK = T_KR * T_PM[:, np.newaxis] if T_COST is None else T_COST
     T_HO = alg_GAP_APX_adap(c=T_PK, a=T_KR, b=T_TR, adap_mtp=1.1)
     T_LR = T_TR - (T_KR * T_HO).sum(1)
     feasible_flag = T_LR.min() >= 0
     return T_HO, feasible_flag
 
 
-def _HO_GAP_APX_with_offload(T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray):
+def _HO_GAP_APX_with_offload(T_KR: np.ndarray, T_TR: np.ndarray, T_PM: np.ndarray, T_COST=None):
     # init HO decision table
-    T_HO, _ = _HO_GAP_APX(T_KR, T_TR, T_PM)
+    T_HO, _ = _HO_GAP_APX(T_KR, T_TR, T_PM, T_COST=T_COST)
     
-    T_HO, feasible_flag = _ITERATIVE_OFFLOAD(T_HO, T_KR, T_TR, T_PM)
+    T_HO, feasible_flag = _ITERATIVE_OFFLOAD(T_HO, T_KR, T_TR, T_PM, T_COST=T_COST)
     return T_HO, feasible_flag
 
 

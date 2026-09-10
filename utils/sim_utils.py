@@ -23,6 +23,7 @@ from utils.channel_utils import (
     get_g_macroBS_dict,
     rician_channel_gain,
 )
+from utils.ho_utils import interruption_slots
 from utils.queue_utils import (
     init_vehset_backlog_queue,
     init4frame_vehset_backlog_queue,
@@ -78,7 +79,7 @@ def _predict_vehicle_batch(model, CSI_dict, device, K=None, batch_size=512):
     return predictions
 
 
-def get_default_sim_params(save_dir, gpu=0, lbd=1, cut_ratio=1):
+def get_default_sim_params(save_dir, gpu=0, lbd=1, cut_ratio=1, load_predictors=True):
     # Urban Macro LoS: PL = 28 + 22*log10(d)+20*log10(f)
     # Urban Micro LoS: PL = 32.4 + 21*log10(d)+20*log10(f)
     # data_rate_list = np.logspace(7, 8, 10)
@@ -182,6 +183,12 @@ def get_default_sim_params(save_dir, gpu=0, lbd=1, cut_ratio=1):
             break
         _timeline_dir[frame] = v
     timeline_dir = _timeline_dir
+
+    # Oracle-only diagnostics need neither NN checkpoint loading nor inference.
+    if not load_predictors:
+        locations = [np.array(p) for p in ((300, 300), (-300, 300),
+                                           (300, -300), (-300, -300))]
+        return args, locations, timeline_dir, None, None, None, None, save_path
            
     feature_input_dim = 2 * M_r * n_pilot + 2 * int(preprocess_mode == 2)
     num_bs = N_bs
@@ -244,6 +251,15 @@ def run_sim_withUMa(
     prediction_batch_size = kwargs.get('prediction_batch_size', 512)
     prediction_cache = kwargs.get('prediction_cache', None)
     measured_gain_gamma = kwargs.get('measured_gain_gamma', 0.1)
+    ho_slots = interruption_slots(kwargs.get('ho_interruption_ms', 0.0),
+                                  args.slot_len, args.slots_per_frame)
+    ho_capacity_correction = kwargs.get('ho_capacity_correction', False)
+    traffic_trace = kwargs.get('traffic_trace')
+    oracle_ho_cache = kwargs.get('oracle_ho_cache')
+    ho_diagnostics = kwargs.get('ho_diagnostics')
+    if ho_slots and any(model is not None for model in
+                        (pospred_model, beampred_model, gainpred_model, inferpred_model)):
+        raise ValueError("HO interruption is currently validated only for Oracle runs")
     K_BF = K_BF if K_BF is not None else args.K
     device = args.device
     DFT_matrix_tx = generate_dft_codebook(args.M_t)
@@ -294,6 +310,8 @@ def run_sim_withUMa(
     assert args.random_factor_range4data_rate >= 0 and args.random_factor_range4data_rate <= 1
     for veh in veh_set_all:
         veh_data_rate_dict[veh] = args.data_rate * np.random.uniform(1-args.random_factor_range4data_rate, 1+args.random_factor_range4data_rate)
+    if traffic_trace is not None:
+        veh_data_rate_dict.update(traffic_trace['rates'])
     # import ipdb;ipdb.set_trace()
     # print("veh_data_rate_dict:", veh_data_rate_dict)  # debug
     
@@ -315,6 +333,9 @@ def run_sim_withUMa(
     Q_dict_prev = init_vehset_backlog_queue(
         veh_set_prev, Q_ub_dict, Q_th=0.5, slots_per_frame=args.slots_per_frame
     )
+    if traffic_trace is not None:
+        for veh in veh_set_prev:
+            Q_dict_prev[veh][:] = traffic_trace['initial_queues'][frame_prev][veh]
 
     # 初始化车辆-基站连接关系
     connection_dict_prev = init_vehset_connection(veh_set_prev, BS_loc_array, timeline_dir[frame_prev], macro=True)
@@ -351,6 +372,9 @@ def run_sim_withUMa(
             Q_th=0.5,
             slots_per_frame=args.slots_per_frame,
         )
+        if traffic_trace is not None:
+            for veh in veh_set_in:
+                Q_dict_cur[veh][0] = traffic_trace['initial_queues'][frame_cur][veh]
         CSI_dict_cur = collections.OrderedDict() #
         for veh in veh_set_cur:
             CSI_dict_cur[veh] = timeline_dir[frame_cur][veh]["CSI_preprocessed"].astype(np.float32)
@@ -365,6 +389,10 @@ def run_sim_withUMa(
         connection_dict_cur, HO_cnt4frame = update_vehset_connection(
             veh_set_remain, veh_set_in, connection_dict_prev, HO_cmd_prev4cur, BS_loc_array, timeline_dir[frame_cur], macro=True
         )
+        switched = {veh for veh in veh_set_remain
+                    if connection_dict_cur[veh] != connection_dict_prev[veh]}
+        if ho_slots or ho_diagnostics is not None:
+            assert len(switched) == HO_cnt4frame
         BS_association_dict, BS_association_num = update_BS_association_state(
             BS_loc_dict, connection_dict_cur
         )  # 各基站关联用户数量
@@ -478,25 +506,45 @@ def run_sim_withUMa(
 
         # PHO决策
         vio_prob_history = violation_prob_record[:x]
+        ho_gain = pred_g_dict
+        ho_interference = pred_infer_g_dict if inferpred_model is not None else g_NoBF_dict
+        ho_positions, ho_pilots = pred_loc_dict, num_pilot_dict
+        if oracle_ho_cache is not None and x + 2 < len(frame_list):
+            # True next-frame Oracle for continuing vehicles; departure fallback
+            # cannot affect service to a vehicle that is no longer in the scene.
+            future = oracle_ho_cache[frame_list[x + 2]]
+            ho_gain = {v: future['gain'].get(v, pred_g_dict[v]) for v in veh_set_cur}
+            ho_interference = {v: future['interference'].get(v, g_NoBF_dict[v]) for v in veh_set_cur}
+            ho_positions = {v: future['positions'].get(v, pred_loc_dict[v]) for v in veh_set_cur}
+            ho_pilots = {v: future['pilots'].get(v, num_pilot_dict[v]) for v in veh_set_cur}
+        ho_options = {}
+        if ho_capacity_correction:
+            ho_options = dict(current_connection=connection_dict_cur,
+                              ho_capacity_correction=True, ho_interruption_slots=ho_slots)
         HO_cmd_cur4next, pred_num_RB_allocated_perBS = HO_func(
-            args, veh_set_cur, Q_dict_cur, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array,
-            infer_g_dict=pred_infer_g_dict if inferpred_model is not None else g_NoBF_dict,
-            num_pilot_dict=num_pilot_dict,
+            args, veh_set_cur, Q_dict_cur, veh_data_rate_dict, ho_positions, ho_gain, BS_loc_array,
+            infer_g_dict=ho_interference,
+            num_pilot_dict=ho_pilots,
             vio_prob_history=vio_prob_history,
+            **ho_options,
         )
         
         # 模拟车辆业务数据到达过程 in a frame
         a_dict = collections.OrderedDict()
         for veh in veh_set_cur:
-            a_dict[veh] = np.random.poisson(
-                veh_data_rate_dict[veh] * args.slot_len,
-                size=(args.slots_per_frame)
-            )
+            if traffic_trace is None:
+                a_dict[veh] = np.random.poisson(
+                    veh_data_rate_dict[veh] * args.slot_len,
+                    size=(args.slots_per_frame)
+                )
+            else:
+                a_dict[veh] = traffic_trace['arrivals'][frame_cur][veh]
         
         energy4frame = 0  # 统计当前帧的能耗
             
         pilot_slot_record = np.zeros((args.slots_per_frame,))  # 记录当前帧的每个时隙所用pilot数量
         for i in range(0, args.slots_per_frame):
+            blocked = switched if i < ho_slots else set()
             
             # # 在每一【时隙】内，让各车对各MicroBS的K个波束对进行测量
             if beampred_model is not None:
@@ -507,6 +555,12 @@ def run_sim_withUMa(
                 g_microBS_slot_dict = g_microBS_dict
                 g_microBS_NoBF_slot_dict = g_microBS_NoBF_dict
                 num_pilot_slot_dict = num_pilot_dict
+            if blocked:
+                # Oracle channel extraction is offline, not physical training.
+                # Charge no beam-search attempts to an interrupted vehicle.
+                num_pilot_slot_dict = dict(num_pilot_slot_dict)
+                for veh in blocked:
+                    num_pilot_slot_dict[veh] = np.zeros(len(MicroBS_loc_list))
 
             g_slot_dict = collections.OrderedDict()
             g_slot_NoBF_dict = collections.OrderedDict()
@@ -526,7 +580,7 @@ def run_sim_withUMa(
             #     rician_factor = lin2dB(rician_channel_gain(args.K_rician, size=len(g_dict[veh_id])))
             #     g_slot_dict[veh_id] = g_dict[veh_id] + rician_factor
             
-            RA_dict = collections.OrderedDict()
+            RA_dict = collections.OrderedDict((veh, 0) for veh in blocked)
             num_RB_allocated_perBS = np.zeros((len(BS_loc_list),), dtype=int) #各基站分配的子载波数
             # 各基站逐时隙进行子载波分配
             for BS_id in range(len(BS_loc_list)):
@@ -534,7 +588,8 @@ def run_sim_withUMa(
                     args,
                     slot_idx=i,
                     BS_id=BS_id,
-                    veh_set=BS_association_dict[BS_id],
+                    veh_set=([v for v in BS_association_dict[BS_id] if v not in blocked]
+                             if blocked else BS_association_dict[BS_id]),
                     veh_data_rate_dict=veh_data_rate_dict,
                     Q_ub_dict=Q_ub_dict,
                     q_dict=Q_dict_cur,
@@ -569,6 +624,11 @@ def run_sim_withUMa(
                 num_pilot_dict=num_pilot_slot_dict,
                 sinr_flag=True,
             )
+            if ho_diagnostics is not None:
+                for veh in blocked:
+                    assert RA_dict[veh] == 0
+                    assert np.all(num_pilot_slot_dict[veh] == 0)
+                    assert Q_dict_cur[veh][i + 1] == Q_dict_cur[veh][i] + a_dict[veh][i]
             # import ipdb;ipdb.set_trace()
             # print(num_pilot_slot_dict)
             # for veh, num_pilot in num_pilot_slot_dict.items():
@@ -608,6 +668,13 @@ def run_sim_withUMa(
             / judgement_cnt
         )
         HO_cmd_record[x] = HO_cmd_prev4cur
+        if ho_diagnostics is not None:
+            ho_diagnostics.append(dict(
+                frame=frame_cur, association=dict(connection_dict_cur),
+                switched=sorted(switched, key=repr),
+                blocked_vehicle_slots=len(switched) * ho_slots,
+                active_vehicle_slots=len(veh_set_cur) * args.slots_per_frame,
+            ))
         # if prt:
         #     print("\n\nframe: ", x, frame_cur)
         #     print("BS_association_num: ", BS_association_num)
