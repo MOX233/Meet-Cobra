@@ -1,0 +1,9 @@
+{
+  "dataset_path": "data4sim/lbd1.00_800_950_tx(1,32)_rx(1,8)_freq2.8e+10_Np8_mode0_lookahead10.pkl",
+  "sha256": "034b9575072dcd00dedf3afbd0605f35cfea07ce2e8d78692b9566e7b907ffc0",
+  "size_bytes": 2508720871,
+  "cached_interval_s": [800, 950],
+  "requested_experiment_interval_s": [800, 830],
+  "source_data_modified_by_this_experiment": false,
+  "note": "Shared by the main sweep and 27-Mbps follow-up. Check this fingerprint before resuming after data regeneration; the run protocol checks source code and traffic fingerprints but does not automatically hash the RT file."
+}

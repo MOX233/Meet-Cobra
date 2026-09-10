@@ -1,0 +1,8 @@
+{
+  "checkpoint": "76078e5",
+  "default_vs_checkpoint": "bitwise_equal_all_8_outputs",
+  "forced_switch_no_service_no_pilots_arrival_accumulation": "passed",
+  "frames": 11,
+  "paired_next_frame_oracle_zero_correction": "bitwise_equal_all_8_outputs",
+  "zero_correction_vs_checkpoint": "bitwise_equal_all_8_outputs"
+}

@@ -1,0 +1,19 @@
+{
+  "elapsed_s": 419.6197611615062,
+  "ho_ms": 10.0,
+  "method": "original",
+  "metrics": {
+    "blocked_vehicle_time_percent": 0.47113175383551154,
+    "handover_count": 1907,
+    "handovers_per_vehicle_s": 0.4711317538355115,
+    "macro_association_percent": 10.601082096005138,
+    "mean_proxy_ms": 1.3073490873080427,
+    "p99_proxy_ms": 2.2334317788951523,
+    "pilots_per_vehicle_slot": 0.8918995813850071,
+    "power_w": 111.97598653198665,
+    "violation_percent": 0.01927339925239372
+  },
+  "rate_mbps": 27.0,
+  "seed": 3,
+  "traffic_sha256": "cacbbeb53024fb167d5c70626bf3acd50791636b58c0aa3b1fd3afd596463e00"
+}

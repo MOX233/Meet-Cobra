@@ -1,0 +1,13 @@
+{
+  "runs": 54,
+  "source_hashes": "matched",
+  "finite_outputs": "passed",
+  "zero_interruption_pair_count": 9,
+  "zero_interruption_pairs": "bitwise_identical_all_npz_arrays",
+  "independent_of_policy_traffic_hashes": "matched",
+  "queue_violation_recomputation": "exact",
+  "energy_vs_allocated_rbs": "matched",
+  "frame_average_rb_caps": "passed",
+  "blocked_slots_vs_actual_handovers": "matched",
+  "blocked_service_and_pilots": "asserted during each simulation"
+}
