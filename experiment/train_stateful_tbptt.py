@@ -11,6 +11,7 @@ import argparse
 import copy
 import csv
 import json
+import math
 from pathlib import Path
 import random
 import sys
@@ -44,12 +45,39 @@ def split_vehicles(data, train_fraction=0.7, seed=20):
     return train, val
 
 
-def make_model(task, device, initialization):
+def replace_batch_norm_with_layer_norm(module):
+    """Use per-sample normalization for correlated stateful trajectories."""
+    for name, child in module.named_children():
+        if isinstance(child, nn.BatchNorm1d):
+            replacement = nn.LayerNorm(
+                child.num_features,
+                eps=child.eps,
+                elementwise_affine=child.affine,
+            )
+            setattr(module, name, replacement)
+        else:
+            replace_batch_norm_with_layer_norm(child)
+
+
+def make_model(task, device, initialization, normalization):
     model = BeamPredictionLSTMModel(128, 4, 256) if task == "beam" else BestGainPredictionLSTMModel(128, 4)
+    if normalization == "layernorm":
+        replace_batch_norm_with_layer_norm(model)
     if initialization == "paper":
+        if normalization != "batchnorm":
+            raise ValueError("Paper checkpoints require the original BatchNorm architecture")
         key = {"beam": "beam", "desired_gain": "desired_gain", "interfering_gain": "interfering_gain"}[task]
         model.load_state_dict(torch.load(CHECKPOINT_DIR / CHECKPOINTS[key], map_location="cpu", weights_only=True))
     return model.to(device)
+
+
+def warmup_cosine_learning_rate(epoch, epochs, peak_lr, min_lr, warmup_epochs):
+    """Learning rate used by a one-indexed epoch."""
+    if warmup_epochs and epoch <= warmup_epochs:
+        return peak_lr * epoch / warmup_epochs
+    decay_epochs = max(1, epochs - warmup_epochs)
+    progress = min(1.0, max(0.0, (epoch - warmup_epochs) / decay_epochs))
+    return min_lr + 0.5 * (peak_lr - min_lr) * (1 + math.cos(math.pi * progress))
 
 
 def forward_valid(model, lstm_output, mask, task):
@@ -58,13 +86,34 @@ def forward_valid(model, lstm_output, mask, task):
     return torch.stack(heads, dim=-2) if task == "beam" else torch.cat(heads, dim=-1)
 
 
-def noisy_features(clean, device, generator, noise_power=1e-14):
+def feature_statistics(data, trajectory_indices):
+    """Feature-wise training-set statistics without materializing all features."""
+    total = np.zeros(128, dtype=np.float64)
+    total_squared = np.zeros(128, dtype=np.float64)
+    count = 0
+    for trajectory in trajectory_indices:
+        start, stop = data["offsets"][trajectory:trajectory + 2]
+        for chunk_start in range(int(start), int(stop), 65536):
+            clean = data["clean_csi"][chunk_start:min(int(stop), chunk_start + 65536)]
+            features = np.concatenate((np.log10(np.abs(clean) + 1e-9) + 7, np.angle(clean)), axis=-1)
+            total += features.sum(axis=0, dtype=np.float64)
+            total_squared += np.square(features, dtype=np.float64).sum(axis=0, dtype=np.float64)
+            count += len(features)
+    mean = total / count
+    variance = np.maximum(total_squared / count - mean ** 2, 1e-12)
+    return mean.astype(np.float32), np.sqrt(variance).astype(np.float32)
+
+
+def noisy_features(clean, device, generator, feature_mean=None, feature_std=None, noise_power=1e-14):
     value = torch.as_tensor(clean, device=device)
     sigma = (noise_power / 2) ** 0.5
     real = torch.randn(value.shape, device=device, generator=generator)
     imag = torch.randn(value.shape, device=device, generator=generator)
     value = value + sigma * torch.complex(real, imag)
-    return torch.cat((20 * torch.log10(value.abs() + 1e-9) / 20 + 7, torch.angle(value)), dim=-1).float()
+    features = torch.cat((20 * torch.log10(value.abs() + 1e-9) / 20 + 7, torch.angle(value)), dim=-1).float()
+    if feature_mean is not None:
+        features = (features - feature_mean) / feature_std
+    return features
 
 
 def trajectory_groups(indices, offsets, batch_size, shuffle, rng):
@@ -75,7 +124,8 @@ def trajectory_groups(indices, offsets, batch_size, shuffle, rng):
 
 
 def run_epoch(model, task, data, indices, device, chunk_length, batch_size, optimizer,
-              shuffle, seed, gradient_clip, freeze_batch_norm=True):
+              shuffle, seed, gradient_clip, freeze_batch_norm=True,
+              feature_mean=None, feature_std=None):
     training = optimizer is not None
     model.train(training)
     if training and freeze_batch_norm:
@@ -113,7 +163,7 @@ def run_epoch(model, task, data, indices, device, chunk_length, batch_size, opti
                         source = slice(start + time_start, start + time_start + count)
                         clean[row, :count] = data["clean_csi"][source]
                         target[row, :count] = data[key][source]
-                x = noisy_features(clean, device, noise_generator)
+                x = noisy_features(clean, device, noise_generator, feature_mean, feature_std)
                 mask = torch.as_tensor(mask_np, device=device)
                 labels = torch.as_tensor(target, device=device)[mask]
                 if training:
@@ -175,11 +225,20 @@ def main():
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--gradient-clip", type=float, default=1.0)
     parser.add_argument("--initialization", choices=("paper", "scratch"), default="paper")
+    parser.add_argument("--normalization", choices=("batchnorm", "layernorm"), default="batchnorm")
+    parser.add_argument("--input-normalization", choices=("paper", "train-standardization"), default="paper")
     parser.add_argument("--batch-norm-mode", choices=("frozen", "running"), default="frozen")
+    parser.add_argument("--scheduler", choices=("plateau", "warmup-cosine"), default="plateau")
+    parser.add_argument("--warmup-epochs", type=int, default=5)
+    parser.add_argument("--min-learning-rate", type=float, default=1e-6)
     parser.add_argument("--max-trajectories", type=int, default=0, help="Smoke-test limiter after split; 0 means all")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(f"Refusing to overwrite {args.output}")
+    if args.scheduler == "warmup-cosine" and (args.warmup_epochs < 0 or args.warmup_epochs >= args.epochs):
+        parser.error("--warmup-epochs must be nonnegative and smaller than --epochs")
+    if args.min_learning_rate <= 0 or args.min_learning_rate > args.learning_rate:
+        parser.error("--min-learning-rate must be positive and no larger than --learning-rate")
     args.output.mkdir(parents=True)
     random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed)
     if torch.cuda.is_available():
@@ -190,14 +249,27 @@ def main():
     if args.max_trajectories:
         train_indices = train_indices[:args.max_trajectories]
         val_indices = val_indices[:max(2, args.max_trajectories // 3)]
-    model = make_model(args.task, device, args.initialization)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max" if args.task == "beam" else "min",
-                                                           factor=.5, patience=2, min_lr=1e-6)
+    feature_mean = feature_std = None
+    if args.input_normalization == "train-standardization":
+        mean_np, std_np = feature_statistics(data, train_indices)
+        np.savez(args.output / "input_normalization.npz", mean=mean_np, std=std_np)
+        feature_mean = torch.as_tensor(mean_np, device=device)
+        feature_std = torch.as_tensor(std_np, device=device)
+    model = make_model(args.task, device, args.initialization, args.normalization)
+    first_lr = (warmup_cosine_learning_rate(1, args.epochs, args.learning_rate,
+                                            args.min_learning_rate, args.warmup_epochs)
+                if args.scheduler == "warmup-cosine" else args.learning_rate)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=first_lr, weight_decay=args.weight_decay)
+    scheduler = None
+    if args.scheduler == "plateau":
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="max" if args.task == "beam" else "min",
+            factor=.5, patience=2, min_lr=args.min_learning_rate)
     started = time.monotonic()
     freeze_bn = args.batch_norm_mode == "frozen"
     initial_val = run_epoch(model, args.task, data, val_indices, device, args.chunk_length, args.batch_size,
-                            None, False, args.seed, args.gradient_clip, freeze_bn)
+                            None, False, args.seed, args.gradient_clip, freeze_bn,
+                            feature_mean, feature_std)
     best_value = initial_val["top1_accuracy_pct"] if args.task == "beam" else initial_val["mae_db"]
     best_epoch, stale = 0, 0
     torch.save({k: v.detach().cpu() for k, v in model.state_dict().items()}, args.output / "best.pth")
@@ -206,10 +278,13 @@ def main():
                 **{f"val_{k}": v for k, v in initial_val.items()}}]
     print(json.dumps(history[0]), flush=True)
     for epoch in range(1, args.epochs + 1):
+        learning_rate_used = optimizer.param_groups[0]["lr"]
         train = run_epoch(model, args.task, data, train_indices, device, args.chunk_length, args.batch_size,
-                          optimizer, True, args.seed + epoch, args.gradient_clip, freeze_bn)
+                          optimizer, True, args.seed + epoch, args.gradient_clip, freeze_bn,
+                          feature_mean, feature_std)
         val = run_epoch(model, args.task, data, val_indices, device, args.chunk_length, args.batch_size,
-                        None, False, args.seed, args.gradient_clip, freeze_bn)
+                        None, False, args.seed, args.gradient_clip, freeze_bn,
+                        feature_mean, feature_std)
         value = val["top1_accuracy_pct"] if args.task == "beam" else val["mae_db"]
         improved = value > best_value if args.task == "beam" else value < best_value
         if improved:
@@ -217,8 +292,14 @@ def main():
             torch.save({k: v.detach().cpu() for k, v in model.state_dict().items()}, args.output / "best.pth")
         else:
             stale += 1
-        scheduler.step(value)
-        row = {"epoch": epoch, "learning_rate": optimizer.param_groups[0]["lr"],
+        if scheduler is not None:
+            scheduler.step(value)
+        elif epoch < args.epochs:
+            next_lr = warmup_cosine_learning_rate(epoch + 1, args.epochs, args.learning_rate,
+                                                  args.min_learning_rate, args.warmup_epochs)
+            for group in optimizer.param_groups:
+                group["lr"] = next_lr
+        row = {"epoch": epoch, "learning_rate": learning_rate_used,
                "elapsed_seconds": time.monotonic() - started,
                **{f"train_{k}": v for k, v in train.items()}, **{f"val_{k}": v for k, v in val.items()}}
         history.append(row)
@@ -239,9 +320,13 @@ def main():
         "train_fraction_by_vehicle": args.train_fraction, "train_trajectories": len(train_indices),
         "validation_trajectories": len(val_indices), "split_seed": args.seed,
         "chunk_length": args.chunk_length, "batch_size": args.batch_size,
-        "optimizer": "AdamW", "initial_learning_rate": args.learning_rate,
+        "optimizer": "AdamW", "peak_learning_rate": args.learning_rate,
         "weight_decay": args.weight_decay, "gradient_clip": args.gradient_clip,
-        "batch_norm_mode": args.batch_norm_mode,
+        "normalization": args.normalization,
+        "input_normalization": args.input_normalization,
+        "batch_norm_mode": args.batch_norm_mode if args.normalization == "batchnorm" else None,
+        "scheduler": args.scheduler, "warmup_epochs": args.warmup_epochs,
+        "minimum_learning_rate": args.min_learning_rate,
         "fresh_training_pilot_noise_each_epoch": True, "validation_noise_seed": args.seed + 100000,
         "best_epoch": best_epoch, "best_validation_metric": float(best_value),
         "epochs_completed": len(history) - 1, "elapsed_seconds": time.monotonic() - started,

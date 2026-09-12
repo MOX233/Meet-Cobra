@@ -206,6 +206,8 @@ def main():
     parser.add_argument("--beam-checkpoint", type=Path)
     parser.add_argument("--desired-gain-checkpoint", type=Path)
     parser.add_argument("--interfering-gain-checkpoint", type=Path)
+    parser.add_argument("--input-normalization-file", type=Path,
+                        help="Optional NPZ containing training-set feature-wise mean and std")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
@@ -223,6 +225,16 @@ def main():
             models[name].load_state_dict(torch.load(path, map_location=device, weights_only=True), strict=True)
             inventory[name]["checkpoint"] = str(path.resolve())
             inventory[name]["sha256"] = digest(path)
+    feature_mean = feature_std = None
+    if args.input_normalization_file is not None:
+        normalization = np.load(args.input_normalization_file)
+        feature_mean = np.asarray(normalization["mean"], dtype=np.float32)
+        feature_std = np.asarray(normalization["std"], dtype=np.float32)
+        if feature_mean.shape != (128,) or feature_std.shape != (128,) or np.any(feature_std <= 0):
+            parser.error("Input normalization must contain valid 128-element mean and std arrays")
+
+    def normalize_features(value):
+        return value if feature_mean is None else (value - feature_mean) / feature_std
     print("Loading test trace", args.data, flush=True)
     with args.data.open("rb") as handle:
         timeline = pickle.load(handle)
@@ -251,17 +263,17 @@ def main():
             ids = list(current)
             new_ages, new_segments = {}, {}
             for v in ids:
-                x = current[v]["CSI_preprocessed"]
-                assert x.dtype == np.float32 and x.ndim == 2 and x.shape[1] == 128 and np.isfinite(x).all()
+                raw_x = current[v]["CSI_preprocessed"]
+                assert raw_x.dtype == np.float32 and raw_x.ndim == 2 and raw_x.shape[1] == 128 and np.isfinite(raw_x).all()
                 if v in prev_records:
-                    expected = np.concatenate((prev_records[v]["CSI_preprocessed"], x[-1:]), axis=0)[-10:]
-                    np.testing.assert_array_equal(x, expected)
+                    expected = np.concatenate((prev_records[v]["CSI_preprocessed"], raw_x[-1:]), axis=0)[-10:]
+                    np.testing.assert_array_equal(raw_x, expected)
                     new_ages[v], new_segments[v] = ages[v] + 1, segments[v]
                 else:
-                    assert len(x) == 1, "Trace begins mid-history; must explicitly warm up both policies."
+                    assert len(raw_x) == 1, "Trace begins mid-history; must explicitly warm up both policies."
                     new_ages[v], new_segments[v] = 1, next_segment
                     next_segment += 1
-                assert len(x) == min(new_ages[v], 10)
+                assert len(raw_x) == min(new_ages[v], 10)
                 histories_checked += 1
             ages, segments = new_ages, new_segments
             if not ids:
@@ -269,7 +281,7 @@ def main():
                     predictor.reset()
                 prev_records, prior_frame = current, frame
                 continue
-            history = [current[v]["CSI_preprocessed"] for v in ids]
+            history = [normalize_features(current[v]["CSI_preprocessed"]) for v in ids]
             latest = torch.as_tensor(np.stack([x[-1:] for x in history]), device=device)
             following = timeline[frames[fi + 1]]
             score_ids = next_frame_ids(current, following) if np.isclose(frames[fi + 1] - frame, 0.1) else []
@@ -280,7 +292,7 @@ def main():
                 if v not in current:
                     del prefix[v]
                 elif fi < 25:
-                    prefix[v].append(current[v]["CSI_preprocessed"][-1])
+                    prefix[v].append(normalize_features(current[v]["CSI_preprocessed"][-1]))
             for name, model in models.items():
                 window = sliding_predictions(model, history, device)
                 stateful = streaming[name].step(ids, latest)
@@ -326,6 +338,9 @@ def main():
     summary = save_summaries(args.output, raw, args.bootstrap_replicates)
     metadata = {
         "data": str(args.data.resolve()), "data_sha256": digest(args.data),
+        "input_normalization": ({"file": str(args.input_normalization_file.resolve()),
+                                 "sha256": digest(args.input_normalization_file)}
+                                if args.input_normalization_file is not None else None),
         "script_sha256": digest(Path(__file__)), "checkpoints": inventory,
         "source_frame_range": [all_frames[0], all_frames[-1]],
         "input_frame_range": [float(raw["frame"].min()), float(raw["frame"].max())],
