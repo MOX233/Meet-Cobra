@@ -203,6 +203,9 @@ def main():
     parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--max-prediction-frames", type=int, default=0, help="0 = complete test trace")
     parser.add_argument("--bootstrap-replicates", type=int, default=2000)
+    parser.add_argument("--beam-checkpoint", type=Path)
+    parser.add_argument("--desired-gain-checkpoint", type=Path)
+    parser.add_argument("--interfering-gain-checkpoint", type=Path)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
@@ -211,6 +214,15 @@ def main():
     torch.manual_seed(20)
     device = torch.device(args.device)
     models, inventory = load_models(device)
+    overrides = {"beam": args.beam_checkpoint, "desired_gain": args.desired_gain_checkpoint,
+                 "interfering_gain": args.interfering_gain_checkpoint}
+    if any(overrides.values()) and not all(overrides.values()):
+        parser.error("Provide all three checkpoint overrides together.")
+    for name, path in overrides.items():
+        if path is not None:
+            models[name].load_state_dict(torch.load(path, map_location=device, weights_only=True), strict=True)
+            inventory[name]["checkpoint"] = str(path.resolve())
+            inventory[name]["sha256"] = digest(path)
     print("Loading test trace", args.data, flush=True)
     with args.data.open("rb") as handle:
         timeline = pickle.load(handle)
