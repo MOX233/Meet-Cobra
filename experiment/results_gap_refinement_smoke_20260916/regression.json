@@ -1,0 +1,17 @@
+{
+  "cases": [
+    {
+      "default_vs_checkpoint": "bitwise_equal_all_8_outputs",
+      "frames": 12,
+      "ho_ms": 0,
+      "iter2_no_early_stop_vs_checkpoint": "bitwise_equal_all_8_outputs"
+    },
+    {
+      "default_vs_checkpoint": "bitwise_equal_all_8_outputs",
+      "frames": 12,
+      "ho_ms": 10,
+      "iter2_no_early_stop_vs_checkpoint": "bitwise_equal_all_8_outputs"
+    }
+  ],
+  "checkpoint": "a5e50ff57d92cc96813d97266c89693379a9a109"
+}

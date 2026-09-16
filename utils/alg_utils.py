@@ -1057,6 +1057,12 @@ def HO_EE_GAP_APX_SINR_conservative(args, veh_set_cur, backlog_queue_dict, veh_d
 
 
 def HO_EE_GAP_APX_SINR_conservative_adaptive(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
+    # Opt-in only: keep the historical two-pass implementation below intact.
+    if kwargs.get('gap_refinement_config') is not None:
+        from utils.gap_refinement import refined_gap_handover
+        return refined_gap_handover(
+            args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict,
+            pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs)
     # Only capacities use active-service RB demand. Costs and interference use
     # full-frame average RB demand. Both options default to the legacy behavior.
     capacity_correction = kwargs.get('ho_capacity_correction', False)

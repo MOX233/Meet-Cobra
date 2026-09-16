@@ -521,6 +521,9 @@ def run_sim_withUMa(
         if ho_capacity_correction:
             ho_options = dict(current_connection=connection_dict_cur,
                               ho_capacity_correction=True, ho_interruption_slots=ho_slots)
+        if kwargs.get('gap_refinement_config') is not None:
+            ho_options['gap_refinement_config'] = kwargs['gap_refinement_config']
+            ho_options['gap_refinement_diagnostics'] = kwargs.get('gap_refinement_diagnostics')
         HO_cmd_cur4next, pred_num_RB_allocated_perBS = HO_func(
             args, veh_set_cur, Q_dict_cur, veh_data_rate_dict, ho_positions, ho_gain, BS_loc_array,
             infer_g_dict=ho_interference,

@@ -1,0 +1,33 @@
+{
+  "config": {
+    "max_iterations": 5,
+    "relaxation_factor": 1.1,
+    "tolerance_rb": null
+  },
+  "elapsed_s": 154.231880703941,
+  "ho_ms": 10,
+  "metrics": {
+    "blocked_vehicle_time_percent": 0.15286034123369105,
+    "final_residual_median_rb": 0.005561404420067362,
+    "final_residual_p95_rb": 0.00771549687999453,
+    "gap_iterations_mean": 5.0,
+    "handover_count": 198,
+    "handovers_per_vehicle_s": 0.15286034123369105,
+    "ho_cpu_median_ms": 1232.4102828279138,
+    "ho_cpu_p95_ms": 1277.851251885295,
+    "infeasible_after_repair_percent": 0.0,
+    "macro_association_percent": 0.0,
+    "mean_proxy_ms": 2.642557404063735,
+    "p99_proxy_ms": 4.730032250003975,
+    "pilots_per_vehicle_slot": 0.9990843594627624,
+    "power_w": 8.376453608247429,
+    "repair_changed_frame_percent": 0.0,
+    "repeated_iterate_frame_percent": 0.0,
+    "tolerance_stop_percent": 0.0,
+    "violation_percent": 0.0
+  },
+  "mode": "iter5_off",
+  "rate_mbps": 5.0,
+  "seed": 1,
+  "traffic_sha256": "46333fd24abd8ddaa396c8559ef7c5435c4b4c412fa0168029cb7bf1e9e9d7f7"
+}

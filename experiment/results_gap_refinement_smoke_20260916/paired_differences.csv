@@ -1,0 +1,3 @@
+rate_mbps,mode,n,blocked_vehicle_time_percent_delta_mean,gap_iterations_mean_delta_mean,handover_count_delta_mean,handovers_per_vehicle_s_delta_mean,ho_cpu_median_ms_delta_mean,ho_cpu_p95_ms_delta_mean,macro_association_percent_delta_mean,mean_proxy_ms_delta_mean,p99_proxy_ms_delta_mean,pilots_per_vehicle_slot_delta_mean,power_w_delta_mean,tolerance_stop_percent_delta_mean,violation_percent_delta_mean
+21.0,iter2_off,1,0.0,0.0,0.0,0.0,-1.7134454101324081,4.258156102150679,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+21.0,iter3_off,1,-0.0027442371020856005,1.0,-1.0,-0.002744237102085628,382.3791341856122,378.7187467329204,0.0,0.0015753362179389274,0.004707664818535351,2.7233115468372482e-05,-0.010074074074076123,0.0,-0.0013616557734204794
