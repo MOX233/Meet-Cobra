@@ -4,11 +4,42 @@ import numpy as np
 import torch
 from experiment.prepare_stateful_trajectories import frame_values
 from experiment.train_stateful_tbptt import noisy_features, forward_valid, run_epoch
+from experiment.train_finite_window_vehicle_split import finite_window_samples, batch_arrays
+from experiment.vehicle_split import create_vehicle_split
 from utils.NN_utils import BeamPredictionLSTMModel, BestGainPredictionLSTMModel
 from utils.beam_utils import generate_dft_codebook
 
 
 class StatefulTBPTTTests(unittest.TestCase):
+    def test_vehicle_split_is_disjoint_complete_and_reproducible(self):
+        vehicles = np.array(["3", "1", "2", "1", "4", "5"])
+        first = create_vehicle_split(vehicles, 0.6, 20)
+        second = create_vehicle_split(vehicles, 0.6, 20)
+        self.assertTrue(np.array_equal(first[0], second[0]))
+        self.assertTrue(np.array_equal(first[1], second[1]))
+        self.assertFalse(set(first[0]) & set(first[1]))
+        self.assertEqual(set(first[0]) | set(first[1]), set(vehicles))
+
+    def test_finite_windows_remain_inside_selected_trajectories(self):
+        data = {
+            "offsets": np.array([0, 12, 24]),
+            "clean_csi": np.arange(24 * 2).reshape(24, 2).astype(np.complex64),
+            "beam": np.arange(24 * 4).reshape(24, 4),
+        }
+        targets, lengths = finite_window_samples(
+            data, np.array([1]), history_length=10, augmentation_ratio=2, seed=20
+        )
+        self.assertTrue(np.all(targets >= 12))
+        self.assertTrue(np.all(targets < 24))
+        self.assertEqual(len(targets), 24)
+        clean, labels = batch_arrays(data, "beam", targets, lengths, 10)
+        self.assertEqual(clean.shape, (24, 10, 2))
+        np.testing.assert_array_equal(labels, data["beam"][targets])
+        for row, (target, length) in enumerate(zip(targets, lengths)):
+            np.testing.assert_array_equal(
+                clean[row, :length], data["clean_csi"][target - length + 1:target + 1]
+            )
+
     def test_fft_targets_match_repository_dft(self):
         rng = np.random.default_rng(20)
         records = [{"h": (rng.normal(size=(8,4,32)) + 1j*rng.normal(size=(8,4,32))).astype(np.complex64)} for _ in range(3)]

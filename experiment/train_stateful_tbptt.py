@@ -20,6 +20,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from experiment.benchmark_nn_overhead import CHECKPOINTS, CHECKPOINT_DIR, digest, json_write
+from experiment.vehicle_split import trajectory_indices
 from utils.NN_utils import BeamPredictionLSTMModel, BestGainPredictionLSTMModel
 import numpy as np
 import torch
@@ -59,7 +60,7 @@ def replace_batch_norm_with_layer_norm(module):
             replace_batch_norm_with_layer_norm(child)
 
 
-def make_model(task, device, initialization, normalization):
+def make_model(task, device, initialization, normalization, initial_checkpoint=None):
     model = BeamPredictionLSTMModel(128, 4, 256) if task == "beam" else BestGainPredictionLSTMModel(128, 4)
     if normalization == "layernorm":
         replace_batch_norm_with_layer_norm(model)
@@ -68,6 +69,10 @@ def make_model(task, device, initialization, normalization):
             raise ValueError("Paper checkpoints require the original BatchNorm architecture")
         key = {"beam": "beam", "desired_gain": "desired_gain", "interfering_gain": "interfering_gain"}[task]
         model.load_state_dict(torch.load(CHECKPOINT_DIR / CHECKPOINTS[key], map_location="cpu", weights_only=True))
+    elif initialization == "checkpoint":
+        if initial_checkpoint is None:
+            raise ValueError("--initial-checkpoint is required for checkpoint initialization")
+        model.load_state_dict(torch.load(initial_checkpoint, map_location="cpu", weights_only=True))
     return model.to(device)
 
 
@@ -125,7 +130,7 @@ def trajectory_groups(indices, offsets, batch_size, shuffle, rng):
 
 def run_epoch(model, task, data, indices, device, chunk_length, batch_size, optimizer,
               shuffle, seed, gradient_clip, freeze_batch_norm=True,
-              feature_mean=None, feature_std=None):
+              feature_mean=None, feature_std=None, beam_topk_max=3):
     training = optimizer is not None
     model.train(training)
     if training and freeze_batch_norm:
@@ -139,6 +144,7 @@ def run_epoch(model, task, data, indices, device, chunk_length, batch_size, opti
     noise_generator = torch.Generator(device=device).manual_seed(seed + 100000)
     totals = {"loss_sum": 0.0, "count": 0, "correct1": 0, "correct3": 0, "abs_error_db": 0.0,
               "squared_error_db": 0.0, "optimizer_steps": 0, "skipped_singleton_targets": 0}
+    correct_topk = np.zeros(beam_topk_max, dtype=np.int64) if task == "beam" else None
     context = torch.enable_grad if training else torch.inference_mode
     with context():
         for group in trajectory_groups(indices, data["offsets"], batch_size, shuffle, rng):
@@ -179,8 +185,12 @@ def run_epoch(model, task, data, indices, device, chunk_length, batch_size, opti
                 output = forward_valid(model, lstm_output, mask, task)
                 if task == "beam":
                     loss = F.cross_entropy(output.reshape(-1, 256), labels.reshape(-1))
-                    totals["correct1"] += int((output.argmax(-1) == labels).sum())
-                    totals["correct3"] += int((output.topk(3, -1).indices == labels[..., None]).any(-1).sum())
+                    candidates = output.topk(beam_topk_max, -1).indices
+                    matches = candidates == labels[..., None]
+                    for k in range(beam_topk_max):
+                        correct_topk[k] += int(matches[..., :k + 1].any(-1).sum())
+                    totals["correct1"] += int(matches[..., :1].any(-1).sum())
+                    totals["correct3"] += int(matches[..., :min(3, beam_topk_max)].any(-1).sum())
                     count = labels.numel()
                 else:
                     normalized = labels / 20 + 7
@@ -203,6 +213,11 @@ def run_epoch(model, task, data, indices, device, chunk_length, batch_size, opti
     if task == "beam":
         result.update(top1_accuracy_pct=100 * totals["correct1"] / totals["count"],
                       top3_accuracy_pct=100 * totals["correct3"] / totals["count"])
+        if beam_topk_max > 3:
+            result["topk_accuracy_pct"] = {
+                str(k + 1): 100 * int(correct_topk[k]) / totals["count"]
+                for k in range(beam_topk_max)
+            }
     else:
         result.update(mae_db=totals["abs_error_db"] / totals["count"],
                       rmse_db=(totals["squared_error_db"] / totals["count"]) ** .5)
@@ -212,6 +227,8 @@ def run_epoch(model, task, data, indices, device, chunk_length, batch_size, opti
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, required=True)
+    parser.add_argument("--split-file", type=Path,
+                        help="Fixed vehicle split shared with finite-window pretraining")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--task", choices=("beam", "desired_gain", "interfering_gain"), required=True)
     parser.add_argument("--device", default="cuda:0")
@@ -224,7 +241,8 @@ def main():
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--gradient-clip", type=float, default=1.0)
-    parser.add_argument("--initialization", choices=("paper", "scratch"), default="paper")
+    parser.add_argument("--initialization", choices=("paper", "scratch", "checkpoint"), default="paper")
+    parser.add_argument("--initial-checkpoint", type=Path)
     parser.add_argument("--normalization", choices=("batchnorm", "layernorm"), default="batchnorm")
     parser.add_argument("--input-normalization", choices=("paper", "train-standardization"), default="paper")
     parser.add_argument("--batch-norm-mode", choices=("frozen", "running"), default="frozen")
@@ -239,13 +257,22 @@ def main():
         parser.error("--warmup-epochs must be nonnegative and smaller than --epochs")
     if args.min_learning_rate <= 0 or args.min_learning_rate > args.learning_rate:
         parser.error("--min-learning-rate must be positive and no larger than --learning-rate")
+    if (args.initialization == "checkpoint") != (args.initial_checkpoint is not None):
+        parser.error("Use --initialization checkpoint together with --initial-checkpoint")
     args.output.mkdir(parents=True)
     random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
     device = torch.device(args.device)
     data = load_data(args.data)
-    train_indices, val_indices = split_vehicles(data, args.train_fraction, args.seed)
+    if args.split_file is None:
+        train_indices, val_indices = split_vehicles(data, args.train_fraction, args.seed)
+        train_vehicle_ids = np.unique(data["vehicle_ids"][train_indices])
+        val_vehicle_ids = np.unique(data["vehicle_ids"][val_indices])
+    else:
+        train_indices, val_indices, train_vehicle_ids, val_vehicle_ids = trajectory_indices(
+            data, args.split_file
+        )
     if args.max_trajectories:
         train_indices = train_indices[:args.max_trajectories]
         val_indices = val_indices[:max(2, args.max_trajectories // 3)]
@@ -255,7 +282,9 @@ def main():
         np.savez(args.output / "input_normalization.npz", mean=mean_np, std=std_np)
         feature_mean = torch.as_tensor(mean_np, device=device)
         feature_std = torch.as_tensor(std_np, device=device)
-    model = make_model(args.task, device, args.initialization, args.normalization)
+    model = make_model(
+        args.task, device, args.initialization, args.normalization, args.initial_checkpoint
+    )
     first_lr = (warmup_cosine_learning_rate(1, args.epochs, args.learning_rate,
                                             args.min_learning_rate, args.warmup_epochs)
                 if args.scheduler == "warmup-cosine" else args.learning_rate)
@@ -309,6 +338,13 @@ def main():
             print(f"Early stopping: best epoch {best_epoch}", flush=True)
             break
     torch.save({k: v.detach().cpu() for k, v in model.state_dict().items()}, args.output / "last.pth")
+    model.load_state_dict(torch.load(args.output / "best.pth", map_location=device, weights_only=True))
+    best_validation = run_epoch(
+        model, args.task, data, val_indices, device, args.chunk_length, args.batch_size,
+        None, False, args.seed, args.gradient_clip, freeze_bn, feature_mean, feature_std,
+        beam_topk_max=18 if args.task == "beam" else 3,
+    )
+    json_write(args.output / "best_validation.json", best_validation)
     with (args.output / "history.csv").open("w", newline="") as handle:
         fieldnames = list(dict.fromkeys(key for row in history for key in row))
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -316,9 +352,18 @@ def main():
     metadata = {
         "task": args.task, "data": str(args.data.resolve()), "data_sha256": digest(args.data),
         "initialization": args.initialization,
-        "initial_checkpoint": str((CHECKPOINT_DIR / CHECKPOINTS[{"beam":"beam","desired_gain":"desired_gain","interfering_gain":"interfering_gain"}[args.task]]).resolve()) if args.initialization == "paper" else None,
+        "initial_checkpoint": (
+            str((CHECKPOINT_DIR / CHECKPOINTS[{"beam":"beam","desired_gain":"desired_gain","interfering_gain":"interfering_gain"}[args.task]]).resolve())
+            if args.initialization == "paper" else
+            str(args.initial_checkpoint.resolve()) if args.initial_checkpoint is not None else None
+        ),
+        "initial_checkpoint_sha256": digest(args.initial_checkpoint) if args.initial_checkpoint is not None else None,
+        "split_file": str(args.split_file.resolve()) if args.split_file is not None else None,
+        "split_sha256": digest(args.split_file) if args.split_file is not None else None,
         "train_fraction_by_vehicle": args.train_fraction, "train_trajectories": len(train_indices),
         "validation_trajectories": len(val_indices), "split_seed": args.seed,
+        "train_vehicles": len(train_vehicle_ids), "validation_vehicles": len(val_vehicle_ids),
+        "vehicle_overlap": 0,
         "chunk_length": args.chunk_length, "batch_size": args.batch_size,
         "optimizer": "AdamW", "peak_learning_rate": args.learning_rate,
         "weight_decay": args.weight_decay, "gradient_clip": args.gradient_clip,
@@ -331,6 +376,7 @@ def main():
         "best_epoch": best_epoch, "best_validation_metric": float(best_value),
         "epochs_completed": len(history) - 1, "elapsed_seconds": time.monotonic() - started,
         "best_checkpoint_sha256": digest(args.output / "best.pth"),
+        "best_validation": best_validation,
         "protocol": "vehicle-stream stateful forward pass; h/c detached, not zeroed, every 10 frames; zero only at trajectory start",
         "command": sys.argv,
     }
