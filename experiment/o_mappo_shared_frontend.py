@@ -48,6 +48,21 @@ RATES = (1, 7, 13, 19, 27, 35)
 CONTEXT = None
 
 
+class FrameProgress:
+    def __init__(self, name, total):
+        self.name, self.total, self.count = name, total, 0
+        self.started = time.monotonic()
+
+    def tick(self, count, total):
+        self.count = count
+        if count % 50 == 0 or count == total:
+            print(f"PROGRESS {self.name} {count}/{total} "
+                  f"elapsed={time.monotonic()-self.started:.1f}s", flush=True)
+
+    def append(self, diagnostic):
+        self.tick(self.count + 1, self.total)
+
+
 def single_thread_solvers():
     # HiGHS otherwise creates 128 threads per worker on this server, despite
     # OMP_NUM_THREADS=1. Pass its native option through SciPy's wrappers.
@@ -233,6 +248,7 @@ def evaluate_one(task):
     method, rate, seed, ho_ms = task
     output, timeline, selected, rician, *options = CONTEXT
     vectorized = bool(options[0]) if options else False
+    physics_gpu = options[1] if len(options) > 1 else None
     torch.set_num_threads(1)
     single_thread_solvers()
     np.random.seed(seed)
@@ -246,11 +262,14 @@ def evaluate_one(task):
         name += "_rician"
     if method == "meet_cobra" and vectorized:
         name += "_batch"
+    if physics_gpu is not None:
+        name += f"_cuda{physics_gpu}"
     path = output / "runs" / f"{name}.json"
     if path.exists():
         return json.loads(path.read_text())
     print("EVAL START", name, flush=True)
     started = time.monotonic()
+    progress = FrameProgress(name, len(timeline) - 1)
     if method == "meet_cobra":
         cache = {f: {v: r["shared_prediction"] for v, r in records.items()} for f, records in timeline.items()}
         # Non-None sentinels activate cached predictions, never Oracle labels.
@@ -259,6 +278,8 @@ def evaluate_one(task):
             prt=False, prediction_cache=cache, traffic_trace=traffic, rician_fading=rician,
             paired_fading_seed=seed if rician else None,
             vectorized_pet_measurement=vectorized,
+            physics_device=f"cuda:{physics_gpu}" if physics_gpu is not None else None,
+            ho_diagnostics=progress,
             ho_interruption_ms=ho_ms, ho_capacity_correction=True)
     else:
         checkpoint = LEGACY if method == "legacy" else selected
@@ -267,6 +288,8 @@ def evaluate_one(task):
         result = run_sim_o_mappo(args, MICRO_BS_LOCATIONS, timeline, policy, seed=seed,
             prt=False, rician_fading=rician, traffic_trace=traffic, ho_interruption_ms=ho_ms,
             paired_fading_seed=seed if rician else None,
+            physics_device=f"cuda:{physics_gpu}" if physics_gpu is not None else None,
+            progress_callback=progress.tick,
             optimizer_solver="milp")
     metrics, raw = metric_arrays(args, timeline, result, method == "meet_cobra")
     for sub in ("runs", "raw"):
@@ -276,6 +299,8 @@ def evaluate_one(task):
                traffic_sha256=traffic["sha256"], rician_fading=rician,
                vectorized_pet_measurement=(method == "meet_cobra" and vectorized),
                solver_threads=1,
+               physics_gpu=physics_gpu,
+               fading_generator="torch_float64_cuda" if physics_gpu is not None else "numpy_float64",
                metrics=metrics, elapsed_s=time.monotonic()-started,
                checkpoint_sha256=None if method == "meet_cobra" else digest(checkpoint))
     write_json(path, row)
@@ -283,7 +308,7 @@ def evaluate_one(task):
     return row
 
 
-def evaluate(output, methods, rates, seeds, workers, end, ho_ms, rician, vectorized):
+def evaluate(output, methods, rates, seeds, workers, end, ho_ms, rician, vectorized, physics_gpu):
     global CONTEXT
     torch.set_num_threads(1)
     timeline = temporal_slice(read_pickle(output / "test_prepared.pkl"), 800, end)
@@ -294,7 +319,7 @@ def evaluate(output, methods, rates, seeds, workers, end, ho_ms, rician, vectori
         raise RuntimeError("No validation-selected shared policy")
     if "shared" in methods:
         write_json(output / "selected_policy.json", min(choices, key=lambda x: x["score"]))
-    CONTEXT = (output, timeline, selected, rician, vectorized)
+    CONTEXT = (output, timeline, selected, rician, vectorized, physics_gpu)
     tasks = [(m, r, s, ho_ms) for r in rates for s in seeds for m in methods]
     # GPU inference has already finished in a separate command; workers fork
     # only the read-only CPU timeline, never a live CUDA context.
@@ -318,6 +343,7 @@ def main():
     parser.add_argument("--ho-ms", type=float, default=10)
     parser.add_argument("--rician", action="store_true")
     parser.add_argument("--vectorized-pet", action="store_true")
+    parser.add_argument("--physics-gpu", type=int)
     args = parser.parse_args()
     if args.phase == "prepare":
         prepare(args.output, args.gpu)
@@ -325,7 +351,7 @@ def main():
         train(args.output, args.training_seed, args.episodes)
     else:
         evaluate(args.output, args.methods.split(","), [int(x) for x in args.rates.split(",")],
-                 [int(x) for x in args.seeds.split(",")], args.workers, args.test_end, args.ho_ms, args.rician, args.vectorized_pet)
+                 [int(x) for x in args.seeds.split(",")], args.workers, args.test_end, args.ho_ms, args.rician, args.vectorized_pet, args.physics_gpu)
 
 
 if __name__ == "__main__":

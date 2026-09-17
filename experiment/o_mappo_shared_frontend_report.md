@@ -35,7 +35,7 @@ MEET-COBRA 比较项使用当前选定的三个 stateful checkpoint，不使用 
 ## 训练及评估协议
 
 - 固定增益 checkpoint：`stateful_tbptt_unified_split_20260913/stage2_stateful_tbptt/{desired_gain,interfering_gain}/best.pth`。MEET-COBRA 另用同目录的 `beam/best.pth`。
-- GPU 5 用于生成共同的递推预测缓存；小型 MAPPO 网络及仿真环境在 CPU 上运行。
+- GPU 5 用于生成共同的递推预测缓存及批量计算逐时隙 Rician 信道和波束增益；小型 MAPPO 网络、HO 优化和队列更新在 CPU 上运行。
 - RL 训练：200–700 s 时间段内随机抽取 30 s 片段；每个训练种子 72 个片段，训练种子为 20、21；负载循环为 1、7、13、19、27、35 Mbit/s。
 - 保留旧版本的帧级流体近似训练方式、PPO 超参数和 `qos_energy020_load1` 奖励。训练中增加 HO 的可服务时间比例。该训练近似并不等于最终逐时隙仿真。
 - RL 验证：700.1–710 s，负载 7、19、35 Mbit/s；每 12 个训练片段验证一次。验证缓存实际准备到 730 s，但 710 s 之后未用于选 checkpoint。
@@ -43,7 +43,7 @@ MEET-COBRA 比较项使用当前选定的三个 stateful checkpoint，不使用 
 - 选定 checkpoint SHA-256：`57717aa1e24a01c5ec5c5aa7531ff4f08f4499f9afe9b560e9c2fb85738a1226`。
 - 测试：800–830 s 原有轨迹，1、13、27、35 Mbit/s，随机种子 1、2、3；不据测试结果重新选模型。每组去掉前两帧，保持既有统计口径。
 - 统一 100 ms 帧、1 ms 时隙、20 ms latency threshold、10 ms HO 中断；切换车辆前十个时隙不分配 RB、不进行 BF 探测，其到达流量继续入队。新旧 O-MAPPO 的目标容量估计都考虑可服务时间损失；MEET-COBRA 使用已讨论的 GAP-HO 容量修正。
-- Poisson 到达和初始队列逐车配对；Rician 扰动按帧、时隙及排序后的车辆配对。对相同 rate/seed，三种方法保存相同 traffic SHA-256。
+- Poisson 到达和初始队列逐车配对；Rician 扰动按帧、时隙及排序后的车辆配对。对相同 rate/seed，三种方法保存相同 traffic SHA-256。正式对比统一使用 GPU 5 上的 FP64 CUDA 随机数流；该随机数流与早期 CPU 试跑不同，但 Rician 分布及增益公式不变，三种方法之间使用相同实现。CPU 与 CUDA 结果不混合汇总。
 - 旧 O-MAPPO 使用 `o_mappo/final_load1/final_policy.pt`，不重训；因此它是“旧策略在统一新环境下”的对照，不是原论文旧结果的原样复刻，也不是严格隔离训练预算的单因素消融。
 - 最终评估的目标分配均使用相同设置的 MILP 求解器；MEET-COBRA 使用原 GAP-HO 的两轮实现。为避免服务器每个求解器生成 128 个线程，评估工作进程内显式设置 HiGHS 单线程，不修改求解器目标或可行域。
 
@@ -59,7 +59,7 @@ O-MAPPO 切换到微基站时执行 256 个波束对的搜索，保持连接时�
 
 新增批量 PET-BF 只合并数值运算，保留候选顺序、提前停止判据、所选波束和收费的导频数。随机输入下，增益误差在测试容差 `1e-10 dB` 内，波束及探测数相同。系统级短片段可能因浮点累计及优化器处理产生微小数值差异；不宣称所有完整仿真输出逐位一致。
 
-本轮测试集合：旧 O-MAPPO、HO 中断、GAP-HO 及新增共享前端测试，共 28 项通过。测试包含旧版本回归、候选优化器信息隔离、Actor 信息隔离、HO 容量因子、到达和中断处理、配对 Rician 扰动以及批量测量核验。
+本轮测试集合：旧 O-MAPPO、HO 中断、GAP-HO 及新增共享前端和批量物理计算测试，共 29 项通过。测试包含旧版本回归、候选优化器信息隔离、Actor 信息隔离、HO 容量因子、到达和中断处理、配对 Rician 扰动以及批量测量核验。`test_gpu_phy` 另在真实 GPU 5 上运行通过，核对同一信道下的标量/批量增益、波束选择、导频数，以及重复种子的逐项相等性。
 
 ## 测试结果
 
@@ -71,9 +71,10 @@ O-MAPPO 切换到微基站时执行 256 个波束对的搜索，保持连接时�
 python -u experiment/o_mappo_shared_frontend.py prepare --gpu 5
 python -u experiment/o_mappo_shared_frontend.py train --training-seed 20 --episodes 72
 python -u experiment/o_mappo_shared_frontend.py train --training-seed 21 --episodes 72
-python -u experiment/o_mappo_shared_frontend.py evaluate --methods legacy,shared,meet_cobra --rates 1,13,27,35 --seeds 1,2,3 --workers 12 --rician --vectorized-pet
+python -u experiment/o_mappo_shared_frontend.py evaluate --methods legacy,shared,meet_cobra --rates 1,13,27,35 --seeds 1,2,3 --workers 3 --rician --vectorized-pet --physics-gpu 5
 python experiment/summarize_o_mappo_shared_frontend.py
-python -m unittest test_o_mappo_shared_frontend test_o_mappo test_ho_interruption test_gap_refinement -q
+python -m unittest test_o_mappo_shared_frontend test_o_mappo test_ho_interruption test_gap_refinement test_gpu_phy -q
+TEST_PHY_DEVICE=cuda:5 python -m unittest test_gpu_phy -q
 ```
 
 `frontend_manifest.json` 保存前端 checkpoint 和输入数据的 SHA-256；`training_seed*/` 保存训练、验证日志和模型；`runs/` 保存逐项统计；`raw/` 保存逐帧和逐车队列。最终 `comparison_summary.json/csv`、`paired_differences.csv`、`result_table.md` 及 `comparison_curves.pdf/png` 由汇总脚本生成。论文图不在该脚本的写入范围内。

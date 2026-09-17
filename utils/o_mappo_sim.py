@@ -85,6 +85,8 @@ def run_sim_o_mappo(
     traffic_trace=None,
     ho_interruption_ms: float = 0.0,
     paired_fading_seed=None,
+    physics_device=None,
+    progress_callback=None,
 ) -> OMAPPOSimulationResult:
     """Evaluate O-MAPPO with causal commands and the common exact scheduler."""
 
@@ -95,6 +97,8 @@ def run_sim_o_mappo(
     shared = config.information_mode == "shared_prediction"
     if paired_fading_seed is not None and traffic_trace is None:
         raise ValueError("Paired fading requires independently replayed traffic")
+    if physics_device is not None and (not rician_fading or paired_fading_seed is None):
+        raise ValueError("GPU physics requires paired Rician fading")
     if len(micro_bs_loc_list) != config.num_micro_bs:
         raise ValueError("micro BS count does not match O-MAPPO policy")
     np.random.seed(seed)
@@ -512,18 +516,27 @@ def run_sim_o_mappo(
         energy_this_frame = 0.0
         pilot_by_slot = np.zeros(args.slots_per_frame)
         rb_by_vehicle = collections.defaultdict(float)
+        gpu_gains = None
+        if physics_device is not None:
+            from utils.gpu_phy import GPUFramePHY
+            physical = GPUFramePHY(args, records, frame_cur, paired_fading_seed, physics_device)
+            gpu_gains = physical.fixed_pairs(connection, learners)
+            del physical
         for slot_index in range(args.slots_per_frame):
             blocked = {v for v in ordered_vehicles if outcomes[v].handover and slot_index < ho_slots}
-            if paired_fading_seed is not None:
+            if paired_fading_seed is not None and gpu_gains is None:
                 np.random.seed((int(paired_fading_seed) * 1000003 +
                                 round(float(frame_cur) * 10) * args.slots_per_frame + slot_index) % 2**32)
             gain_slot = collections.OrderedDict()
             pilot_slot = collections.OrderedDict()
-            for vehicle in ordered_vehicles:
+            for vehicle_index, vehicle in enumerate(ordered_vehicles):
                 learner = learners[vehicle]
                 bs = connection[vehicle]
                 slot_gains = gain_frame[vehicle].copy()
-                if rician_fading and (bs > 0 or paired_fading_seed is not None):
+                if gpu_gains is not None:
+                    if bs > 0:
+                        slot_gains[bs] = gpu_gains[slot_index, vehicle_index]
+                elif rician_fading and (bs > 0 or paired_fading_seed is not None):
                     channel = records[vehicle]["h"] * np.sqrt(
                         rician_channel_gain(
                             args.K_rician, size=records[vehicle]["h"].shape
@@ -638,6 +651,8 @@ def run_sim_o_mappo(
         frame_prev = frame_cur
         veh_set_prev = veh_set_cur
         queue_prev = queue_cur
+        if progress_callback is not None:
+            progress_callback(frame_index + 1, num_frames)
 
     if prt:
         print("O-MAPPO simulation elapsed: {:.1f} s".format(time.time() - sim_start))

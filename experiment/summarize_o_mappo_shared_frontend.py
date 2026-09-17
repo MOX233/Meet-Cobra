@@ -24,11 +24,12 @@ def summarize(output=OUTPUT):
             group = []
             for method in METHODS:
                 suffix = "_batch" if method == "meet_cobra" else ""
-                path = output / "runs" / f"{method}_rate{rate}_seed{seed}_ho10_t1_rician{suffix}.json"
+                path = output / "runs" / f"{method}_rate{rate}_seed{seed}_ho10_t1_rician{suffix}_cuda5.json"
                 row = json.loads(path.read_text())
                 assert row["method"] == method and row["rate_mbps"] == rate and row["seed"] == seed
                 assert row["ho_interruption_ms"] == 10 and row["rician_fading"]
                 assert row["solver_threads"] == 1
+                assert row["physics_gpu"] == 5 and row["fading_generator"] == "torch_float64_cuda"
                 assert all(np.isfinite(row["metrics"][key]) for key in METRICS)
                 group.append(row)
             assert len({row["traffic_sha256"] for row in group}) == 1

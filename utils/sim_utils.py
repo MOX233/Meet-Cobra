@@ -262,6 +262,9 @@ def run_sim_withUMa(
         raise ValueError("HO interruption with predictors requires an audited prediction cache")
     rician_fading = kwargs.get('rician_fading', True)
     paired_fading_seed = kwargs.get('paired_fading_seed')
+    physics_device = kwargs.get('physics_device')
+    if physics_device is not None and (not rician_fading or paired_fading_seed is None):
+        raise ValueError("GPU physics requires paired Rician fading")
     measurement = measure_gain
     if kwargs.get('vectorized_pet_measurement', False):
         from utils.fast_pet_measurement import measure_pet_batch
@@ -552,13 +555,23 @@ def run_sim_withUMa(
                 a_dict[veh] = traffic_trace['arrivals'][frame_cur][veh]
         
         energy4frame = 0  # 统计当前帧的能耗
+        gpu_measurements = None
+        if physics_device is not None:
+            from utils.gpu_phy import GPUFramePHY
+            physical = GPUFramePHY(args, timeline_dir[frame_cur], frame_cur, paired_fading_seed, physics_device)
+            gpu_ids = physical.ids
+            gpu_measurements = physical.pet(pred_beamPairId_dict, pred_gain_opt_beam_dict, K_BF)
+            del physical
             
         pilot_slot_record = np.zeros((args.slots_per_frame,))  # 记录当前帧的每个时隙所用pilot数量
         for i in range(0, args.slots_per_frame):
             blocked = switched if i < ho_slots else set()
             
             # # 在每一【时隙】内，让各车对各MicroBS的K个波束对进行测量
-            if beampred_model is not None and rician_fading:
+            if gpu_measurements is not None:
+                g_microBS_slot_dict, g_microBS_NoBF_slot_dict, bpID_microBS_dict, num_pilot_slot_dict = (
+                    {v: array[i, j] for j, v in enumerate(gpu_ids)} for array in gpu_measurements)
+            elif beampred_model is not None and rician_fading:
                 if paired_fading_seed is not None:
                     np.random.seed((int(paired_fading_seed) * 1000003 +
                                     round(float(frame_cur) * 10) * args.slots_per_frame + i) % 2**32)
