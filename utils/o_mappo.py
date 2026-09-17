@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import functools
 import math
 import os
 import random
@@ -150,7 +151,7 @@ class OMAPPOConfig:
     occupied capacity; and ``load_energy`` adds per-RB transmit energy.
     """
 
-    state_variant: str = "adapted"  # source, adapted, feasibility, pilot, report, gain_report
+    state_variant: str = "adapted"  # source, adapted, feasibility, pilot, report, gain_report, gain_derived
     information_mode: str = "legacy"  # legacy or shared_prediction
     reported_beam_count: int = 5
     ho_interruption_ms: float = 0.0
@@ -195,16 +196,18 @@ class OMAPPOConfig:
         return (2 * self.track_tx_radius + 1) * (2 * self.track_rx_radius + 1)
 
     def validate(self) -> None:
-        if self.state_variant not in ("source", "adapted", "feasibility", "pilot", "report", "gain_report"):
+        if self.state_variant not in ("source", "adapted", "feasibility", "pilot", "report", "gain_report", "gain_derived"):
             raise ValueError("invalid state_variant")
         if self.information_mode not in ("legacy", "shared_prediction"):
             raise ValueError("invalid information_mode")
         if self.information_mode == "shared_prediction" and (
-            self.state_variant not in ("pilot", "report", "gain_report") or self.trigger_gate != "periodic"
+            self.state_variant not in ("pilot", "report", "gain_report", "gain_derived") or self.trigger_gate != "periodic"
         ):
             raise ValueError("shared prediction requires a shared CSI state and periodic gate")
-        if self.state_variant in ("report", "gain_report") and self.information_mode != "shared_prediction":
+        if self.state_variant in ("report", "gain_report", "gain_derived") and self.information_mode != "shared_prediction":
             raise ValueError("report state requires the shared prediction frontend")
+        if self.state_variant == "gain_derived" and self.recurrent:
+            raise ValueError("The actor-feature ablation keeps the nonrecurrent architecture")
         if not 1 <= self.reported_beam_count <= self.num_tx_beams * self.num_rx_beams:
             raise ValueError("invalid reported beam count")
         if not 0 <= self.ho_interruption_ms < 100:
@@ -360,16 +363,20 @@ def state_feature_names(config: OMAPPOConfig) -> List[str]:
         "rx_beam_sin",
         "rx_beam_cos",
     ]
-    if config.state_variant in ("pilot", "report", "gain_report"):
+    if config.state_variant in ("pilot", "report", "gain_report", "gain_derived"):
         names = [name for name in names if name not in ("serving_sinr", "interference_to_noise")]
     if config.state_variant == "pilot":
         names += ["superposed_pilot_{}".format(i) for i in range(128)]
-    if config.state_variant in ("report", "gain_report"):
+    if config.state_variant in ("report", "gain_report", "gain_derived"):
         for bs in range(1, config.num_bs):
             names += [f"reported_desired_gain_{bs}", f"reported_interfering_gain_{bs}"]
             if config.state_variant == "report":
                 names += [f"reported_beam_{bs}_rank_{rank + 1}"
                           for rank in range(config.reported_beam_count)]
+    if config.state_variant == "gain_derived":
+        for group in ("predicted_rb_demand", "predicted_power", "predicted_capacity_margin",
+                      "power_saving_vs_stay", "rb_pressure_saving_vs_stay"):
+            names += [f"{group}_{bs}" for bs in range(config.num_bs)]
     if config.state_variant == "feasibility":
         names += ["candidate_sinr_{}".format(i) for i in range(config.num_bs)]
         names += ["candidate_demand_{}".format(i) for i in range(config.num_bs)]
@@ -406,7 +413,7 @@ def encode_prediction_report(config: OMAPPOConfig, report: MutableMapping) -> np
     # Affine scaling, without clipping, retains all reported gain information.
     gains = np.stack(((gain + 100.0) / 40.0,
                       (interference + 100.0) / 40.0), axis=-1)
-    if config.state_variant == "gain_report":
+    if config.state_variant in ("gain_report", "gain_derived"):
         return gains.ravel().astype(np.float32)
     beam = np.asarray(report["beam"])
     expected = (config.num_micro_bs, config.reported_beam_count)
@@ -421,16 +428,71 @@ def encode_prediction_report(config: OMAPPOConfig, report: MutableMapping) -> np
     return np.concatenate((gains, indices), axis=1).ravel().astype(np.float32)
 
 
-def shared_actor_inputs(config: OMAPPOConfig, record: MutableMapping) -> Dict:
+def shared_actor_inputs(config: OMAPPOConfig, record: MutableMapping, *, args=None,
+                        serving_bs=None, backlog_bits=None, load=None,
+                        own_rb_fraction=None, macro_loc=(0.0, 0.0)) -> Dict:
     """Restrict CSI extraction to the configured deployment interface."""
     if config.state_variant == "pilot":
         return {"pilot_observation": record["CSI_preprocessed"][-1]}
-    if config.state_variant in ("report", "gain_report"):
+    if config.state_variant in ("report", "gain_report", "gain_derived"):
         prediction = record["shared_prediction"]
-        keys = ("gain", "interference") if config.state_variant == "gain_report" else ("gain", "interference", "beam")
-        return {"prediction_report": {key: prediction[key]
-                for key in keys}}
+        keys = ("gain", "interference") if config.state_variant != "report" else ("gain", "interference", "beam")
+        report = {key: prediction[key] for key in keys}
+        result = {"prediction_report": report}
+        if config.state_variant == "gain_derived":
+            result["derived_features"] = report_decision_features(args, config, record["pos"],
+                report, serving_bs, backlog_bits, load, own_rb_fraction, macro_loc)
+        return result
     return {}
+
+
+def report_decision_features(args, config, position, report, serving_bs, backlog_bits,
+                             load, own_rb_fraction, macro_loc=(0.0, 0.0)):
+    """Public-report features for the actor; never modify target optimization.
+
+    Gains estimate the best beam pair, including for the serving micro BS;
+    they are not measurements of the actually tracked pair. All five BSs
+    are represented, in BS order. Positive savings favor leaving the BS.
+    """
+    if args is None or serving_bs is None or backlog_bits is None or own_rb_fraction is None:
+        raise ValueError("Derived actor features require the public decision context")
+    encode_prediction_report(dataclasses.replace(config, state_variant="gain_report"), report)
+    loads = np.asarray(load, dtype=float)
+    if (loads.shape != (config.num_bs,) or not np.isfinite(loads).all()
+            or not np.isfinite(backlog_bits) or backlog_bits < 0
+            or not np.isfinite(own_rb_fraction) or not 0 <= serving_bs < config.num_bs):
+        raise ValueError("Invalid public decision context")
+    loads = np.clip(loads, 0.0, 1.0)
+    capacities = np.array([args.num_RB_macro] + [args.num_RB_micro] * config.num_micro_bs)
+    powers = np.array([args.p_macro] + [args.p_micro] * config.num_micro_bs)
+    desired = np.concatenate(([macro_gain_db(args, position, np.asarray(macro_loc))], report["gain"]))
+    interfering = np.concatenate(([-180.0], report["interference"]))
+    duration = args.slots_per_frame * args.slot_len
+    sweep_average = _cached_report_sweep_average(args.slots_per_frame, args.pilot_overhead_factor,
+                                                config.full_sweep_pilots, config.tracking_pilots)
+    rate_per_rb = np.array([
+        _capacity_per_rb_bps(args, bs, desired[bs], _interference_db(args, bs, interfering, loads),
+            0.0 if bs == 0 else config.tracking_pilots if bs == serving_bs else sweep_average)
+        for bs in range(config.num_bs)])
+    nominal_rb = backlog_bits / np.maximum(rate_per_rb * duration, 1e-12)
+    occupancy_rb = nominal_rb.copy()
+    switching = np.arange(config.num_bs) != serving_bs
+    occupancy_rb[switching] /= 1.0 - config.ho_interruption_ms / (1000.0 * duration)
+    demand = occupancy_rb / capacities
+    power = nominal_rb * powers  # frame-average cost, not interruption-inflated occupancy
+    available = 1.0 - loads
+    available[serving_bs] += np.clip(own_rb_fraction, 0.0, 1.0)
+    margin = available - demand
+    return np.concatenate((np.clip(demand, 0, 2), np.clip(power / 10.0, 0, 5),
+        np.clip(margin, -2, 2), np.clip((power[serving_bs] - power) / 10.0, -5, 5),
+        np.clip(demand[serving_bs] - demand, -2, 2))).astype(np.float32)
+
+
+def critic_local_feature_count(config):
+    """Keep the 37-feature critic unchanged in the actor-only ablation."""
+    if config.state_variant == "gain_derived":
+        config = dataclasses.replace(config, state_variant="gain_report")
+    return len(state_feature_names(config))
 
 
 def make_local_state(
@@ -457,6 +519,7 @@ def make_local_state(
     optimizer_feedback: Optional[Sequence[float]] = None,
     pilot_observation: Optional[np.ndarray] = None,
     prediction_report: Optional[MutableMapping] = None,
+    derived_features: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     one_hot = np.zeros(config.num_bs, dtype=np.float32)
     one_hot[int(serving_bs)] = 1.0
@@ -508,7 +571,7 @@ def make_local_state(
 
     values.extend(cyclic(tx_beam, config.num_tx_beams))
     values.extend(cyclic(rx_beam, config.num_rx_beams))
-    if config.state_variant in ("pilot", "report", "gain_report"):
+    if config.state_variant in ("pilot", "report", "gain_report", "gain_derived"):
         # Drop privileged serving SINR and inferred interference, not merely
         # rename them. Retain public load, queues, mobility and beam indices.
         legacy_names = state_feature_names(dataclasses.replace(config, state_variant="adapted"))
@@ -519,8 +582,13 @@ def make_local_state(
         if pilot.shape != (128,) or not np.isfinite(pilot).all():
             raise ValueError("pilot state requires the common 128-dimensional observation")
         values.extend(pilot.tolist())
-    if config.state_variant in ("report", "gain_report"):
+    if config.state_variant in ("report", "gain_report", "gain_derived"):
         values.extend(encode_prediction_report(config, prediction_report).tolist())
+    if config.state_variant == "gain_derived":
+        derived = np.asarray(derived_features, dtype=np.float32)
+        if derived.shape != (5 * config.num_bs,) or not np.isfinite(derived).all():
+            raise ValueError("Invalid derived actor features")
+        values.extend(derived.tolist())
     if config.state_variant == "feasibility":
         feature_groups = (
             (candidate_sinr_db, "candidate_sinr_db"),
@@ -640,12 +708,16 @@ def candidate_feasibility_context(
     return sinr, demand, residual, margin
 
 
-def make_global_state(local_states: np.ndarray, num_vehicles: int) -> np.ndarray:
+def make_global_state(local_states: np.ndarray, num_vehicles: int, feature_count=None) -> np.ndarray:
     """Pool a changing number of UE observations for the centralized critic."""
 
     local = np.asarray(local_states, dtype=np.float32)
     if local.ndim != 2 or local.shape[0] == 0:
         raise ValueError("local_states must be a nonempty matrix")
+    if feature_count is not None:
+        if not 1 <= feature_count <= local.shape[1]:
+            raise ValueError("Invalid critic feature count")
+        local = local[:, :feature_count]
     pooled = np.concatenate(
         (
             local.mean(axis=0),
@@ -731,7 +803,8 @@ class OMAPPPolicy:
         self.config = config
         self.feature_names = state_feature_names(config)
         self.local_dim = len(self.feature_names)
-        self.global_dim = 3 * self.local_dim + 1
+        self.critic_local_dim = critic_local_feature_count(config)
+        self.global_dim = 3 * self.critic_local_dim + 1
         torch.set_num_threads(max(1, int(config.torch_threads)))
         random.seed(seed)
         np.random.seed(seed)
@@ -751,6 +824,24 @@ class OMAPPPolicy:
                 config.recurrent_hidden_size,
                 config.hidden_sizes,
             )
+        elif config.state_variant == "gain_derived":
+            # Match the from-scratch gain-report initialization exactly on
+            # common weights. Zero new input columns preserve initial policy
+            # outputs; gradients can learn their contribution immediately.
+            base_actor = _MLP(self.critic_local_dim, 2, config.hidden_sizes)
+            self.critic = _MLP(self.global_dim, 1, config.hidden_sizes)
+            rng_state = torch.random.get_rng_state()
+            self.actor = _MLP(self.local_dim, 2, config.hidden_sizes)
+            with torch.no_grad():
+                for index, (old, new) in enumerate(zip(base_actor.model, self.actor.model)):
+                    if isinstance(old, nn.Linear):
+                        new.bias.copy_(old.bias)
+                        if index == 0:
+                            new.weight.zero_()
+                            new.weight[:, :self.critic_local_dim].copy_(old.weight)
+                        else:
+                            new.weight.copy_(old.weight)
+            torch.random.set_rng_state(rng_state)
         else:
             self.actor = network(self.local_dim, 2, config.hidden_sizes)
             self.critic = network(self.global_dim, 1, config.hidden_sizes)
@@ -951,6 +1042,13 @@ def average_sweep_pilots(args, total_sweep_pilots: int, tracking_pilots: int) ->
         )
         overhead += min(pilots * args.pilot_overhead_factor, 1.0)
     return overhead / args.slots_per_frame / args.pilot_overhead_factor
+
+
+@functools.lru_cache(maxsize=32)
+def _cached_report_sweep_average(slots, factor, total, tracking):
+    overhead = sum(min(sweep_pilots_for_slot(total, tracking, slot, factor) * factor, 1.0)
+                   for slot in range(slots))
+    return overhead / slots / factor
 
 
 @dataclasses.dataclass
@@ -1670,7 +1768,9 @@ def run_fluid_o_mappo_episode(
                         effective_sinr_db(args, target, gain, interference)
                     )
             all_alt_sinr[vehicle] = alternatives
-            state_kwargs = shared_actor_inputs(config, record)
+            state_kwargs = shared_actor_inputs(config, record, args=args, serving_bs=bs,
+                backlog_bits=queues_before[vehicle] + offered_bits, load=step.load_ratio,
+                own_rb_fraction=learner.previous_rb_fraction, macro_loc=macro_loc)
             if config.state_variant == "feasibility":
                 context = candidate_feasibility_context(
                     args,
@@ -1711,7 +1811,8 @@ def run_fluid_o_mappo_episode(
             )
         ordered_present = sorted(present, key=str)
         global_state = make_global_state(
-            np.stack([all_states[x] for x in ordered_present]), len(present)
+            np.stack([all_states[x] for x in ordered_present]), len(present),
+            feature_count=critic_local_feature_count(config)
         )
         event_vehicles: List[object] = []
         for vehicle in ordered_present:

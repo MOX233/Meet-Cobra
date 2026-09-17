@@ -26,6 +26,7 @@ from utils.o_mappo import (
     apply_o_mappo_command,
     append_state_sequence,
     candidate_feasibility_context,
+    critic_local_feature_count,
     make_global_state,
     make_local_state,
     optimize_triggered_targets,
@@ -354,7 +355,9 @@ def run_sim_o_mappo(
                         )
                     )
             all_alternative_sinr[vehicle] = alternatives
-            state_kwargs = shared_actor_inputs(config, records[vehicle])
+            state_kwargs = shared_actor_inputs(config, records[vehicle], args=args,
+                serving_bs=bs, backlog_bits=backlog, load=estimated_load,
+                own_rb_fraction=learners[vehicle].previous_rb_fraction, macro_loc=macro_loc)
             if config.state_variant == "feasibility":
                 context = candidate_feasibility_context(
                     args,
@@ -410,7 +413,8 @@ def run_sim_o_mappo(
             }
         ordered_vehicles = sorted(veh_set_cur, key=str)
         global_state = make_global_state(
-            np.stack([all_states[x] for x in ordered_vehicles]), len(ordered_vehicles)
+            np.stack([all_states[x] for x in ordered_vehicles]), len(ordered_vehicles),
+            feature_count=critic_local_feature_count(config)
         )
         event_vehicles = []
         for vehicle in ordered_vehicles:
