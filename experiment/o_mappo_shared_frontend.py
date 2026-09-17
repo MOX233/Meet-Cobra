@@ -332,17 +332,17 @@ def evaluate(output, methods, rates, seeds, workers, end, ho_ms, rician, vectori
     torch.set_num_threads(1)
     output.mkdir(parents=True, exist_ok=True)
     timeline = temporal_slice(read_pickle((cache_root or output) / "test_prepared.pkl"), 800, end)
-    if not set(methods) <= {"legacy", "shared", "report", "gain_report", "gain_derived", "meet_cobra"}:
+    if not set(methods) <= {"legacy", "shared", "report", "gain_report", "gain_derived", "predicted_adapted", "meet_cobra"}:
         raise ValueError("unknown comparison method")
     choices = [json.loads(path.read_text()) | {"path": str(path.parent / "best_policy.pt")}
                for path in output.glob("training_seed*/selection.json")]
     selected = Path(min(choices, key=lambda x: x["score"])["path"]) if choices else None
-    needs_policy = bool({"shared", "report", "gain_report", "gain_derived"}.intersection(methods))
+    needs_policy = bool({"shared", "report", "gain_report", "gain_derived", "predicted_adapted"}.intersection(methods))
     if needs_policy and selected is None:
         raise RuntimeError("No validation-selected shared policy")
     if needs_policy:
         variant = OMAPPPolicy.load(str(selected)).config.state_variant
-        expected = {"shared": "pilot", "report": "report", "gain_report": "gain_report", "gain_derived": "gain_derived"}
+        expected = {"shared": "pilot", "report": "report", "gain_report": "gain_report", "gain_derived": "gain_derived", "predicted_adapted": "predicted_adapted"}
         if any(variant != expected[m] for m in methods if m in expected):
             raise ValueError("method label does not match selected actor input")
         write_json(output / "selected_policy.json", min(choices, key=lambda x: x["score"]))
@@ -369,7 +369,7 @@ def main():
     parser.add_argument("phase", choices=("prepare", "train", "evaluate"))
     parser.add_argument("--output", type=Path, default=OUTPUT)
     parser.add_argument("--cache-root", type=Path)
-    parser.add_argument("--state-variant", choices=("pilot", "report", "gain_report", "gain_derived"), default="pilot")
+    parser.add_argument("--state-variant", choices=("pilot", "report", "gain_report", "gain_derived", "predicted_adapted"), default="pilot")
     parser.add_argument("--gpu", type=int, default=5)
     parser.add_argument("--training-seed", type=int, default=20)
     parser.add_argument("--episodes", type=int, default=72)

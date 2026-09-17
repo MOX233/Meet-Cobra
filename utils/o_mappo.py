@@ -151,7 +151,7 @@ class OMAPPOConfig:
     occupied capacity; and ``load_energy`` adds per-RB transmit energy.
     """
 
-    state_variant: str = "adapted"  # source, adapted, feasibility, pilot, report, gain_report, gain_derived
+    state_variant: str = "adapted"  # also supports predicted_adapted: original slots, predicted CSI
     information_mode: str = "legacy"  # legacy or shared_prediction
     reported_beam_count: int = 5
     ho_interruption_ms: float = 0.0
@@ -196,17 +196,17 @@ class OMAPPOConfig:
         return (2 * self.track_tx_radius + 1) * (2 * self.track_rx_radius + 1)
 
     def validate(self) -> None:
-        if self.state_variant not in ("source", "adapted", "feasibility", "pilot", "report", "gain_report", "gain_derived"):
+        if self.state_variant not in ("source", "adapted", "feasibility", "pilot", "report", "gain_report", "gain_derived", "predicted_adapted"):
             raise ValueError("invalid state_variant")
         if self.information_mode not in ("legacy", "shared_prediction"):
             raise ValueError("invalid information_mode")
         if self.information_mode == "shared_prediction" and (
-            self.state_variant not in ("pilot", "report", "gain_report", "gain_derived") or self.trigger_gate != "periodic"
+            self.state_variant not in ("pilot", "report", "gain_report", "gain_derived", "predicted_adapted") or self.trigger_gate != "periodic"
         ):
             raise ValueError("shared prediction requires a shared CSI state and periodic gate")
-        if self.state_variant in ("report", "gain_report", "gain_derived") and self.information_mode != "shared_prediction":
+        if self.state_variant in ("report", "gain_report", "gain_derived", "predicted_adapted") and self.information_mode != "shared_prediction":
             raise ValueError("report state requires the shared prediction frontend")
-        if self.state_variant == "gain_derived" and self.recurrent:
+        if self.state_variant in ("gain_derived", "predicted_adapted") and self.recurrent:
             raise ValueError("The actor-feature ablation keeps the nonrecurrent architecture")
         if not 1 <= self.reported_beam_count <= self.num_tx_beams * self.num_rx_beams:
             raise ValueError("invalid reported beam count")
@@ -495,6 +495,73 @@ def critic_local_feature_count(config):
     return len(state_feature_names(config))
 
 
+def predicted_actor_link_states(args, config, records, connection, vehicle_rate,
+                               macro_loc=(0.0, 0.0)):
+    """Reconstruct the original SINR/INR/demand slots from public reports only.
+
+    The mean-rate load estimator follows the legacy ten-round, atol=1-RB
+    refinement, without queue, pilot or HO corrections. Physical interfering
+    occupancy is capped at one; demand pressure may exceed one. This context
+    is exclusively for actor/critic observations, never the target optimizer.
+    Best-pair next-frame predictions are not current tracked-pair measurements.
+    """
+    vehicles = sorted(connection, key=str)
+    if not vehicles:
+        return {}
+    n = len(vehicles)
+    capacities = np.array([args.num_RB_macro] + [args.num_RB_micro] * config.num_micro_bs, dtype=float)
+    bandwidth = np.array([args.RB_intervel_macro] + [args.RB_intervel_micro] * config.num_micro_bs)
+    power = np.array([args.p_macro] + [args.p_micro] * config.num_micro_bs)
+    noise = args.N0 * bandwidth * 10.0 ** (np.array(
+        [args.NF_macro_dB] + [args.NF_micro_dB] * config.num_micro_bs) / 10.0)
+    associations = np.array([connection[v] for v in vehicles], dtype=int)
+    rates = np.array([vehicle_rate[v] for v in vehicles], dtype=float)
+    if (np.any(associations < 0) or np.any(associations >= config.num_bs)
+            or not np.isfinite(rates).all() or np.any(rates < 0)):
+        raise ValueError("Invalid predicted actor association or arrival rate")
+    desired = np.empty((n, config.num_bs))
+    interfering = np.empty((n, config.num_micro_bs))
+    gain_config = dataclasses.replace(config, state_variant="gain_report")
+    for i, v in enumerate(vehicles):
+        record = records[v]
+        report = record["shared_prediction"]
+        encode_prediction_report(gain_config, report)  # validate gains, never read beam/CSI
+        desired[i, 0] = macro_gain_db(args, record["pos"], np.asarray(macro_loc))
+        desired[i, 1:] = report["gain"]
+        interfering[i] = report["interference"]
+    desired = 10.0 ** (desired / 10.0)
+    interfering = 10.0 ** (interfering / 10.0)
+
+    def link_metrics(estimated_rb):
+        occupancy = np.clip(estimated_rb / capacities, 0.0, 1.0)
+        components = interfering * power[None, 1:] * occupancy[None, 1:]
+        interference = np.zeros((n, config.num_bs))
+        interference[:, 1:] = np.maximum(components.sum(axis=1)[:, None] - components, 0.0)
+        sinr = power[None, :] * desired / (noise[None, :] + interference)
+        return sinr, interference / noise[None, :]
+
+    # Preserve the original estimator's initialization and finite iteration limit.
+    estimated_rb = np.full(config.num_bs, args.num_RB_micro, dtype=float)
+    for _ in range(10):
+        sinr, _ = link_metrics(estimated_rb)
+        rate_per_rb = bandwidth[None, :] * np.log2(1.0 + sinr)
+        demand = rates / (rate_per_rb[np.arange(n), associations] + 2e-10)
+        updated = np.bincount(associations, weights=demand, minlength=config.num_bs)
+        converged = np.allclose(estimated_rb, updated, atol=1)
+        estimated_rb = updated
+        if converged:
+            break
+    sinr, inr = link_metrics(estimated_rb)
+    load = np.clip(estimated_rb / capacities, 0.0, 1.5)
+    result = {}
+    for i, v in enumerate(vehicles):
+        bs = associations[i]
+        sinr_db = float(10.0 * np.log10(max(sinr[i, bs], 1e-30)))
+        inr_db = float(10.0 * np.log10(inr[i, bs])) if inr[i, bs] > 0 else -np.inf
+        result[v] = (sinr_db, inr_db, load.copy())
+    return result
+
+
 def make_local_state(
     config: OMAPPOConfig,
     position: Sequence[float],
@@ -520,7 +587,14 @@ def make_local_state(
     pilot_observation: Optional[np.ndarray] = None,
     prediction_report: Optional[MutableMapping] = None,
     derived_features: Optional[np.ndarray] = None,
+    predicted_link_state: Optional[Tuple[float, float, np.ndarray]] = None,
 ) -> np.ndarray:
+    if config.state_variant == "predicted_adapted":
+        if predicted_link_state is None:
+            raise ValueError("Predicted adapted state requires a report-only link context")
+        serving_sinr_db, interference_db, rb_load = predicted_link_state
+        if not np.isfinite(serving_sinr_db) or not (np.isfinite(interference_db) or interference_db == -np.inf):
+            raise ValueError("Invalid predicted link metrics")
     one_hot = np.zeros(config.num_bs, dtype=np.float32)
     one_hot[int(serving_bs)] = 1.0
     values: List[float] = [
@@ -1734,6 +1808,9 @@ def run_fluid_o_mappo_episode(
         all_states: Dict[object, np.ndarray] = {}
         all_alt_sinr: Dict[object, List[float]] = {}
         system_user_load = step.user_load
+        predicted_states = (predicted_actor_link_states(args, config, records,
+            step.connection, vehicle_rate, macro_loc)
+            if config.state_variant == "predicted_adapted" else {})
         for vehicle in sorted(present, key=str):
             learner = learners[vehicle]
             bs = int(step.connection[vehicle])
@@ -1771,6 +1848,8 @@ def run_fluid_o_mappo_episode(
             state_kwargs = shared_actor_inputs(config, record, args=args, serving_bs=bs,
                 backlog_bits=queues_before[vehicle] + offered_bits, load=step.load_ratio,
                 own_rb_fraction=learner.previous_rb_fraction, macro_loc=macro_loc)
+            if config.state_variant == "predicted_adapted":
+                state_kwargs["predicted_link_state"] = predicted_states[vehicle]
             if config.state_variant == "feasibility":
                 context = candidate_feasibility_context(
                     args,

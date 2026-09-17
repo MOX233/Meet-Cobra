@@ -30,6 +30,7 @@ from utils.o_mappo import (
     make_global_state,
     make_local_state,
     optimize_triggered_targets,
+    predicted_actor_link_states,
     record_optimizer_feedback,
     shared_actor_inputs,
     source_gate_allows,
@@ -313,6 +314,9 @@ def run_sim_o_mappo(
         serving_interference: Dict[object, float] = {}
         all_states: Dict[object, np.ndarray] = {}
         all_alternative_sinr: Dict[object, list] = {}
+        predicted_states = (predicted_actor_link_states(args, config, records,
+            connection, vehicle_rate, macro_loc)
+            if config.state_variant == "predicted_adapted" else {})
         for vehicle in sorted(veh_set_cur, key=str):
             bs = connection[vehicle]
             interference = _interference_db(
@@ -358,6 +362,8 @@ def run_sim_o_mappo(
             state_kwargs = shared_actor_inputs(config, records[vehicle], args=args,
                 serving_bs=bs, backlog_bits=backlog, load=estimated_load,
                 own_rb_fraction=learners[vehicle].previous_rb_fraction, macro_loc=macro_loc)
+            if config.state_variant == "predicted_adapted":
+                state_kwargs["predicted_link_state"] = predicted_states[vehicle]
             if config.state_variant == "feasibility":
                 context = candidate_feasibility_context(
                     args,
