@@ -1,6 +1,9 @@
 """Information-boundary and outage tests for the shared-prediction baseline."""
 import dataclasses
 import unittest
+import subprocess
+import sys
+import types
 from unittest.mock import patch
 import numpy as np
 from experiment.pql_ba_experiment import paper_args, MICRO_BS_LOCATIONS
@@ -132,6 +135,39 @@ class SharedFrontendTests(unittest.TestCase):
                         np.testing.assert_allclose(a[v], b[v], atol=1e-10, rtol=1e-12)
                     else:
                         np.testing.assert_array_equal(a[v], b[v])
+
+    def test_legacy_default_outputs_match_git_snapshot(self):
+        source = subprocess.check_output(["git", "show",
+            "pre-omappo-shared-frontend-20260917:utils/o_mappo_sim.py"], text=True)
+        name = "_omappo_shared_legacy_test"
+        module = types.ModuleType(name)
+        sys.modules[name] = module
+        try:
+            exec(compile(source, name, "exec"), module.__dict__)
+            class TriggerPolicy:
+                config = OMAPPOConfig()
+                def act(self, local, global_state, explore):
+                    return np.ones(len(local), dtype=int), np.zeros(len(local)), np.zeros(len(local))
+            rng = np.random.default_rng(9)
+            record = dict(pos=np.array([20., 30.]), angle=0., v=0.,
+                          h=(rng.normal(size=(8,4,32)) + 1j*rng.normal(size=(8,4,32))) * 1e-5)
+            timeline = {800 + .1*i: {"v": dict(record)} for i in range(4)}
+            kwargs = dict(prt=False, seed=7, optimizer_solver="greedy")
+            old = module.run_sim_o_mappo(self.args, MICRO_BS_LOCATIONS, timeline, TriggerPolicy(), **kwargs)
+            new = run_sim_o_mappo(self.args, MICRO_BS_LOCATIONS, timeline, TriggerPolicy(), **kwargs)
+            for field in dataclasses.fields(new):
+                if field.name in ("inference_time_record", "optimizer_time_record"):
+                    continue
+                a, b = getattr(old, field.name), getattr(new, field.name)
+                if isinstance(a, dict):
+                    self.assertEqual(a.keys(), b.keys())
+                    for frame in a:
+                        for vehicle in a[frame]:
+                            np.testing.assert_equal(a[frame][vehicle], b[frame][vehicle])
+                else:
+                    np.testing.assert_array_equal(a, b)
+        finally:
+            del sys.modules[name]
 
 
 if __name__ == "__main__":

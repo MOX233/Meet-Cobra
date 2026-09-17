@@ -17,6 +17,7 @@ from pathlib import Path
 import pickle
 import sys
 import time
+import warnings
 
 for key in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
     os.environ[key] = "1"
@@ -47,6 +48,25 @@ RATES = (1, 7, 13, 19, 27, 35)
 CONTEXT = None
 
 
+def single_thread_solvers():
+    # HiGHS otherwise creates 128 threads per worker on this server, despite
+    # OMP_NUM_THREADS=1. Pass its native option through SciPy's wrappers.
+    import utils.alg_utils as alg
+    import utils.o_mappo as om
+    if getattr(alg.linprog, "_shared_single_thread", False):
+        return
+    def wrap(function):
+        def solve(*args, **kwargs):
+            kwargs["options"] = dict(kwargs.get("options", {}), threads=1)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="Unrecognized options.*")
+                return function(*args, **kwargs)
+        solve._shared_single_thread = True
+        return solve
+    alg.linprog = wrap(alg.linprog)
+    om.milp = wrap(om.milp)
+
+
 def write_json(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -72,7 +92,8 @@ def prepare(output, gpu):
         model.to(device)
     manifest = dict(rollback_git="cdd095a58dc99504629522532a0f7cb751a99f81",
                     frontend=inventory, inference_device=str(device),
-                    training_interval=[200, 700], validation_interval=[700.1, 730],
+                    training_interval=[200, 700], validation_interval=[700.1, 710],
+                    validation_cache_interval=[700.1, 730],
                     test_interval=[800, 830], observation_noise_seed=20260917,
                     prediction_alignment="CSI at x predicts x+1; no future label input",
                     test_selection=False)
@@ -213,11 +234,12 @@ def evaluate_one(task):
     output, timeline, selected, rician, *options = CONTEXT
     vectorized = bool(options[0]) if options else False
     torch.set_num_threads(1)
+    single_thread_solvers()
     np.random.seed(seed)
     args = paper_args(rate * 1e6)
     args.device = torch.device("cpu")
     traffic = make_paired_traffic(args, timeline, seed)
-    name = f"{method}_rate{rate}_seed{seed}_ho{ho_ms:g}"
+    name = f"{method}_rate{rate}_seed{seed}_ho{ho_ms:g}_t1"
     if not np.isclose(list(timeline)[-1], 830):
         name += f"_end{list(timeline)[-1]:g}"
     if rician:
@@ -253,6 +275,7 @@ def evaluate_one(task):
     row = dict(method=method, rate_mbps=rate, seed=seed, ho_interruption_ms=ho_ms,
                traffic_sha256=traffic["sha256"], rician_fading=rician,
                vectorized_pet_measurement=(method == "meet_cobra" and vectorized),
+               solver_threads=1,
                metrics=metrics, elapsed_s=time.monotonic()-started,
                checkpoint_sha256=None if method == "meet_cobra" else digest(checkpoint))
     write_json(path, row)
