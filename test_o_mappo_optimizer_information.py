@@ -84,6 +84,32 @@ class OptimizerInformationTests(unittest.TestCase):
         self.assertIs(out["allocated_rb"], fixed)
         self.assertIs(out["records"]["v"]["shared_prediction"]["interference"], records["v"]["shared_prediction"]["interference"])
 
+    def test_inverse_control_changes_optimizer_not_actor_configuration(self):
+        config = dataclasses.replace(self.config, state_variant="adapted", information_mode="legacy")
+        feedback_load = np.full(5, .2)
+        feedback_fixed = {"v": 3.}
+        out = InputAblation("reported_all")(args=self.args, config=config,
+            frame=800, records=self.timeline[800], load=np.zeros(5), allocated_rb={"v": 1.},
+            feedback_load=feedback_load, feedback_allocated=feedback_fixed)
+        self.assertEqual(config.information_mode, "legacy")
+        self.assertEqual(out["config"].information_mode, "shared_prediction")
+        self.assertIs(out["load"], feedback_load)
+        self.assertIs(out["allocated_rb"], feedback_fixed)
+
+    def test_inverse_single_gain_factor_preserves_other_true_gain(self):
+        labels = oracle_labels(self.timeline, self.config)
+        config = dataclasses.replace(self.config, state_variant="adapted", information_mode="legacy")
+        original = self.record["shared_prediction"]
+        for variant, replaced, kept in (("predicted_desired", "gain", "interference"),
+                                        ("predicted_interference", "interference", "gain")):
+            out = InputAblation(variant, labels)(args=self.args, config=config,
+                frame=800, records=self.timeline[800], load=np.zeros(5), allocated_rb={"v": 1.})
+            pred = out["records"]["v"]["shared_prediction"]
+            np.testing.assert_array_equal(pred[replaced], original[replaced])
+            np.testing.assert_array_equal(pred[kept], labels[800]["v"][kept])
+            self.assertEqual(config.information_mode, "legacy")
+        self.assertIs(self.record["shared_prediction"], original)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,718 @@
+{
+  "baseline_reproduction_passed": [
+    "gain_report",
+    "legacy",
+    "report"
+  ],
+  "load_semantics_audit": {
+    "decision_frames": 297,
+    "interpretation": "old demand ratio clipped at 1.5; realized utilization <= 1; not just different timestamps",
+    "mean_absolute_difference": [
+      0.02389431066201395,
+      0.4503570842745123,
+      0.45851652438837415,
+      0.3946893734917393,
+      0.41594438099782716
+    ],
+    "original_demand_ratio_mean": [
+      0.11612508220452479,
+      1.2567817650153348,
+      1.1846485610421291,
+      1.257181218296262,
+      1.2551810982091105
+    ],
+    "previous_realized_utilization_mean": [
+      0.11657578289157233,
+      0.8545551474339355,
+      0.7931736557494136,
+      0.8920263238445059,
+      0.8837485970819301
+    ]
+  },
+  "planned_comparisons_complete": true,
+  "references": [
+    {
+      "checkpoint_sha256": "9e7fd2a6a1ba96472003d5502cea8dd053245c5e48b8e559d756b1afea55ab3c",
+      "elapsed_s": 230.90683635417372,
+      "fading_generator": "torch_float64_cuda",
+      "ho_interruption_ms": 10,
+      "method": "legacy",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.18021123119722296,
+        "macro_association_percent": 5.8199364829267095,
+        "mean_proxy_ms": 3.4690588285763346,
+        "p99_proxy_ms": 17.986126204923682,
+        "pilots_per_vehicle_slot": 0.9787821654182594,
+        "power_w": 60.68849664429541,
+        "trigger_ratio": 0.18662241511360736,
+        "violation_percent": 0.965094547593098
+      },
+      "physics_gpu": 5,
+      "rate_mbps": 13,
+      "rician_fading": true,
+      "seed": 1,
+      "solver_threads": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "vectorized_pet_measurement": false
+    },
+    {
+      "checkpoint_sha256": "57717aa1e24a01c5ec5c5aa7531ff4f08f4499f9afe9b560e9c2fb85738a1226",
+      "elapsed_s": 248.95745000522584,
+      "fading_generator": "torch_float64_cuda",
+      "ho_interruption_ms": 10,
+      "method": "shared",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.08887466456584357,
+        "macro_association_percent": 7.95194367168074,
+        "mean_proxy_ms": 9.25990517168583,
+        "p99_proxy_ms": 217.31597835514734,
+        "pilots_per_vehicle_slot": 0.9406754246704389,
+        "power_w": 75.52333557047004,
+        "trigger_ratio": 0.09241766658156753,
+        "violation_percent": 3.488808424998157
+      },
+      "physics_gpu": 5,
+      "rate_mbps": 13,
+      "rician_fading": true,
+      "seed": 1,
+      "solver_threads": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "vectorized_pet_measurement": false
+    },
+    {
+      "actor_state_variant": "report",
+      "checkpoint_sha256": "cd3c0149d688780c5bf45fd18f1a9cc62df51d2f01ad2ec5992d5c202db244f8",
+      "elapsed_s": 440.69541241042316,
+      "fading_generator": "torch_float64_cuda",
+      "ho_interruption_ms": 10,
+      "matching_backend": "not_applicable",
+      "method": "report",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.06647135576946749,
+        "macro_association_percent": 9.613727565917427,
+        "mean_proxy_ms": 8.248702723538889,
+        "p99_proxy_ms": 169.60360290340344,
+        "pilots_per_vehicle_slot": 0.9211888878746638,
+        "power_w": 81.11037583892626,
+        "trigger_ratio": 0.06893030380393159,
+        "violation_percent": 3.0752111775604734
+      },
+      "physics_gpu": 3,
+      "rate_mbps": 13,
+      "rician_fading": true,
+      "seed": 1,
+      "solver_threads": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "vectorized_pet_measurement": false
+    },
+    {
+      "checkpoint_sha256": null,
+      "elapsed_s": 654.6432395121083,
+      "fading_generator": "torch_float64_cuda",
+      "ho_interruption_ms": 10,
+      "method": "meet_cobra",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.20409168123292054,
+        "mean_proxy_ms": 2.0687309288760884,
+        "p99_proxy_ms": 2.3215751904155715,
+        "pilots_per_vehicle_slot": 1.0879911479372115,
+        "power_w": 29.664255033557033,
+        "violation_percent": 0.24215463559316494
+      },
+      "physics_gpu": 5,
+      "rate_mbps": 13,
+      "rician_fading": true,
+      "seed": 1,
+      "solver_threads": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "vectorized_pet_measurement": true
+    },
+    {
+      "actor_state_variant": "gain_report",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 109.9694911306724,
+      "fading_generator": "torch_float64_cuda",
+      "ho_interruption_ms": 10,
+      "matching_backend": "not_applicable",
+      "method": "gain_report",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.034959009330608824,
+        "macro_association_percent": 20.007878086609715,
+        "mean_proxy_ms": 5.321587826511018,
+        "p99_proxy_ms": 82.97473698516202,
+        "pilots_per_vehicle_slot": 0.8124294512429097,
+        "power_w": 108.14093288590588,
+        "trigger_ratio": 0.036507531273934135,
+        "violation_percent": 1.9759962911227593
+      },
+      "physics_gpu": 3,
+      "rate_mbps": 13,
+      "rician_fading": true,
+      "seed": 1,
+      "solver_threads": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "vectorized_pet_measurement": false
+    }
+  ],
+  "runs": [
+    {
+      "actor": "gain_report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_gain_report_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 116.51474907808006,
+      "ho_interruption_ms": 10,
+      "information_class": "reported_or_public",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.034959009330608824,
+        "macro_association_percent": 20.007878086609715,
+        "mean_optimizer_overflow_rb": 0.9296200256670021,
+        "mean_proxy_ms": 5.321587826511018,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 82.97473698516202,
+        "pilots_per_vehicle_slot": 0.8124294512429097,
+        "power_w": 108.14093288590588,
+        "trigger_ratio": 0.036507531273934135,
+        "violation_percent": 1.9759962911227593
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 4,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "baseline"
+    },
+    {
+      "actor": "gain_report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_gain_report_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 110.52226763777435,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.028804254166769246,
+        "macro_association_percent": 20.06942563824811,
+        "mean_optimizer_overflow_rb": 0.14822507403566867,
+        "mean_proxy_ms": 3.0969077962778053,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 46.030637233842015,
+        "pilots_per_vehicle_slot": 0.8103559233901305,
+        "power_w": 105.83406040268439,
+        "trigger_ratio": 0.030635690579525147,
+        "violation_percent": 1.4776329388375993
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 6,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "legacy_all"
+    },
+    {
+      "actor": "gain_report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_gain_report_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 124.59705935791135,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.034712819124055244,
+        "macro_association_percent": 21.24621482557424,
+        "mean_optimizer_overflow_rb": 0.2080654803873659,
+        "mean_proxy_ms": 5.173647153873121,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 80.7921983112226,
+        "pilots_per_vehicle_slot": 0.799575837093635,
+        "power_w": 111.69397315436223,
+        "trigger_ratio": 0.036762828695430176,
+        "violation_percent": 1.910974054895143
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 6,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "legacy_fixed"
+    },
+    {
+      "actor": "gain_report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_gain_report_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 116.43842905573547,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.03348186809128733,
+        "macro_association_percent": 20.261453999359905,
+        "mean_optimizer_overflow_rb": 0.7701023471835766,
+        "mean_proxy_ms": 4.796596309222896,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 71.34106339707601,
+        "pilots_per_vehicle_slot": 0.8094748613837506,
+        "power_w": 108.6877516778522,
+        "trigger_ratio": 0.035231044166453916,
+        "violation_percent": 1.8388087897855676
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 6,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "legacy_load"
+    },
+    {
+      "actor": "gain_report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_gain_report_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 123.46892462391406,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.03151234643885866,
+        "macro_association_percent": 18.483960708043035,
+        "mean_optimizer_overflow_rb": 0.7386587488438614,
+        "mean_proxy_ms": 3.803059663786432,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 69.67486129260382,
+        "pilots_per_vehicle_slot": 0.8272847543741603,
+        "power_w": 101.42809395973141,
+        "trigger_ratio": 0.03293336737298953,
+        "violation_percent": 1.8188427698782421
+      },
+      "next_truth_fallback": "current truth for departing vehicles and last frame",
+      "physics_gpu": 2,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "next_true_gains"
+    },
+    {
+      "actor": "gain_report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_gain_report_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 117.61597275920212,
+      "ho_interruption_ms": 10,
+      "information_class": "reported_or_public",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.04259090573376991,
+        "macro_association_percent": 14.74679337255964,
+        "mean_optimizer_overflow_rb": 0.06066588022097835,
+        "mean_proxy_ms": 8.212859538990834,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 178.84762913854254,
+        "pilots_per_vehicle_slot": 0.867795417437437,
+        "power_w": 93.71999328859062,
+        "trigger_ratio": 0.04442175134031146,
+        "violation_percent": 2.859820195112416
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 2,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "report_both"
+    },
+    {
+      "actor": "gain_report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_gain_report_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 119.38479814399034,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.03200472685196583,
+        "macro_association_percent": 19.03542677072306,
+        "mean_optimizer_overflow_rb": 0.7720457932212251,
+        "mean_proxy_ms": 3.900880488687814,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 68.58696708452982,
+        "pilots_per_vehicle_slot": 0.8217877832384034,
+        "power_w": 103.0770604026844,
+        "trigger_ratio": 0.033443962215981615,
+        "violation_percent": 1.8002226405564128
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 4,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "true_desired"
+    },
+    {
+      "actor": "gain_report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_gain_report_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 118.09347172174603,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.03126615623230508,
+        "macro_association_percent": 19.22499322976932,
+        "mean_optimizer_overflow_rb": 0.6439091547678789,
+        "mean_proxy_ms": 3.5935946809413206,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 64.19168225022219,
+        "pilots_per_vehicle_slot": 0.8197128110133259,
+        "power_w": 103.56434228187902,
+        "trigger_ratio": 0.03293336737298953,
+        "violation_percent": 1.747625360579948
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 2,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "true_gains"
+    },
+    {
+      "actor": "gain_report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_gain_report_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 114.68225760944188,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.034712819124055244,
+        "macro_association_percent": 19.611511854058445,
+        "mean_optimizer_overflow_rb": 0.8957933661316311,
+        "mean_proxy_ms": 5.345902006499568,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 89.70787256594616,
+        "pilots_per_vehicle_slot": 0.8162040825090865,
+        "power_w": 107.03493288590589,
+        "trigger_ratio": 0.036507531273934135,
+        "violation_percent": 1.9870153530920742
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 4,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "true_interference"
+    },
+    {
+      "actor": "legacy",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo/final_load1/final_policy.pt",
+      "checkpoint_sha256": "9e7fd2a6a1ba96472003d5502cea8dd053245c5e48b8e559d756b1afea55ab3c",
+      "elapsed_s": 116.49149136338383,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.18021123119722296,
+        "macro_association_percent": 5.8199364829267095,
+        "mean_optimizer_overflow_rb": 0.21876891182982847,
+        "mean_proxy_ms": 3.4690588285763346,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 17.986126204923682,
+        "pilots_per_vehicle_slot": 0.9787821654182594,
+        "power_w": 60.68849664429541,
+        "trigger_ratio": 0.18662241511360736,
+        "violation_percent": 0.965094547593098
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 6,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "baseline"
+    },
+    {
+      "actor": "legacy",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo/final_load1/final_policy.pt",
+      "checkpoint_sha256": "9e7fd2a6a1ba96472003d5502cea8dd053245c5e48b8e559d756b1afea55ab3c",
+      "elapsed_s": 115.90895386226475,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.17848789975134788,
+        "macro_association_percent": 4.909032718678451,
+        "mean_optimizer_overflow_rb": 1.8958629901737978,
+        "mean_proxy_ms": 3.7398315136938445,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 29.59766704625013,
+        "pilots_per_vehicle_slot": 0.9896039337056999,
+        "power_w": 58.50895973154376,
+        "trigger_ratio": 0.18483533316313505,
+        "violation_percent": 1.0965473669518098
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 6,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "feedback_fixed"
+    },
+    {
+      "actor": "legacy",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo/final_load1/final_policy.pt",
+      "checkpoint_sha256": "9e7fd2a6a1ba96472003d5502cea8dd053245c5e48b8e559d756b1afea55ab3c",
+      "elapsed_s": 111.74195722304285,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.18168837243654448,
+        "macro_association_percent": 5.014894507496492,
+        "mean_optimizer_overflow_rb": 0.41373407412006996,
+        "mean_proxy_ms": 4.6170207497385185,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 64.31566120095368,
+        "pilots_per_vehicle_slot": 0.987914509105289,
+        "power_w": 60.45833557046995,
+        "trigger_ratio": 0.18840949706407964,
+        "violation_percent": 1.428272751310276
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 4,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "feedback_load"
+    },
+    {
+      "actor": "legacy",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo/final_load1/final_policy.pt",
+      "checkpoint_sha256": "9e7fd2a6a1ba96472003d5502cea8dd053245c5e48b8e559d756b1afea55ab3c",
+      "elapsed_s": 118.4117325451225,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.1885816982200448,
+        "macro_association_percent": 6.39848346832763,
+        "mean_optimizer_overflow_rb": 0.5521436673838992,
+        "mean_proxy_ms": 5.944558819236621,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 45.38596716805958,
+        "pilots_per_vehicle_slot": 0.9727493344908689,
+        "power_w": 64.21324161073842,
+        "trigger_ratio": 0.19555782486596884,
+        "violation_percent": 1.2568665376483137
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 2,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "predicted_desired"
+    },
+    {
+      "actor": "legacy",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo/final_load1/final_policy.pt",
+      "checkpoint_sha256": "9e7fd2a6a1ba96472003d5502cea8dd053245c5e48b8e559d756b1afea55ab3c",
+      "elapsed_s": 117.00285078585148,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.1814421822299909,
+        "macro_association_percent": 5.632831925945986,
+        "mean_optimizer_overflow_rb": 0.2653082548344099,
+        "mean_proxy_ms": 3.8029419122673334,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 29.983719371158493,
+        "pilots_per_vehicle_slot": 0.9815221080045746,
+        "power_w": 60.82975167785248,
+        "trigger_ratio": 0.18789890222108757,
+        "violation_percent": 1.1270695774907795
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 2,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "predicted_interference"
+    },
+    {
+      "actor": "legacy",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo/final_load1/final_policy.pt",
+      "checkpoint_sha256": "9e7fd2a6a1ba96472003d5502cea8dd053245c5e48b8e559d756b1afea55ab3c",
+      "elapsed_s": 109.30036254040897,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.19055121987247348,
+        "macro_association_percent": 4.859794677367734,
+        "mean_optimizer_overflow_rb": 2.6534015047698025,
+        "mean_proxy_ms": 7.615416753964979,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 154.0278004741803,
+        "pilots_per_vehicle_slot": 0.9929753480409838,
+        "power_w": 61.56592617449682,
+        "trigger_ratio": 0.19734490681644115,
+        "violation_percent": 1.8887347111027863
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 6,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "reported_all"
+    },
+    {
+      "actor": "report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_report_input_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "cd3c0149d688780c5bf45fd18f1a9cc62df51d2f01ad2ec5992d5c202db244f8",
+      "elapsed_s": 119.33293216302991,
+      "ho_interruption_ms": 10,
+      "information_class": "reported_or_public",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.06647135576946749,
+        "macro_association_percent": 9.613727565917427,
+        "mean_optimizer_overflow_rb": 1.1549896748177335,
+        "mean_proxy_ms": 8.248702723538889,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 169.60360290340344,
+        "pilots_per_vehicle_slot": 0.9211888878746638,
+        "power_w": 81.11037583892626,
+        "trigger_ratio": 0.06893030380393159,
+        "violation_percent": 3.0752111775604734
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 4,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "baseline"
+    },
+    {
+      "actor": "report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_report_input_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "cd3c0149d688780c5bf45fd18f1a9cc62df51d2f01ad2ec5992d5c202db244f8",
+      "elapsed_s": 144.97175467386842,
+      "ho_interruption_ms": 10,
+      "information_class": "privileged_diagnostic",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.06179374184494941,
+        "macro_association_percent": 10.283364927743174,
+        "mean_optimizer_overflow_rb": 0.28556407325460387,
+        "mean_proxy_ms": 6.946244093205054,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 113.85153802286973,
+        "pilots_per_vehicle_slot": 0.9129689135477824,
+        "power_w": 80.28105369127519,
+        "trigger_ratio": 0.0643349502170028,
+        "violation_percent": 2.4662823240348506
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 4,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "legacy_all"
+    },
+    {
+      "actor": "report",
+      "checkpoint_path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_report_input_20260917/training_seed20/best_policy.pt",
+      "checkpoint_sha256": "cd3c0149d688780c5bf45fd18f1a9cc62df51d2f01ad2ec5992d5c202db244f8",
+      "elapsed_s": 122.10936488490552,
+      "ho_interruption_ms": 10,
+      "information_class": "reported_or_public",
+      "interval": [
+        800,
+        830
+      ],
+      "intervention": "optimizer inputs only; actor weights and observation mapping unchanged",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.06302469287771732,
+        "macro_association_percent": 6.48711194268692,
+        "mean_optimizer_overflow_rb": 0.12412355005967472,
+        "mean_proxy_ms": 10.6209418612298,
+        "optimizer_failures": 0,
+        "p99_proxy_ms": 283.265842953214,
+        "pilots_per_vehicle_slot": 0.9548904318833012,
+        "power_w": 71.11819463087272,
+        "trigger_ratio": 0.06535613990298698,
+        "violation_percent": 4.161608325567443
+      },
+      "next_truth_fallback": null,
+      "physics_gpu": 4,
+      "rate_mbps": 13,
+      "seed": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "variant": "report_both"
+    }
+  ],
+  "scope": "13 Mbps, seed 1 only; frozen checkpoints; exploratory diagnosis"
+}

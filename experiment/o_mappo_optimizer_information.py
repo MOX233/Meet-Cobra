@@ -6,7 +6,6 @@ the post-actor optimizer interface is changed. No checkpoint is retrained
 or selected using these test results.
 """
 import argparse
-import collections
 import dataclasses
 import json
 from pathlib import Path
@@ -23,7 +22,6 @@ from experiment.o_mappo_shared_frontend import (
 )
 from utils.alg_utils import estimate_num_RB_allocated_perBS
 from utils.beam_utils import generate_dft_codebook
-from utils.o_mappo import _candidate_links
 from utils.pql_ba import best_beam_pair, no_bf_gain_db, macro_gain_db
 from utils.pql_ba_adapted import _capacity_per_rb_bps, _interference_db
 
@@ -36,7 +34,8 @@ CHECKPOINTS = {
 VARIANTS = (
     "baseline", "true_desired", "true_interference", "true_gains",
     "legacy_load", "legacy_fixed", "legacy_all", "next_true_gains",
-    "report_load", "report_fixed", "report_both",
+    "report_load", "report_fixed", "report_both", "reported_all",
+    "predicted_desired", "predicted_interference", "feedback_load", "feedback_fixed",
 )
 
 
@@ -113,6 +112,21 @@ class InputAblation:
         records, load, allocated = c["records"], c["load"], c["allocated_rb"]
         config, args = c["config"], c["args"]
         capacities = np.array([args.num_RB_macro] + [args.num_RB_micro] * config.num_micro_bs)
+        if variant == "reported_all":
+            # Inverse control: keep the legacy actor and change only its
+            # optimizer to the new predicted-gain/public-feedback interface.
+            config = dataclasses.replace(config, information_mode="shared_prediction")
+            load, allocated = c["feedback_load"], c["feedback_allocated"]
+        if variant in ("feedback_load", "feedback_fixed"):
+            if variant == "feedback_load":
+                load = c["feedback_load"]
+            else:
+                allocated = c["feedback_allocated"]
+        if variant.startswith("predicted_"):
+            config = dataclasses.replace(config, information_mode="shared_prediction")
+            kept_true = "interference" if variant == "predicted_desired" else "gain"
+            records = {v: dict(r, shared_prediction=dict(r["shared_prediction"],
+                **{kept_true: self.labels[c["frame"]][v][kept_true]})) for v, r in records.items()}
         if variant in ("true_desired", "true_interference", "true_gains", "legacy_all", "next_true_gains"):
             frame = c["frame"]
             labels = self.labels[self.next_frames.get(frame, frame) if variant == "next_true_gains" else frame]
@@ -162,10 +176,10 @@ def evaluate(variants, gpu, actor, end):
     traffic = make_paired_traffic(args, timeline, 1)
     checkpoint = CHECKPOINTS[actor]
     policy = OMAPPPolicy.load(str(checkpoint))
-    labels = oracle_labels(timeline, policy.config) if any("true" in v or v == "legacy_all" for v in variants) else None
+    labels = oracle_labels(timeline, policy.config) if any("true" in v or v == "legacy_all" or v.startswith("predicted_") for v in variants) else None
     for variant in variants:
-        if actor == "legacy" and variant != "baseline":
-            raise ValueError("Keep the original actor only as an external reference")
+        if actor == "legacy" and variant not in ("baseline", "reported_all", "predicted_desired", "predicted_interference", "feedback_load", "feedback_fixed"):
+            raise ValueError("The original actor is used only for baseline/inverse controls")
         name = f"{actor}_{variant}_rate13_seed1_end{end:g}_cuda{gpu}"
         path = OUTPUT / "runs" / f"{name}.json"
         if path.exists():
@@ -173,7 +187,7 @@ def evaluate(variants, gpu, actor, end):
             continue
         print("START", name, flush=True)
         started = time.monotonic()
-        hook = InputAblation(variant, labels) if actor != "legacy" else None
+        hook = InputAblation(variant, labels) if actor != "legacy" or variant != "baseline" else None
         progress = FrameProgress(name, len(timeline) - 1)
         result = run_sim_o_mappo(args, MICRO_BS_LOCATIONS, timeline, policy,
             seed=1, prt=False, rician_fading=True, optimizer_solver="milp",
@@ -218,8 +232,28 @@ def summarize():
         for key, value in old["metrics"].items():
             np.testing.assert_allclose(row["metrics"][key], value, rtol=1e-12, atol=1e-12)
         checks.append(row["actor"])
+    required = {("gain_report", v) for v in ("baseline", "true_desired", "true_interference",
+        "true_gains", "legacy_load", "legacy_fixed", "legacy_all", "next_true_gains", "report_both")}
+    required.update({("report", v) for v in ("baseline", "legacy_all", "report_both")})
+    required.update({("legacy", v) for v in ("baseline", "reported_all")})
+    required.update({("legacy", v) for v in ("predicted_desired", "predicted_interference", "feedback_load", "feedback_fixed")})
+    complete = required <= {(r["actor"], r["variant"]) for r in rows}
+    load_rows = next((r for r in rows if r["actor"] == "legacy" and r["variant"] == "feedback_load"), None)
+    load_audit = None
+    if load_rows:
+        path = OUTPUT / "diagnostics" / f"legacy_feedback_load_rate13_seed1_end830_cuda{load_rows['physics_gpu']}.json"
+        diagnostic = json.loads(path.read_text())
+        old = np.array([d["original_load"] for d in diagnostic])
+        new = np.array([d["input_load"] for d in diagnostic])
+        load_audit = dict(decision_frames=len(diagnostic),
+            original_demand_ratio_mean=old.mean(0).tolist(),
+            previous_realized_utilization_mean=new.mean(0).tolist(),
+            mean_absolute_difference=np.abs(old-new).mean(0).tolist(),
+            interpretation="old demand ratio clipped at 1.5; realized utilization <= 1; not just different timestamps")
     write_json(OUTPUT / "summary.json", dict(runs=rows, references=ref,
-        baseline_reproduction_passed=checks, scope="13 Mbps, seed 1 only; frozen checkpoints; exploratory diagnosis"))
+        baseline_reproduction_passed=checks, planned_comparisons_complete=complete,
+        load_semantics_audit=load_audit,
+        scope="13 Mbps, seed 1 only; frozen checkpoints; exploratory diagnosis"))
     lines = ["13 Mbps, seed 1, 800--830 s, 10 ms HO interruption.", "",
         "| Actor | Optimizer intervention | P (W) | U (%) | mean proxy (ms) | p99 proxy (ms) | macro (%) | HO/vehicle/s |",
         "|---|---|---:|---:|---:|---:|---:|---:|"]

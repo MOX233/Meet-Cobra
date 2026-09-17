@@ -479,6 +479,11 @@ def run_sim_o_mappo(
                     dft_rx=dft_rx, macro_loc=macro_loc,
                     legacy_rb=estimated_rb, serving_gain=serving_gain,
                     no_bf_gain=inference_gain,
+                    feedback_load=(rb_record[frame_index - 1] / rb_capacities
+                                   if frame_index else np.zeros(config.num_bs)),
+                    feedback_allocated={
+                        v: learners[v].previous_rb_fraction * rb_capacities[connection[v]]
+                        for v in veh_set_cur},
                 )
             optimization = optimize_triggered_targets(
                 args,
