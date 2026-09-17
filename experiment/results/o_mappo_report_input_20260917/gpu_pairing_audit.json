@@ -1,0 +1,27 @@
+{
+  "gpu_indices": [
+    0,
+    3,
+    5
+  ],
+  "devices": [
+    "NVIDIA GeForce RTX 3090",
+    "NVIDIA GeForce RTX 3090",
+    "NVIDIA GeForce RTX 3090"
+  ],
+  "checks": [
+    {
+      "seed": 1,
+      "channel_and_pet_bitwise_equal": true
+    },
+    {
+      "seed": 2,
+      "channel_and_pet_bitwise_equal": true
+    },
+    {
+      "seed": 3,
+      "channel_and_pet_bitwise_equal": true
+    }
+  ],
+  "torch_version": "2.6.0+cu118"
+}

@@ -344,16 +344,20 @@ def evaluate(output, methods, rates, seeds, workers, end, ho_ms, rician, vectori
         write_json(output / "selected_policy.json", min(choices, key=lambda x: x["score"]))
     CONTEXT = (output, timeline, selected, rician, vectorized, physics_gpu, compiled_matching)
     if compiled_matching:
-        # Compile in the CPU-only parent before forking, not concurrently in
-        # CUDA workers. The CUDA context is still first created by each worker.
+        if workers != 1:
+            raise ValueError("compiled matching requires --workers 1; do not fork a JIT-initialized process")
         from utils.compiled_matching import km_algorithm_compiled
         km_algorithm_compiled(np.zeros((2, 2)))
     tasks = [(m, r, s, ho_ms) for r in rates for s in seeds for m in methods]
     # GPU inference has already finished in a separate command; workers fork
     # only the read-only CPU timeline, never a live CUDA context.
-    with concurrent.futures.ProcessPoolExecutor(workers, mp_context=multiprocessing.get_context("fork")) as pool:
-        results = list(pool.map(evaluate_one, tasks))
-    write_json(output / f"summary_{'_'.join(methods)}_ho{ho_ms:g}_{'rician' if rician else 'block'}.json", results)
+    if workers == 1:
+        results = [evaluate_one(task) for task in tasks]
+    else:
+        with concurrent.futures.ProcessPoolExecutor(workers, mp_context=multiprocessing.get_context("fork")) as pool:
+            results = list(pool.map(evaluate_one, tasks))
+    run_set = "rates" + "-".join(map(str, rates)) + "_seeds" + "-".join(map(str, seeds))
+    write_json(output / f"summary_{'_'.join(methods)}_ho{ho_ms:g}_{'rician' if rician else 'block'}_{run_set}.json", results)
 
 
 def main():
