@@ -60,6 +60,7 @@ class MTSGSHBFConfig:
     urgent_handover_hysteresis: float = 0.05
     urgent_bs_queue_weight: float = 3.0
     urgent_queue_drain_weight: float = 0.75
+    ho_interruption_ms: float = 0.0
 
     @property
     def num_bs(self) -> int:
@@ -76,6 +77,8 @@ class MTSGSHBFConfig:
         )
 
     def validate(self) -> None:
+        if not np.isfinite(self.ho_interruption_ms) or not 0 <= self.ho_interruption_ms < 100:
+            raise ValueError("HO interruption must be within the 100-ms frame")
         if self.num_micro_bs <= 0:
             raise ValueError("num_micro_bs must be positive")
         if self.num_tx_beams <= 0 or self.num_rx_beams <= 0:
@@ -429,7 +432,10 @@ def build_link_candidates(
                         gain_db=float(gain),
                         sinr_db=float(sinr),
                         capacity_per_rb_bps=float(capacity_per_rb),
-                        demand_rb=demand,
+                        # Correct admission occupancy only; retain preference
+                        # scores and nominal energy cost from the chosen design.
+                        demand_rb=(demand / (1.0 - config.ho_interruption_ms / (1000 * frame_duration))
+                                   if bs != current else demand),
                         vehicle_score=vehicle_score,
                         bs_score=bs_score,
                     )

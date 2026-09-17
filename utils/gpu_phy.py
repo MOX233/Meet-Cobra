@@ -60,3 +60,41 @@ class GPUFramePHY:
         beam = pairs[None].expand(self.args.slots_per_frame, -1, -1, -1).gather(-1, best[..., None])[..., 0]
         no_bf = 20 * torch.log10(self.h.abs().amax(dim=(2, 4)) + 1e-9)
         return tuple(x.cpu().numpy() for x in (value, no_bf, beam, stop))
+
+    @torch.inference_mode()
+    def random_tracking(self, previous_beams, seed, k=5, blocked=None):
+        """Random K-probe BF with actual selected beam carried between slots.
+
+        Full gain tensors are private simulator arithmetic, not observations.
+        A separate RNG samples probe indices; it cannot shift fading draws.
+        ``blocked`` suppresses beam updates in HO-interrupted vehicle slots.
+        """
+        response = torch.einsum("svrbt,tk->svrbk", self.h, self.tx)
+        gains = self.db(torch.einsum("svrbk,rl->svbkl", response.conj(), self.rx).abs())
+        gains = gains.flatten(-2).cpu().numpy()
+        no_bf = (20 * torch.log10(self.h.abs().amax(dim=(2, 4)) + 1e-9)).cpu().numpy()
+        return random_tracking_from_gains(gains, no_bf, self.ids, previous_beams, seed, k, blocked)
+
+
+def random_tracking_from_gains(gains, no_bf, ids, previous_beams, seed, k=5, blocked=None):
+    """Pure CPU candidate selection from private precomputed physical gains."""
+    slots, vehicles, bs_count, pairs = gains.shape
+    rng = np.random.RandomState(seed)
+    previous = np.array([previous_beams.get(v, np.full(bs_count, -1)) for v in ids], dtype=int)
+    value = np.empty((slots, vehicles, bs_count))
+    beam = np.empty_like(value, dtype=int)
+    pilots = np.full_like(value, k, dtype=int)
+    for slot in range(slots):
+        candidates = rng.randint(0, pairs, (vehicles, bs_count, k))
+        candidates[..., 0] = np.where(previous >= 0, previous, candidates[..., 0])
+        tested = np.take_along_axis(gains[slot], candidates, axis=-1)
+        best = tested.argmax(-1)
+        selected = np.take_along_axis(candidates, best[..., None], axis=-1)[..., 0]
+        value[slot] = tested.max(-1)
+        if blocked is not None:
+            mask = np.asarray(blocked[slot], dtype=bool)
+            selected[mask] = np.maximum(previous[mask], 0)
+            pilots[slot, mask] = 0
+        beam[slot] = selected
+        previous = selected.copy()
+    return value, no_bf, beam, pilots

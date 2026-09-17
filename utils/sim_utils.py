@@ -269,6 +269,9 @@ def run_sim_withUMa(
     if kwargs.get('vectorized_pet_measurement', False):
         from utils.fast_pet_measurement import measure_pet_batch
         measurement = measure_pet_batch
+    if kwargs.get('correct_random_beam_index', False) and BF_func == 'topKbeam_NoPred':
+        from functools import partial
+        measurement = partial(measure_gain, correct_random_beam_index=True)
     if paired_fading_seed is not None and traffic_trace is None:
         raise ValueError("Paired fading requires independently replayed traffic")
     K_BF = K_BF if K_BF is not None else args.K
@@ -528,6 +531,11 @@ def run_sim_withUMa(
             ho_interference = {v: future['interference'].get(v, g_NoBF_dict[v]) for v in veh_set_cur}
             ho_positions = {v: future['positions'].get(v, pred_loc_dict[v]) for v in veh_set_cur}
             ho_pilots = {v: future['pilots'].get(v, num_pilot_dict[v]) for v in veh_set_cur}
+            if kwargs.get('oracle_hold_macro_position', False):
+                ho_positions = pred_loc_dict
+                ho_gain = {v: np.r_[pred_g_dict[v][0], ho_gain[v][1:]] for v in veh_set_cur}
+        if kwargs.get('reactive_current_measurements', False):
+            ho_gain, ho_interference, ho_positions = g_dict, g_NoBF_dict, pred_loc_dict
         ho_options = {}
         if ho_capacity_correction:
             ho_options = dict(current_connection=connection_dict_cur,
@@ -560,7 +568,16 @@ def run_sim_withUMa(
             from utils.gpu_phy import GPUFramePHY
             physical = GPUFramePHY(args, timeline_dir[frame_cur], frame_cur, paired_fading_seed, physics_device)
             gpu_ids = physical.ids
-            gpu_measurements = physical.pet(pred_beamPairId_dict, pred_gain_opt_beam_dict, K_BF)
+            if BF_func == 'topKbeam_savePilot':
+                gpu_measurements = physical.pet(pred_beamPairId_dict, pred_gain_opt_beam_dict, K_BF)
+            elif BF_func == 'topKbeam_NoPred' and kwargs.get('correct_random_beam_index', False):
+                blocked_mask = np.array([[v in switched and slot < ho_slots for v in gpu_ids]
+                                        for slot in range(args.slots_per_frame)])
+                gpu_measurements = physical.random_tracking(bpID_microBS_dict,
+                    (int(paired_fading_seed)*999983 + round(float(frame_cur)*10)) % 2**32,
+                    K_BF, blocked_mask)
+            else:
+                raise ValueError('GPU PHY does not implement the requested BF policy')
             del physical
             
         pilot_slot_record = np.zeros((args.slots_per_frame,))  # 记录当前帧的每个时隙所用pilot数量

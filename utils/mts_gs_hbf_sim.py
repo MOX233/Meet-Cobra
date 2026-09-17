@@ -17,6 +17,7 @@ from utils.alg_utils import (
 )
 from utils.beam_utils import generate_dft_codebook
 from utils.channel_utils import rician_channel_gain
+from utils.ho_utils import interruption_slots
 from utils.mts_gs_hbf import (
     MTSCommand,
     MTSGSHBFConfig,
@@ -76,6 +77,12 @@ def run_sim_mts_gs_hbf(
     prt: bool = True,
     macro_bs_loc: Sequence[float] = (0.0, 0.0),
     rician_fading: bool = True,
+    traffic_trace=None,
+    ho_interruption_ms: float = 0.0,
+    paired_fading_seed=None,
+    physics_device=None,
+    ho_diagnostics=None,
+    progress_callback=None,
 ) -> MTSGSHBFSimulationResult:
     """Run the non-learning three-timescale baseline.
 
@@ -85,7 +92,13 @@ def run_sim_mts_gs_hbf(
     identical to the other exact-baseline simulators.
     """
 
+    config = dataclasses.replace(config, ho_interruption_ms=ho_interruption_ms)
     config.validate()
+    ho_slots = interruption_slots(ho_interruption_ms, args.slot_len, args.slots_per_frame)
+    if paired_fading_seed is not None and traffic_trace is None:
+        raise ValueError("Paired fading requires paired traffic")
+    if physics_device is not None and (not rician_fading or paired_fading_seed is None):
+        raise ValueError("GPU physics requires paired Rician fading")
     if len(micro_bs_loc_list) != config.num_micro_bs:
         raise ValueError("micro BS count does not match MTS-GS-HBF config")
     np.random.seed(seed)
@@ -120,6 +133,8 @@ def run_sim_mts_gs_hbf(
         )
         for vehicle in sorted(veh_set_all, key=str)
     )
+    if traffic_trace is not None:
+        vehicle_rate.update(traffic_trace["rates"])
     queue_upper_bound = collections.OrderedDict(
         (vehicle, args.lat_slot_ub * rate * args.slot_len)
         for vehicle, rate in vehicle_rate.items()
@@ -133,6 +148,9 @@ def run_sim_mts_gs_hbf(
     states: Dict[object, MTSLinkState] = {
         vehicle: MTSLinkState() for vehicle in veh_set_prev
     }
+    if traffic_trace is not None:
+        for vehicle in veh_set_prev:
+            queue_prev[vehicle][:] = traffic_trace["initial_queues"][frame_prev][vehicle]
 
     energy_record = np.zeros(num_frames)
     handover_record = np.zeros(num_frames)
@@ -181,11 +199,16 @@ def run_sim_mts_gs_hbf(
         )
         for vehicle in veh_set_in:
             states[vehicle] = MTSLinkState()
+            if traffic_trace is not None:
+                queue_cur[vehicle][0] = traffic_trace["initial_queues"][frame_cur][vehicle]
 
+        switched = set()
         for vehicle in sorted(veh_set_cur, key=str):
             command = states[vehicle].pending_command
             states[vehicle].pending_command = None
             outcome = apply_mts_command(states[vehicle], command, config)
+            if outcome.handover:
+                switched.add(vehicle)
             handover_record[frame_index] += int(outcome.handover)
             beam_switch_record[frame_index] += int(outcome.beam_switch)
             if outcome.sweep_pilots == config.full_sweep_pilots:
@@ -303,29 +326,39 @@ def run_sim_mts_gs_hbf(
             )
             for vehicle in ordered_vehicles
         )
+        if traffic_trace is not None:
+            arrivals = collections.OrderedDict((v, traffic_trace["arrivals"][frame_cur][v]) for v in ordered_vehicles)
         energy_this_frame = 0.0
         pilot_by_slot = np.zeros(args.slots_per_frame)
+        gpu_gains = None
+        if physics_device is not None:
+            from utils.gpu_phy import GPUFramePHY
+            physical = GPUFramePHY(args, records, frame_cur, paired_fading_seed, physics_device)
+            gpu_gains = physical.fixed_pairs(connection, states)
+            del physical
         for slot_index in range(args.slots_per_frame):
+            blocked = switched if slot_index < ho_slots else set()
+            if paired_fading_seed is not None and gpu_gains is None:
+                np.random.seed((int(paired_fading_seed) * 1000003 +
+                    round(float(frame_cur) * 10) * args.slots_per_frame + slot_index) % 2**32)
             gain_slot = collections.OrderedDict()
             pilot_slot = collections.OrderedDict()
-            for vehicle in ordered_vehicles:
+            for vehicle_index, vehicle in enumerate(ordered_vehicles):
                 state = states[vehicle]
                 bs = connection[vehicle]
                 slot_gains = gain_frame[vehicle].copy()
-                if bs > 0 and rician_fading:
+                if gpu_gains is not None:
+                    if bs > 0:
+                        slot_gains[bs] = gpu_gains[slot_index, vehicle_index]
+                elif rician_fading and (bs > 0 or paired_fading_seed is not None):
                     channel = records[vehicle]["h"] * np.sqrt(
                         rician_channel_gain(
                             args.K_rician, size=records[vehicle]["h"].shape
                         )
                     )
-                    slot_gains[bs] = fixed_pair_gain_db(
-                        channel,
-                        bs - 1,
-                        int(state.tx_beam),
-                        int(state.rx_beam),
-                        dft_tx,
-                        dft_rx,
-                    )
+                    if bs > 0:
+                        slot_gains[bs] = fixed_pair_gain_db(
+                            channel, bs - 1, int(state.tx_beam), int(state.rx_beam), dft_tx, dft_rx)
                 gain_slot[vehicle] = slot_gains
                 pilots = np.full(
                     config.num_micro_bs, config.tracking_pilots, dtype=float
@@ -334,9 +367,11 @@ def run_sim_mts_gs_hbf(
                     pilots[bs - 1] = sweep_pilots_for_slot(
                         state.current_sweep_pilots,
                         config.tracking_pilots,
-                        slot_index,
+                        max(0, slot_index - (ho_slots if vehicle in switched else 0)),
                         args.pilot_overhead_factor,
                     )
+                if vehicle in blocked:
+                    pilots[:] = 0
                 pilot_slot[vehicle] = pilots
             pilot_values = [
                 pilot_slot[vehicle][connection[vehicle] - 1]
@@ -348,14 +383,14 @@ def run_sim_mts_gs_hbf(
                 float(np.mean(pilot_values)) if pilot_values else 0.0
             )
 
-            ra_dict = collections.OrderedDict()
+            ra_dict = collections.OrderedDict((v, 0) for v in blocked)
             rb_per_bs = np.zeros(config.num_bs, dtype=int)
             for bs_id in range(config.num_bs):
                 bs_ra = ra_func(
                     args,
                     slot_idx=slot_index,
                     BS_id=bs_id,
-                    veh_set=bs_association[bs_id],
+                    veh_set=[v for v in bs_association[bs_id] if v not in blocked],
                     veh_data_rate_dict=vehicle_rate,
                     Q_ub_dict=queue_upper_bound,
                     q_dict=queue_cur,
@@ -385,6 +420,10 @@ def run_sim_mts_gs_hbf(
                 sinr_flag=True,
             )
             rb_record[frame_index] += rb_per_bs
+            if ho_diagnostics is not None:
+                for vehicle in blocked:
+                    assert ra_dict[vehicle] == 0 and np.all(pilot_slot[vehicle] == 0)
+                    assert queue_cur[vehicle][slot_index+1] == queue_cur[vehicle][slot_index] + arrivals[vehicle][slot_index]
 
         queue_per_vehicle[frame_index] = collections.OrderedDict(
             (vehicle, queue_cur[vehicle][1:].copy()) for vehicle in ordered_vehicles
@@ -402,10 +441,16 @@ def run_sim_mts_gs_hbf(
         pilot_record[frame_index] = pilot_by_slot.mean()
         rb_record[frame_index] /= args.slots_per_frame
         association_record[frame_index] = connection.copy()
+        if ho_diagnostics is not None:
+            ho_diagnostics.append(dict(frame=frame_cur, association=dict(connection),
+                switched=sorted(switched, key=str), blocked_vehicle_slots=len(switched)*ho_slots,
+                active_vehicle_slots=len(veh_set_cur)*args.slots_per_frame))
         action_record[frame_index] = commands
         frame_prev = frame_cur
         veh_set_prev = veh_set_cur
         queue_prev = queue_cur
+        if progress_callback is not None:
+            progress_callback(frame_index + 1, num_frames)
 
     if prt:
         print("MTS-GS-HBF simulation elapsed: {:.1f} s".format(time.time() - sim_start))
@@ -435,4 +480,3 @@ def run_sim_mts_gs_hbf(
         proposal_record=proposal_record,
         unassigned_record=unassigned_record,
     )
-

@@ -79,7 +79,7 @@ def update_measured_g_record_dict(g_dict, measured_g_record_dict_prev, veh_set_c
                     measured_g_record_dict_cur[veh][BS_id,0] += 1 # 车辆与非连接基站的经过时间(帧数)加1
     return measured_g_record_dict_cur
 
-def measure_gain(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairId_dict, pred_gain_opt_beam_dict, DFT_matrix_tx, DFT_matrix_rx, BF_func, bpID_dict_lastslot, db_err_th=5, db_lb=-100, rician_fading=False, K_BF=None):
+def measure_gain(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairId_dict, pred_gain_opt_beam_dict, DFT_matrix_tx, DFT_matrix_rx, BF_func, bpID_dict_lastslot, db_err_th=5, db_lb=-100, rician_fading=False, K_BF=None, correct_random_beam_index=False):
     K_BF = K_BF if K_BF is not None else args.K
     num_pilot_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming所用的导频数量
     g_dict = collections.OrderedDict() # 统计各车与各基站基于pred_beamPairId_dict进行beamforming的信道增益
@@ -125,7 +125,8 @@ def measure_gain(args, frame, veh_set, timeline_dir, BS_loc_list, pred_beamPairI
                         np.abs(np.matmul(np.matmul(veh_h[:,BS_id,:], DFT_matrix_tx[:,candidate_beam_index_pair[BS_id,k,0]]).T.conjugate(),DFT_matrix_rx[:,candidate_beam_index_pair[BS_id,k,1]]))
                     g_bf[k] = 2 * lin2dB(g_bf[k])
                 g_dict[veh][BS_id] = g_bf.max()
-                bpID_dict[veh][BS_id] = pred_beamPairId_dict[veh][BS_id, g_bf.argmax()]
+                bpID_dict[veh][BS_id] = (candidate_beamPairId[BS_id, g_bf.argmax()]
+                    if correct_random_beam_index else pred_beamPairId_dict[veh][BS_id, g_bf.argmax()])
         elif BF_func=='topKbeam_savePilot':
             candidate_beam_index_pair = beamPairId_to_beamIdPair(pred_beamPairId_dict[veh], M_t=args.M_t, M_r=args.M_r) # (N_bs,args.K,2)
             for BS_id in range(len(BS_loc_list)):
