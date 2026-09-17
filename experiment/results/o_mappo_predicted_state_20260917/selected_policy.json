@@ -1,0 +1,12 @@
+{
+  "checkpoint_sha256": "50daa7cf4307a666ca8a0c58d7774e31c5f048eed98c780d8bce34394742cf0c",
+  "episode": 72,
+  "metric": "maximum validation fluid U[%] + 0.01 * mean P[W]",
+  "path": "experiment/results/o_mappo_predicted_state_20260917/training_seed20/best_policy.pt",
+  "score": 17.349753128151857,
+  "seed": 20,
+  "validation_interval": [
+    700.1,
+    710
+  ]
+}

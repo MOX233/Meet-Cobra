@@ -1,0 +1,26 @@
+{
+  "actor_state_variant": "predicted_adapted",
+  "checkpoint_sha256": "50daa7cf4307a666ca8a0c58d7774e31c5f048eed98c780d8bce34394742cf0c",
+  "elapsed_s": 124.08295338321477,
+  "fading_generator": "torch_float64_cuda",
+  "ho_interruption_ms": 10,
+  "matching_backend": "not_applicable",
+  "method": "predicted_adapted",
+  "metrics": {
+    "handovers_per_vehicle_s": 0.03668234077648391,
+    "macro_association_percent": 19.865087766808635,
+    "mean_proxy_ms": 4.884021778460458,
+    "p99_proxy_ms": 59.48645531116005,
+    "pilots_per_vehicle_slot": 0.8141631470156634,
+    "power_w": 106.78217449664416,
+    "trigger_ratio": 0.038294613224406436,
+    "violation_percent": 1.5522553965565615
+  },
+  "physics_gpu": 1,
+  "rate_mbps": 13,
+  "rician_fading": true,
+  "seed": 1,
+  "solver_threads": 1,
+  "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+  "vectorized_pet_measurement": false
+}
