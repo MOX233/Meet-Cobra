@@ -150,7 +150,9 @@ class OMAPPOConfig:
     occupied capacity; and ``load_energy`` adds per-RB transmit energy.
     """
 
-    state_variant: str = "adapted"  # source, adapted, or feasibility
+    state_variant: str = "adapted"  # source, adapted, feasibility, or pilot
+    information_mode: str = "legacy"  # legacy or shared_prediction
+    ho_interruption_ms: float = 0.0
     trigger_gate: str = "periodic"  # periodic or source
     optimizer_variant: str = "load_energy"  # source, load, load_energy
     optimizer_solver: str = "greedy"  # greedy or milp
@@ -192,8 +194,16 @@ class OMAPPOConfig:
         return (2 * self.track_tx_radius + 1) * (2 * self.track_rx_radius + 1)
 
     def validate(self) -> None:
-        if self.state_variant not in ("source", "adapted", "feasibility"):
-            raise ValueError("state_variant must be source, adapted, or feasibility")
+        if self.state_variant not in ("source", "adapted", "feasibility", "pilot"):
+            raise ValueError("invalid state_variant")
+        if self.information_mode not in ("legacy", "shared_prediction"):
+            raise ValueError("invalid information_mode")
+        if self.information_mode == "shared_prediction" and (
+            self.state_variant != "pilot" or self.trigger_gate != "periodic"
+        ):
+            raise ValueError("shared prediction requires pilot state and periodic gate")
+        if not 0 <= self.ho_interruption_ms < 100:
+            raise ValueError("HO interruption must be within the 100-ms frame")
         if self.trigger_gate not in ("periodic", "source"):
             raise ValueError("trigger_gate must be periodic or source")
         if self.optimizer_variant not in ("source", "load", "load_energy"):
@@ -345,6 +355,9 @@ def state_feature_names(config: OMAPPOConfig) -> List[str]:
         "rx_beam_sin",
         "rx_beam_cos",
     ]
+    if config.state_variant == "pilot":
+        names = [name for name in names if name not in ("serving_sinr", "interference_to_noise")]
+        names += ["superposed_pilot_{}".format(i) for i in range(128)]
     if config.state_variant == "feasibility":
         names += ["candidate_sinr_{}".format(i) for i in range(config.num_bs)]
         names += ["candidate_demand_{}".format(i) for i in range(config.num_bs)]
@@ -381,6 +394,7 @@ def make_local_state(
     candidate_residual_ratio: Optional[Sequence[float]] = None,
     candidate_feasibility_margin: Optional[Sequence[float]] = None,
     optimizer_feedback: Optional[Sequence[float]] = None,
+    pilot_observation: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     one_hot = np.zeros(config.num_bs, dtype=np.float32)
     one_hot[int(serving_bs)] = 1.0
@@ -432,6 +446,16 @@ def make_local_state(
 
     values.extend(cyclic(tx_beam, config.num_tx_beams))
     values.extend(cyclic(rx_beam, config.num_rx_beams))
+    if config.state_variant == "pilot":
+        # Drop privileged serving SINR and inferred interference, not merely
+        # rename them. Retain public load, queues, mobility and beam indices.
+        legacy_names = state_feature_names(dataclasses.replace(config, state_variant="adapted"))
+        values = [value for name, value in zip(legacy_names, values)
+                  if name not in ("serving_sinr", "interference_to_noise")]
+        pilot = np.asarray(pilot_observation, dtype=np.float32)
+        if pilot.shape != (128,) or not np.isfinite(pilot).all():
+            raise ValueError("pilot state requires the common 128-dimensional observation")
+        values.extend(pilot.tolist())
     if config.state_variant == "feasibility":
         feature_groups = (
             (candidate_sinr_db, "candidate_sinr_db"),
@@ -927,7 +951,12 @@ def _candidate_links(
     dft_rx: np.ndarray,
     macro_bs_loc: np.ndarray,
 ) -> List[TargetCandidate]:
-    no_bf = np.concatenate(([-180.0], no_bf_gain_db(record["h"])))
+    predicted = config.information_mode == "shared_prediction"
+    if predicted:
+        prediction = record["shared_prediction"]
+        no_bf = np.concatenate(([-180.0], prediction["interference"]))
+    else:
+        no_bf = np.concatenate(([-180.0], no_bf_gain_db(record["h"])))
     frame_duration = args.slots_per_frame * args.slot_len
     sweep_average = average_sweep_pilots(
         args, config.full_sweep_pilots, config.tracking_pilots
@@ -944,7 +973,11 @@ def _candidate_links(
             power = args.p_macro
             rb_capacity = args.num_RB_macro
         else:
-            tx, rx, gain = best_beam_pair(record["h"], bs - 1, dft_tx, dft_rx)
+            if predicted:
+                tx = rx = None  # Target assignment does not choose a beam.
+                gain = float(prediction["gain"][bs - 1])
+            else:
+                tx, rx, gain = best_beam_pair(record["h"], bs - 1, dft_tx, dft_rx)
             interference = _interference_db(args, bs, no_bf, load)
             pilot_average = sweep_average
             power = args.p_micro
@@ -961,6 +994,10 @@ def _candidate_links(
             # Normalize against one macro-RB watt so the coefficient is
             # dimensionless and stable across the two bandwidths.
             cost += config.optimizer_energy_weight * required * power
+        # Only capacity occupancy is inflated. Frame-average energy cost is
+        # unchanged, as in the common HO-interruption capacity correction.
+        if config.ho_interruption_ms:
+            required /= 1.0 - config.ho_interruption_ms / (1000.0 * frame_duration)
         candidates.append(
             TargetCandidate(
                 bs=bs,
@@ -1225,6 +1262,9 @@ def fluid_o_mappo_step(
         backlog,
         previous_load,
         duration,
+        service_fraction=({v: 1.0 - (config.ho_interruption_ms / (1000.0 * duration)
+                                   if learners[v].last_handover else 0.0)
+                           for v in vehicles} if config.ho_interruption_ms else None),
     )
     queue_end: Dict[object, float] = {}
     served: Dict[object, float] = {}
@@ -1541,7 +1581,8 @@ def run_fluid_o_mappo_episode(
                 step.interference_db[vehicle],
             )
             record = records[vehicle]
-            no_bf = np.concatenate(([-180.0], no_bf_gain_db(record["h"])))
+            no_bf = (None if config.information_mode == "shared_prediction" else
+                     np.concatenate(([-180.0], no_bf_gain_db(record["h"]))))
             alternatives: List[float] = []
             # The overlap gate is evaluated only at a distance-zone crossing.
             # Periodic adapted candidates do not pay for unused alternative
@@ -1565,6 +1606,8 @@ def run_fluid_o_mappo_episode(
                     )
             all_alt_sinr[vehicle] = alternatives
             state_kwargs = {}
+            if config.state_variant == "pilot":
+                state_kwargs["pilot_observation"] = record["CSI_preprocessed"][-1]
             if config.state_variant == "feasibility":
                 context = candidate_feasibility_context(
                     args,

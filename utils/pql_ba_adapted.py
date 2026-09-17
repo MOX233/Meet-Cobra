@@ -217,6 +217,7 @@ def _fluid_allocation(
     initial_load: np.ndarray,
     frame_duration_s: float,
     iterations: int = 5,
+    service_fraction: Optional[Dict[object, float]] = None,
 ) -> Tuple[Dict[object, float], Dict[object, float], np.ndarray, Dict[object, float]]:
     """Fixed-point fluid approximation of OTR allocation and interference."""
 
@@ -242,6 +243,8 @@ def _fluid_allocation(
                 interference[vehicle],
                 pilot_average[vehicle],
             )
+            if service_fraction is not None:
+                capacity[vehicle] *= service_fraction[vehicle]
 
         allocation = {}
         next_load = np.zeros(num_bs, dtype=float)
@@ -281,6 +284,8 @@ def _fluid_allocation(
             interference[vehicle],
             pilot_average[vehicle],
         )
+        if service_fraction is not None:
+            capacity[vehicle] *= service_fraction[vehicle]
     allocation = {}
     final_load = np.zeros(num_bs, dtype=float)
     for bs_id in range(num_bs):

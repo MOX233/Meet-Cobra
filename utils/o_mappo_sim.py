@@ -40,6 +40,7 @@ from utils.pql_ba import (
     sweep_pilots_for_slot,
 )
 from utils.pql_ba_adapted import _capacity_per_rb_bps, _interference_db
+from utils.ho_utils import interruption_slots
 from utils.queue_utils import (
     init4frame_vehset_backlog_queue,
     init_vehset_backlog_queue,
@@ -81,10 +82,19 @@ def run_sim_o_mappo(
     macro_bs_loc: Sequence[float] = (0.0, 0.0),
     rician_fading: bool = True,
     optimizer_solver: Optional[str] = "milp",
+    traffic_trace=None,
+    ho_interruption_ms: float = 0.0,
+    paired_fading_seed=None,
 ) -> OMAPPOSimulationResult:
     """Evaluate O-MAPPO with causal commands and the common exact scheduler."""
 
     config = policy.config
+    ho_slots = interruption_slots(ho_interruption_ms, args.slot_len, args.slots_per_frame)
+    # Apply the same interruption-aware target capacities to both interfaces.
+    config = dataclasses.replace(config, ho_interruption_ms=ho_interruption_ms)
+    shared = config.information_mode == "shared_prediction"
+    if paired_fading_seed is not None and traffic_trace is None:
+        raise ValueError("Paired fading requires independently replayed traffic")
     if len(micro_bs_loc_list) != config.num_micro_bs:
         raise ValueError("micro BS count does not match O-MAPPO policy")
     np.random.seed(seed)
@@ -124,6 +134,10 @@ def run_sim_o_mappo(
         (vehicle, args.lat_slot_ub * rate * args.slot_len)
         for vehicle, rate in vehicle_rate.items()
     )
+    if traffic_trace is not None:
+        vehicle_rate.update(traffic_trace["rates"])
+        queue_upper_bound.update({v: args.lat_slot_ub * r * args.slot_len
+                                  for v, r in vehicle_rate.items()})
     queue_prev = init_vehset_backlog_queue(
         veh_set_prev,
         queue_upper_bound,
@@ -131,6 +145,9 @@ def run_sim_o_mappo(
         slots_per_frame=args.slots_per_frame,
     )
     learners: Dict[object, OMAPPOLearnerState] = {}
+    if traffic_trace is not None:
+        for vehicle in veh_set_prev:
+            queue_prev[vehicle][:] = traffic_trace["initial_queues"][frame_prev][vehicle]
     for vehicle in veh_set_prev:
         position = np.asarray(timeline_dir[frame_prev][vehicle]["pos"], dtype=float)
         learners[vehicle] = OMAPPOLearnerState(
@@ -185,6 +202,8 @@ def run_sim_o_mappo(
             slots_per_frame=args.slots_per_frame,
         )
         for vehicle in veh_set_in:
+            if traffic_trace is not None:
+                queue_cur[vehicle][0] = traffic_trace["initial_queues"][frame_cur][vehicle]
             position = np.asarray(records[vehicle]["pos"], dtype=float)
             learners[vehicle] = OMAPPOLearnerState(
                 action=0,
@@ -259,6 +278,11 @@ def run_sim_o_mappo(
             infer_g_dict=inference_gain,
         )
         estimated_load = np.clip(estimated_rb / rb_capacities, 0.0, 1.5)
+        if shared:
+            # Public, previously realized RB use; not an estimate obtained
+            # by reading all current, unobserved channel matrices.
+            estimated_load = (rb_record[frame_index - 1] / rb_capacities
+                              if frame_index else np.zeros(config.num_bs))
         zone_due: Dict[object, bool] = {}
         for vehicle in sorted(veh_set_cur, key=str):
             learner = learners[vehicle]
@@ -320,6 +344,8 @@ def run_sim_o_mappo(
                     )
             all_alternative_sinr[vehicle] = alternatives
             state_kwargs = {}
+            if config.state_variant == "pilot":
+                state_kwargs["pilot_observation"] = records[vehicle]["CSI_preprocessed"][-1]
             if config.state_variant == "feasibility":
                 context = candidate_feasibility_context(
                     args,
@@ -368,6 +394,11 @@ def run_sim_o_mappo(
             scale = target_total / max(total_requested, 1e-12)
             for vehicle in associated:
                 current_allocated[vehicle] *= min(scale, 1.0)
+        if shared:
+            current_allocated = {
+                v: learners[v].previous_rb_fraction * rb_capacities[connection[v]]
+                for v in veh_set_cur
+            }
         ordered_vehicles = sorted(veh_set_cur, key=str)
         global_state = make_global_state(
             np.stack([all_states[x] for x in ordered_vehicles]), len(ordered_vehicles)
@@ -474,31 +505,39 @@ def run_sim_o_mappo(
             )
             for vehicle in ordered_vehicles
         )
+        if traffic_trace is not None:
+            arrivals = collections.OrderedDict((v, traffic_trace["arrivals"][frame_cur][v])
+                                               for v in ordered_vehicles)
         initial_queue = {vehicle: float(queue_cur[vehicle][0]) for vehicle in ordered_vehicles}
         energy_this_frame = 0.0
         pilot_by_slot = np.zeros(args.slots_per_frame)
         rb_by_vehicle = collections.defaultdict(float)
         for slot_index in range(args.slots_per_frame):
+            blocked = {v for v in ordered_vehicles if outcomes[v].handover and slot_index < ho_slots}
+            if paired_fading_seed is not None:
+                np.random.seed((int(paired_fading_seed) * 1000003 +
+                                round(float(frame_cur) * 10) * args.slots_per_frame + slot_index) % 2**32)
             gain_slot = collections.OrderedDict()
             pilot_slot = collections.OrderedDict()
             for vehicle in ordered_vehicles:
                 learner = learners[vehicle]
                 bs = connection[vehicle]
                 slot_gains = gain_frame[vehicle].copy()
-                if bs > 0 and rician_fading:
+                if rician_fading and (bs > 0 or paired_fading_seed is not None):
                     channel = records[vehicle]["h"] * np.sqrt(
                         rician_channel_gain(
                             args.K_rician, size=records[vehicle]["h"].shape
                         )
                     )
-                    slot_gains[bs] = fixed_pair_gain_db(
-                        channel,
-                        bs - 1,
-                        int(learner.tx_beam),
-                        int(learner.rx_beam),
-                        dft_tx,
-                        dft_rx,
-                    )
+                    if bs > 0:
+                        slot_gains[bs] = fixed_pair_gain_db(
+                            channel,
+                            bs - 1,
+                            int(learner.tx_beam),
+                            int(learner.rx_beam),
+                            dft_tx,
+                            dft_rx,
+                        )
                 gain_slot[vehicle] = slot_gains
                 pilots = np.full(
                     config.num_micro_bs, config.tracking_pilots, dtype=float
@@ -507,9 +546,11 @@ def run_sim_o_mappo(
                     pilots[bs - 1] = sweep_pilots_for_slot(
                         learner.current_sweep_pilots,
                         config.tracking_pilots,
-                        slot_index,
+                        max(0, slot_index - (ho_slots if outcomes[vehicle].handover else 0)),
                         args.pilot_overhead_factor,
                     )
+                if vehicle in blocked:
+                    pilots[:] = 0
                 pilot_slot[vehicle] = pilots
             pilot_values = [
                 pilot_slot[vehicle][connection[vehicle] - 1]
@@ -520,14 +561,14 @@ def run_sim_o_mappo(
             pilot_by_slot[slot_index] = (
                 float(np.mean(pilot_values)) if pilot_values else 0.0
             )
-            ra_dict = collections.OrderedDict()
+            ra_dict = collections.OrderedDict((v, 0) for v in blocked)
             rb_per_bs = np.zeros(config.num_bs, dtype=int)
             for bs_id in range(config.num_bs):
                 bs_ra = ra_func(
                     args,
                     slot_idx=slot_index,
                     BS_id=bs_id,
-                    veh_set=bs_association[bs_id],
+                    veh_set=[v for v in bs_association[bs_id] if v not in blocked],
                     veh_data_rate_dict=vehicle_rate,
                     Q_ub_dict=queue_upper_bound,
                     q_dict=queue_cur,

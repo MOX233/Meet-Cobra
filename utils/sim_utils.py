@@ -257,9 +257,17 @@ def run_sim_withUMa(
     traffic_trace = kwargs.get('traffic_trace')
     oracle_ho_cache = kwargs.get('oracle_ho_cache')
     ho_diagnostics = kwargs.get('ho_diagnostics')
-    if ho_slots and any(model is not None for model in
+    if ho_slots and prediction_cache is None and any(model is not None for model in
                         (pospred_model, beampred_model, gainpred_model, inferpred_model)):
-        raise ValueError("HO interruption is currently validated only for Oracle runs")
+        raise ValueError("HO interruption with predictors requires an audited prediction cache")
+    rician_fading = kwargs.get('rician_fading', True)
+    paired_fading_seed = kwargs.get('paired_fading_seed')
+    measurement = measure_gain
+    if kwargs.get('vectorized_pet_measurement', False):
+        from utils.fast_pet_measurement import measure_pet_batch
+        measurement = measure_pet_batch
+    if paired_fading_seed is not None and traffic_trace is None:
+        raise ValueError("Paired fading requires independently replayed traffic")
     K_BF = K_BF if K_BF is not None else args.K
     device = args.device
     DFT_matrix_tx = generate_dft_codebook(args.M_t)
@@ -474,7 +482,7 @@ def run_sim_withUMa(
 
         # 在每一帧内，让各车对各MicroBS的K个波束对进行测量
         g_microBS_dict, g_microBS_NoBF_dict, bpID_microBS_dict, num_pilot_dict = \
-            measure_gain(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, pred_beamPairId_dict, pred_gain_opt_beam_dict, \
+            measurement(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, pred_beamPairId_dict, pred_gain_opt_beam_dict, \
                 DFT_matrix_tx, DFT_matrix_rx, BF_func, bpID_microBS_dict, rician_fading=False, K_BF=K_BF)
         
         g_dict = collections.OrderedDict()
@@ -550,9 +558,12 @@ def run_sim_withUMa(
             blocked = switched if i < ho_slots else set()
             
             # # 在每一【时隙】内，让各车对各MicroBS的K个波束对进行测量
-            if beampred_model is not None:
+            if beampred_model is not None and rician_fading:
+                if paired_fading_seed is not None:
+                    np.random.seed((int(paired_fading_seed) * 1000003 +
+                                    round(float(frame_cur) * 10) * args.slots_per_frame + i) % 2**32)
                 g_microBS_slot_dict, g_microBS_NoBF_slot_dict, bpID_microBS_dict, num_pilot_slot_dict = \
-                    measure_gain(args, frame_cur, veh_set_cur, timeline_dir, MicroBS_loc_list, pred_beamPairId_dict, pred_gain_opt_beam_dict, \
+                    measurement(args, frame_cur, sorted(veh_set_cur, key=str) if paired_fading_seed is not None else veh_set_cur, timeline_dir, MicroBS_loc_list, pred_beamPairId_dict, pred_gain_opt_beam_dict, \
                         DFT_matrix_tx, DFT_matrix_rx, BF_func, bpID_microBS_dict, rician_fading=True, K_BF=K_BF)
             else:
                 g_microBS_slot_dict = g_microBS_dict
