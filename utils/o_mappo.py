@@ -150,7 +150,7 @@ class OMAPPOConfig:
     occupied capacity; and ``load_energy`` adds per-RB transmit energy.
     """
 
-    state_variant: str = "adapted"  # source, adapted, feasibility, pilot, or report
+    state_variant: str = "adapted"  # source, adapted, feasibility, pilot, report, gain_report
     information_mode: str = "legacy"  # legacy or shared_prediction
     reported_beam_count: int = 5
     ho_interruption_ms: float = 0.0
@@ -195,15 +195,15 @@ class OMAPPOConfig:
         return (2 * self.track_tx_radius + 1) * (2 * self.track_rx_radius + 1)
 
     def validate(self) -> None:
-        if self.state_variant not in ("source", "adapted", "feasibility", "pilot", "report"):
+        if self.state_variant not in ("source", "adapted", "feasibility", "pilot", "report", "gain_report"):
             raise ValueError("invalid state_variant")
         if self.information_mode not in ("legacy", "shared_prediction"):
             raise ValueError("invalid information_mode")
         if self.information_mode == "shared_prediction" and (
-            self.state_variant not in ("pilot", "report") or self.trigger_gate != "periodic"
+            self.state_variant not in ("pilot", "report", "gain_report") or self.trigger_gate != "periodic"
         ):
-            raise ValueError("shared prediction requires pilot/report state and periodic gate")
-        if self.state_variant == "report" and self.information_mode != "shared_prediction":
+            raise ValueError("shared prediction requires a shared CSI state and periodic gate")
+        if self.state_variant in ("report", "gain_report") and self.information_mode != "shared_prediction":
             raise ValueError("report state requires the shared prediction frontend")
         if not 1 <= self.reported_beam_count <= self.num_tx_beams * self.num_rx_beams:
             raise ValueError("invalid reported beam count")
@@ -360,15 +360,16 @@ def state_feature_names(config: OMAPPOConfig) -> List[str]:
         "rx_beam_sin",
         "rx_beam_cos",
     ]
-    if config.state_variant in ("pilot", "report"):
+    if config.state_variant in ("pilot", "report", "gain_report"):
         names = [name for name in names if name not in ("serving_sinr", "interference_to_noise")]
     if config.state_variant == "pilot":
         names += ["superposed_pilot_{}".format(i) for i in range(128)]
-    if config.state_variant == "report":
+    if config.state_variant in ("report", "gain_report"):
         for bs in range(1, config.num_bs):
             names += [f"reported_desired_gain_{bs}", f"reported_interfering_gain_{bs}"]
-            names += [f"reported_beam_{bs}_rank_{rank + 1}"
-                      for rank in range(config.reported_beam_count)]
+            if config.state_variant == "report":
+                names += [f"reported_beam_{bs}_rank_{rank + 1}"
+                          for rank in range(config.reported_beam_count)]
     if config.state_variant == "feasibility":
         names += ["candidate_sinr_{}".format(i) for i in range(config.num_bs)]
         names += ["candidate_demand_{}".format(i) for i in range(config.num_bs)]
@@ -391,15 +392,24 @@ def encode_prediction_report(config: OMAPPOConfig, report: MutableMapping) -> np
     probability vector. Fixed scaling uses no train/test statistics. For the
     paper configuration this is 28 features and 416 bits on the uplink; the
     expanded FP32 actor tensor is not the transmitted representation.
+    ``gain_report`` uses exactly the same eight gain entries, without reading
+    any predicted beam indices (including during training and critic pooling).
     """
     if report is None:
         raise ValueError("report state requires the vehicle prediction report")
     gain = np.asarray(report["gain"], dtype=np.float32)
     interference = np.asarray(report["interference"], dtype=np.float32)
-    beam = np.asarray(report["beam"])
-    expected = (config.num_micro_bs, config.reported_beam_count)
     if gain.shape != (config.num_micro_bs,) or interference.shape != gain.shape:
         raise ValueError("reported gains have wrong shape")
+    if not np.isfinite(gain).all() or not np.isfinite(interference).all():
+        raise ValueError("invalid reported gain values")
+    # Affine scaling, without clipping, retains all reported gain information.
+    gains = np.stack(((gain + 100.0) / 40.0,
+                      (interference + 100.0) / 40.0), axis=-1)
+    if config.state_variant == "gain_report":
+        return gains.ravel().astype(np.float32)
+    beam = np.asarray(report["beam"])
+    expected = (config.num_micro_bs, config.reported_beam_count)
     if beam.shape != expected:
         raise ValueError("reported ordered beam indices have wrong shape")
     pair_count = config.num_tx_beams * config.num_rx_beams
@@ -407,9 +417,6 @@ def encode_prediction_report(config: OMAPPOConfig, report: MutableMapping) -> np
             or not np.isfinite(beam).all() or np.any(beam != np.floor(beam))
             or np.any(beam < 0) or np.any(beam >= pair_count)):
         raise ValueError("invalid vehicle prediction report")
-    # Affine scaling, without clipping, retains all reported gain information.
-    gains = np.stack(((gain + 100.0) / 40.0,
-                      (interference + 100.0) / 40.0), axis=-1)
     indices = beam.astype(np.float32) / max(pair_count - 1, 1)
     return np.concatenate((gains, indices), axis=1).ravel().astype(np.float32)
 
@@ -418,10 +425,11 @@ def shared_actor_inputs(config: OMAPPOConfig, record: MutableMapping) -> Dict:
     """Restrict CSI extraction to the configured deployment interface."""
     if config.state_variant == "pilot":
         return {"pilot_observation": record["CSI_preprocessed"][-1]}
-    if config.state_variant == "report":
+    if config.state_variant in ("report", "gain_report"):
         prediction = record["shared_prediction"]
+        keys = ("gain", "interference") if config.state_variant == "gain_report" else ("gain", "interference", "beam")
         return {"prediction_report": {key: prediction[key]
-                for key in ("gain", "interference", "beam")}}
+                for key in keys}}
     return {}
 
 
@@ -500,7 +508,7 @@ def make_local_state(
 
     values.extend(cyclic(tx_beam, config.num_tx_beams))
     values.extend(cyclic(rx_beam, config.num_rx_beams))
-    if config.state_variant in ("pilot", "report"):
+    if config.state_variant in ("pilot", "report", "gain_report"):
         # Drop privileged serving SINR and inferred interference, not merely
         # rename them. Retain public load, queues, mobility and beam indices.
         legacy_names = state_feature_names(dataclasses.replace(config, state_variant="adapted"))
@@ -511,7 +519,7 @@ def make_local_state(
         if pilot.shape != (128,) or not np.isfinite(pilot).all():
             raise ValueError("pilot state requires the common 128-dimensional observation")
         values.extend(pilot.tolist())
-    if config.state_variant == "report":
+    if config.state_variant in ("report", "gain_report"):
         values.extend(encode_prediction_report(config, prediction_report).tolist())
     if config.state_variant == "feasibility":
         feature_groups = (
