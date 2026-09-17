@@ -60,6 +60,9 @@ def summarize(gpu):
         new_protocol = json.loads((OUTPUT / f"training_seed{seed}/protocol.json").read_text())
         assert old_protocol["frontend_manifest"] == new_protocol["frontend_manifest"]
         assert len(old["history"]) == len(new["history"]) == 72
+        for key in ("average_system_power_w", "queue_violation_percent", "trigger_ratio",
+                    "handover_per_vehicle_per_s", "average_queueing_proxy_ms"):
+            assert old["history"][0][key] == new["history"][0][key], key
         for a, b in zip(old["history"], new["history"]):
             assert (a["episode"], a["start"], a["data_rate_mbps"]) == (b["episode"], b["start"], b["data_rate_mbps"])
         assert old["reward"] == new["reward"]
@@ -81,6 +84,7 @@ def summarize(gpu):
     delta = {key: new["metrics"][key] - value for key, value in base["metrics"].items()}
     driver.write_json(OUTPUT / "summary.json", dict(runs=final, baseline_reproduction=reproduced,
         baseline_reproduction_equal=True, selection=selected, difference_from_gain_report=delta,
+        first_rollout_identical_for_both_training_seeds=True,
         protocol="same two training seeds, 72 segments, rewards, critic input and optimizer; single test seed at 13 Mbps"))
     lines = ["13 Mbps, seed 1, 800--830 s, 10 ms HO interruption.", "",
         "| Method | P (W) | U (%) | mean proxy (ms) | p99 proxy (ms) | macro (%) | HO/vehicle/s |",

@@ -1,0 +1,179 @@
+{
+  "baseline_reproduction": {
+    "actor_state_variant": "gain_report",
+    "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+    "elapsed_s": 138.5890466766432,
+    "fading_generator": "torch_float64_cuda",
+    "ho_interruption_ms": 10,
+    "matching_backend": "not_applicable",
+    "method": "gain_report",
+    "metrics": {
+      "handovers_per_vehicle_s": 0.034959009330608824,
+      "macro_association_percent": 20.007878086609715,
+      "mean_proxy_ms": 5.321587826511018,
+      "p99_proxy_ms": 82.97473698516202,
+      "pilots_per_vehicle_slot": 0.8124294512429097,
+      "power_w": 108.14093288590588,
+      "trigger_ratio": 0.036507531273934135,
+      "violation_percent": 1.9759962911227593
+    },
+    "physics_gpu": 4,
+    "rate_mbps": 13,
+    "rician_fading": true,
+    "seed": 1,
+    "solver_threads": 1,
+    "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+    "vectorized_pet_measurement": false
+  },
+  "baseline_reproduction_equal": true,
+  "difference_from_gain_report": {
+    "handovers_per_vehicle_s": 0.05933183977941358,
+    "macro_association_percent": -6.90071148969694,
+    "mean_proxy_ms": 3.4173035785818735,
+    "p99_proxy_ms": 122.11503830119395,
+    "pilots_per_vehicle_slot": 0.07837049008287766,
+    "power_w": -17.412597315435974,
+    "trigger_ratio": 0.061526678580546335,
+    "violation_percent": 1.1595504654300133
+  },
+  "first_rollout_identical_for_both_training_seeds": true,
+  "protocol": "same two training seeds, 72 segments, rewards, critic input and optimizer; single test seed at 13 Mbps",
+  "runs": [
+    {
+      "checkpoint_sha256": "9e7fd2a6a1ba96472003d5502cea8dd053245c5e48b8e559d756b1afea55ab3c",
+      "elapsed_s": 230.90683635417372,
+      "fading_generator": "torch_float64_cuda",
+      "ho_interruption_ms": 10,
+      "method": "legacy",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.18021123119722296,
+        "macro_association_percent": 5.8199364829267095,
+        "mean_proxy_ms": 3.4690588285763346,
+        "p99_proxy_ms": 17.986126204923682,
+        "pilots_per_vehicle_slot": 0.9787821654182594,
+        "power_w": 60.68849664429541,
+        "trigger_ratio": 0.18662241511360736,
+        "violation_percent": 0.965094547593098
+      },
+      "physics_gpu": 5,
+      "rate_mbps": 13,
+      "rician_fading": true,
+      "seed": 1,
+      "solver_threads": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "vectorized_pet_measurement": false
+    },
+    {
+      "actor_state_variant": "report",
+      "checkpoint_sha256": "cd3c0149d688780c5bf45fd18f1a9cc62df51d2f01ad2ec5992d5c202db244f8",
+      "elapsed_s": 440.69541241042316,
+      "fading_generator": "torch_float64_cuda",
+      "ho_interruption_ms": 10,
+      "matching_backend": "not_applicable",
+      "method": "report",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.06647135576946749,
+        "macro_association_percent": 9.613727565917427,
+        "mean_proxy_ms": 8.248702723538889,
+        "p99_proxy_ms": 169.60360290340344,
+        "pilots_per_vehicle_slot": 0.9211888878746638,
+        "power_w": 81.11037583892626,
+        "trigger_ratio": 0.06893030380393159,
+        "violation_percent": 3.0752111775604734
+      },
+      "physics_gpu": 3,
+      "rate_mbps": 13,
+      "rician_fading": true,
+      "seed": 1,
+      "solver_threads": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "vectorized_pet_measurement": false
+    },
+    {
+      "checkpoint_sha256": null,
+      "elapsed_s": 654.6432395121083,
+      "fading_generator": "torch_float64_cuda",
+      "ho_interruption_ms": 10,
+      "method": "meet_cobra",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.20409168123292054,
+        "mean_proxy_ms": 2.0687309288760884,
+        "p99_proxy_ms": 2.3215751904155715,
+        "pilots_per_vehicle_slot": 1.0879911479372115,
+        "power_w": 29.664255033557033,
+        "violation_percent": 0.24215463559316494
+      },
+      "physics_gpu": 5,
+      "rate_mbps": 13,
+      "rician_fading": true,
+      "seed": 1,
+      "solver_threads": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "vectorized_pet_measurement": true
+    },
+    {
+      "actor_state_variant": "gain_report",
+      "checkpoint_sha256": "c6216dbc14a79c78fc6f8f57c035f093dbd005fece33f78c7ad0079b0fa6c754",
+      "elapsed_s": 109.9694911306724,
+      "fading_generator": "torch_float64_cuda",
+      "ho_interruption_ms": 10,
+      "matching_backend": "not_applicable",
+      "method": "gain_report",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.034959009330608824,
+        "macro_association_percent": 20.007878086609715,
+        "mean_proxy_ms": 5.321587826511018,
+        "p99_proxy_ms": 82.97473698516202,
+        "pilots_per_vehicle_slot": 0.8124294512429097,
+        "power_w": 108.14093288590588,
+        "trigger_ratio": 0.036507531273934135,
+        "violation_percent": 1.9759962911227593
+      },
+      "physics_gpu": 3,
+      "rate_mbps": 13,
+      "rician_fading": true,
+      "seed": 1,
+      "solver_threads": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "vectorized_pet_measurement": false
+    },
+    {
+      "actor_state_variant": "gain_derived",
+      "checkpoint_sha256": "c8d94f265d70253710449fcdb85d361db0aa0a4d24118b221da19db8e7f1ab7b",
+      "elapsed_s": 125.48035460803658,
+      "fading_generator": "torch_float64_cuda",
+      "ho_interruption_ms": 10,
+      "matching_backend": "not_applicable",
+      "method": "gain_derived",
+      "metrics": {
+        "handovers_per_vehicle_s": 0.0942908491100224,
+        "macro_association_percent": 13.107166596912775,
+        "mean_proxy_ms": 8.738891405092891,
+        "p99_proxy_ms": 205.08977528635597,
+        "pilots_per_vehicle_slot": 0.8907999413257873,
+        "power_w": 90.72833557046991,
+        "trigger_ratio": 0.09803420985448047,
+        "violation_percent": 3.1355467565527726
+      },
+      "physics_gpu": 4,
+      "rate_mbps": 13,
+      "rician_fading": true,
+      "seed": 1,
+      "solver_threads": 1,
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "vectorized_pet_measurement": false
+    }
+  ],
+  "selection": {
+    "checkpoint_sha256": "c8d94f265d70253710449fcdb85d361db0aa0a4d24118b221da19db8e7f1ab7b",
+    "episode": 36,
+    "metric": "maximum validation fluid U[%] + 0.01 * mean P[W]",
+    "path": "experiment/results/o_mappo_actor_derived_20260917/training_seed21/best_policy.pt",
+    "score": 15.024740943610832,
+    "seed": 21,
+    "validation_interval": [
+      700.1,
+      710
+    ]
+  }
+}

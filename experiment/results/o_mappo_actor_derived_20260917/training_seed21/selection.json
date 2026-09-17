@@ -1,0 +1,11 @@
+{
+  "checkpoint_sha256": "c8d94f265d70253710449fcdb85d361db0aa0a4d24118b221da19db8e7f1ab7b",
+  "episode": 36,
+  "metric": "maximum validation fluid U[%] + 0.01 * mean P[W]",
+  "score": 15.024740943610832,
+  "seed": 21,
+  "validation_interval": [
+    700.1,
+    710
+  ]
+}
