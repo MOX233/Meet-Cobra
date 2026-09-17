@@ -88,8 +88,14 @@ def run_sim_o_mappo(
     paired_fading_seed=None,
     physics_device=None,
     progress_callback=None,
+    optimizer_input_hook=None,
 ) -> OMAPPOSimulationResult:
-    """Evaluate O-MAPPO with causal commands and the common exact scheduler."""
+    """Evaluate O-MAPPO with causal commands and the common exact scheduler.
+
+    ``optimizer_input_hook`` is an opt-in diagnostic interface. It transforms
+    only the target optimizer's inputs after the frozen actor has acted;
+    the default simulation and actor observations are unchanged.
+    """
 
     config = policy.config
     ho_slots = interruption_slots(ho_interruption_ms, args.slot_len, args.slots_per_frame)
@@ -463,15 +469,26 @@ def run_sim_o_mappo(
                 + vehicle_rate[vehicle] * frame_duration
                 for vehicle in veh_set_cur
             }
+            optimizer_inputs = dict(records=records, allocated_rb=current_allocated,
+                                    load=estimated_load, config=config)
+            if optimizer_input_hook is not None:
+                optimizer_inputs = optimizer_input_hook(
+                    args=args, frame=frame_cur, records=records, learners=learners,
+                    backlog=backlog, allocated_rb=current_allocated,
+                    load=estimated_load, config=config, dft_tx=dft_tx,
+                    dft_rx=dft_rx, macro_loc=macro_loc,
+                    legacy_rb=estimated_rb, serving_gain=serving_gain,
+                    no_bf_gain=inference_gain,
+                )
             optimization = optimize_triggered_targets(
                 args,
-                records,
+                optimizer_inputs["records"],
                 learners,
                 triggered,
                 backlog,
-                current_allocated,
-                estimated_load,
-                config,
+                optimizer_inputs["allocated_rb"],
+                optimizer_inputs["load"],
+                optimizer_inputs["config"],
                 dft_tx,
                 dft_rx,
                 macro_loc,
