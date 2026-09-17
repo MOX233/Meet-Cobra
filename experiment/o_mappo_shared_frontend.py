@@ -167,18 +167,27 @@ def prepare(output, gpu):
     print("PREP COMPLETE", flush=True)
 
 
-def train(output, seed, episodes):
+def train(output, seed, episodes, state_variant="pilot", cache_root=None):
     torch.set_num_threads(1)
-    timeline = read_pickle(output / "train_prepared.pkl")
+    output.mkdir(parents=True, exist_ok=True)
+    cache_root = cache_root or output
+    timeline = read_pickle(cache_root / "train_prepared.pkl")
     training = temporal_slice(timeline, 200, 700)
     validation = temporal_slice(timeline, 700.1, 710)
-    config = OMAPPOConfig(state_variant="pilot", information_mode="shared_prediction",
+    config = OMAPPOConfig(state_variant=state_variant, information_mode="shared_prediction",
                           hidden_sizes=(64,), torch_threads=1, ho_interruption_ms=10)
     policy = OMAPPPolicy(config, seed=seed)
     reward = o_mappo_reward_presets()["qos_energy020_load1"]
     args = paper_args()
     destination = output / f"training_seed{seed}"
     destination.mkdir(exist_ok=True)
+    if (destination / "training.json").exists():
+        raise FileExistsError(f"Preserve completed training; choose another output: {destination}")
+    write_json(destination / "protocol.json", dict(
+        state_variant=state_variant, cache_root=str(cache_root.resolve()),
+        frontend_manifest=json.loads((cache_root / "frontend_manifest.json").read_text()),
+        training_seed=seed, episodes=episodes, actor_input_dim=policy.local_dim,
+        test_used_for_selection=False))
     rng = np.random.default_rng(seed)
     history, validation_history = [], []
     best = float("inf")
@@ -308,22 +317,30 @@ def evaluate_one(task):
                fading_generator="torch_float64_cuda" if physics_gpu is not None else "numpy_float64",
                matching_backend=("numba_original_order" if compiled_matching else "python_original_order") if method == "meet_cobra" else "not_applicable",
                metrics=metrics, elapsed_s=time.monotonic()-started,
+               actor_state_variant=None if method == "meet_cobra" else policy.config.state_variant,
                checkpoint_sha256=None if method == "meet_cobra" else digest(checkpoint))
     write_json(path, row)
     print("EVAL DONE", name, metrics, flush=True)
     return row
 
 
-def evaluate(output, methods, rates, seeds, workers, end, ho_ms, rician, vectorized, physics_gpu, compiled_matching):
+def evaluate(output, methods, rates, seeds, workers, end, ho_ms, rician, vectorized, physics_gpu, compiled_matching, cache_root=None):
     global CONTEXT
     torch.set_num_threads(1)
-    timeline = temporal_slice(read_pickle(output / "test_prepared.pkl"), 800, end)
+    output.mkdir(parents=True, exist_ok=True)
+    timeline = temporal_slice(read_pickle((cache_root or output) / "test_prepared.pkl"), 800, end)
+    if not set(methods) <= {"legacy", "shared", "report", "meet_cobra"}:
+        raise ValueError("unknown comparison method")
     choices = [json.loads(path.read_text()) | {"path": str(path.parent / "best_policy.pt")}
                for path in output.glob("training_seed*/selection.json")]
     selected = Path(min(choices, key=lambda x: x["score"])["path"]) if choices else None
-    if "shared" in methods and selected is None:
+    needs_policy = bool({"shared", "report"}.intersection(methods))
+    if needs_policy and selected is None:
         raise RuntimeError("No validation-selected shared policy")
-    if "shared" in methods:
+    if needs_policy:
+        variant = OMAPPPolicy.load(str(selected)).config.state_variant
+        if ("report" in methods and variant != "report") or ("shared" in methods and variant != "pilot"):
+            raise ValueError("method label does not match selected actor input")
         write_json(output / "selected_policy.json", min(choices, key=lambda x: x["score"]))
     CONTEXT = (output, timeline, selected, rician, vectorized, physics_gpu, compiled_matching)
     if compiled_matching:
@@ -343,6 +360,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("phase", choices=("prepare", "train", "evaluate"))
     parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument("--cache-root", type=Path)
+    parser.add_argument("--state-variant", choices=("pilot", "report"), default="pilot")
     parser.add_argument("--gpu", type=int, default=5)
     parser.add_argument("--training-seed", type=int, default=20)
     parser.add_argument("--episodes", type=int, default=72)
@@ -360,10 +379,10 @@ def main():
     if args.phase == "prepare":
         prepare(args.output, args.gpu)
     elif args.phase == "train":
-        train(args.output, args.training_seed, args.episodes)
+        train(args.output, args.training_seed, args.episodes, args.state_variant, args.cache_root)
     else:
         evaluate(args.output, args.methods.split(","), [int(x) for x in args.rates.split(",")],
-                 [int(x) for x in args.seeds.split(",")], args.workers, args.test_end, args.ho_ms, args.rician, args.vectorized_pet, args.physics_gpu, args.compiled_matching)
+                 [int(x) for x in args.seeds.split(",")], args.workers, args.test_end, args.ho_ms, args.rician, args.vectorized_pet, args.physics_gpu, args.compiled_matching, args.cache_root)
 
 
 if __name__ == "__main__":

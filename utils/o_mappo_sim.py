@@ -30,6 +30,7 @@ from utils.o_mappo import (
     make_local_state,
     optimize_triggered_targets,
     record_optimizer_feedback,
+    shared_actor_inputs,
     source_gate_allows,
 )
 from utils.pql_ba import (
@@ -347,9 +348,7 @@ def run_sim_o_mappo(
                         )
                     )
             all_alternative_sinr[vehicle] = alternatives
-            state_kwargs = {}
-            if config.state_variant == "pilot":
-                state_kwargs["pilot_observation"] = records[vehicle]["CSI_preprocessed"][-1]
+            state_kwargs = shared_actor_inputs(config, records[vehicle])
             if config.state_variant == "feasibility":
                 context = candidate_feasibility_context(
                     args,
