@@ -32,7 +32,7 @@ Oracle-MC 的下一帧微基站增益使用真值，宏基站位置估计仍与 
 - MTS 增加与其他方法一致的 HO 中断服务门控、配对到达和 GPU 衰落。切换目标的容量需求乘以 1/0.9，原偏好评分及能耗项不额外乘此因子。
 - 旧随机 BF 分支在探测随机候选后，记录的波束索引可能来自预测候选。本轮可选路径记录实际测得最优的随机候选。
 - GPU 仿真按 BF 方法分派。随机 BF 不再错误地调用 PET-BF；独立测试逐项核对测得增益、选中索引和导频数量，并核对中断期间不更新波束。
-- 31 项相关 CPU 单元测试和 4 项 GPU 测试通过。每个正式仿真仍逐时隙检查中断期间零 RB、零导频及队列增长，并在结束时从原始队列重算指标、核查资源容量及功率。
+- 31 项相关 CPU 单元测试、补充的 8 项匹配及共享前端回归测试、4 项 GPU 测试通过。每个正式仿真仍逐时隙检查中断期间零 RB、零导频及队列增长，并在结束时从原始队列重算指标、核查资源容量及功率。
 
 ## 结果和统计口径
 
@@ -60,6 +60,8 @@ python experiment/summarize_revision_grid.py --check-raw
 上述默认队列暂不包含未确认输入的 Reactive-OBRA。只有作者确认后才通过 `prepare --reactive-input current` 或 `legacy` 冻结该方法，并显式加入队列。
 
 2026-09-17 16:27 UTC 已启动后台管理进程（PID 2757709），等待 21 组预检全部通过后自动续跑七种方法的 630 组网格，并自动校验原始结果、生成四张预览图。实时阶段、完成数和异常信息写入 `pipeline_status.json`；调度日志见 `pipeline.log` 和 `full_queue.log`。该记录表示已启动，不能替代完成状态。
+
+2026-09-17 16:34 UTC，21/21 组预检和整批原始数据复核全部通过，完整网格已启动（队列 PID 2763200）。预检汇总保存于 `aggregate/summary_preflight.json` 和 `aggregate/curves_preflight.csv`，均为 seed 1 的结果，不能作为五 seed 均值使用。后续自动复用这 21 个成功案例，尚余 609 个已冻结案例需要运行；Reactive-OBRA 的 90 个案例尚待输入口径确认。
 
 ```bash
 python experiment/launch_revision_grid.py --wait-preflight

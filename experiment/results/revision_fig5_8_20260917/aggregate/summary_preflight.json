@@ -1,0 +1,1769 @@
+{
+  "protocol_sha256": "3780ffb6ffa1b7c7c1586b872976167a87b67d7c12ddf0f16166bbb43d1284c7",
+  "methods": [
+    "meet_cobra",
+    "oracle_mc",
+    "wo_gap_ho",
+    "wo_pet_bf",
+    "wo_otr_ra",
+    "o_mappo",
+    "mts"
+  ],
+  "rates": [
+    1,
+    19,
+    35
+  ],
+  "seeds": [
+    1
+  ],
+  "confidence_interval": "Student t interval for the mean across independent evaluation seeds, conditional on the fixed trace and checkpoints; no smoothing",
+  "percentile_aggregation": "P90 and P99 computed within each seed, then averaged across seeds",
+  "oracle_cr_lb_included": false,
+  "raw_checked": true,
+  "rows": [
+    {
+      "method": "meet_cobra",
+      "label": "MEET-COBRA",
+      "rate_mbps": 1,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.20113739875427755,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.20113739875427755
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.20113739875427755,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.20113739875427755
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.004923804131071666,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.004923804131071666
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 9.406847789022283,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            9.406847789022283
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 16.067,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            16.067
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 18.879,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            18.879
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 1.088283387910656,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.088283387910656
+          ]
+        },
+        "power_w": {
+          "mean": 4.925791946308721,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            4.925791946308721
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.19511077627976614,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.19511077627976614
+          ]
+        }
+      }
+    },
+    {
+      "method": "meet_cobra",
+      "label": "MEET-COBRA",
+      "rate_mbps": 19,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.2134469090819567,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.2134469090819567
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.2134469090819567,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.2134469090819567
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.06893325783500333,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.06893325783500333
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 2.3559013750232793,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            2.3559013750232793
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 1.6572623794687642,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.6572623794687642
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 3.6546280948142162,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            3.6546280948142162
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 1.0894414991346926,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.0894414991346926
+          ]
+        },
+        "power_w": {
+          "mean": 44.831973154362416,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            44.831973154362416
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.5321128684090914,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.5321128684090914
+          ]
+        }
+      }
+    },
+    {
+      "method": "meet_cobra",
+      "label": "MEET-COBRA",
+      "rate_mbps": 35,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.32201679017208695,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.32201679017208695
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.32201679017208695,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.32201679017208695
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 15.89896353923041,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            15.89896353923041
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 781.4784285780661,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            781.4784285780661
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 2284.172418110943,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            2284.172418110943
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 12065.128349446535,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            12065.128349446535
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 0.9108333186581702,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.9108333186581702
+          ]
+        },
+        "power_w": {
+          "mean": 185.72224832214715,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            185.72224832214715
+          ]
+        },
+        "violation_percent": {
+          "mean": 39.07553632981063,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            39.07553632981063
+          ]
+        }
+      }
+    },
+    {
+      "method": "oracle_mc",
+      "label": "Oracle-MC",
+      "rate_mbps": 1,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.17159457396784755,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.17159457396784755
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.17159457396784755,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.17159457396784755
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.0,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.0
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 9.537759437320275,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            9.537759437320275
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 16.836,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            16.836
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 18.89,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            18.89
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 0.9982853849671349,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.9982853849671349
+          ]
+        },
+        "power_w": {
+          "mean": 1.7737852348993324,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.7737852348993324
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.01979351436164612,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.01979351436164612
+          ]
+        }
+      }
+    },
+    {
+      "method": "oracle_mc",
+      "label": "Oracle-MC",
+      "rate_mbps": 19,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.16617838942366872,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.16617838942366872
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.16617838942366872,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.16617838942366872
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.0,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.0
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 1.4109476111759227,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.4109476111759227
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 1.6666476279253466,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.6666476279253466
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 1.8918262274736188,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.8918262274736188
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 0.9983421156384816,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.9983421156384816
+          ]
+        },
+        "power_w": {
+          "mean": 41.58801342281877,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            41.58801342281877
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.08849349338312319,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.08849349338312319
+          ]
+        }
+      }
+    },
+    {
+      "method": "oracle_mc",
+      "label": "Oracle-MC",
+      "rate_mbps": 35,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.2612078091533519,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.2612078091533519
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.2612078091533519,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.2612078091533519
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 15.884192126837194,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            15.884192126837194
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 755.1658964278098,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            755.1658964278098
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 2156.2147830778313,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            2156.2147830778313
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 11134.834696334312,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            11134.834696334312
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 0.8397879140241588,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.8397879140241588
+          ]
+        },
+        "power_w": {
+          "mean": 185.70707382550287,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            185.70707382550287
+          ]
+        },
+        "violation_percent": {
+          "mean": 36.23979994623006,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            36.23979994623006
+          ]
+        }
+      }
+    },
+    {
+      "method": "wo_gap_ho",
+      "label": "w/o GAP-HO",
+      "rate_mbps": 1,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.20532263226568848,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.20532263226568848
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.20532263226568848,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.20532263226568848
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.06154755163839582,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.06154755163839582
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 9.405174562581964,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            9.405174562581964
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 16.067999999999998,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            16.067999999999998
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 18.878,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            18.878
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 1.0881379990965807,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.0881379990965807
+          ]
+        },
+        "power_w": {
+          "mean": 4.841758389261743,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            4.841758389261743
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.18839519372736305,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.18839519372736305
+          ]
+        }
+      }
+    },
+    {
+      "method": "wo_gap_ho",
+      "label": "w/o GAP-HO",
+      "rate_mbps": 19,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.3454048597946774,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.3454048597946774
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.34540485979467733,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.34540485979467733
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.45052807799305744,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.45052807799305744
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 2.8087550246314175,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            2.8087550246314175
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 1.6662043608279495,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.6662043608279495
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 25.284447483464906,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            25.284447483464906
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 1.0855329842256087,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.0855329842256087
+          ]
+        },
+        "power_w": {
+          "mean": 48.087630872483274,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            48.087630872483274
+          ]
+        },
+        "violation_percent": {
+          "mean": 1.0942644867281208,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.0942644867281208
+          ]
+        }
+      }
+    },
+    {
+      "method": "wo_gap_ho",
+      "label": "w/o GAP-HO",
+      "rate_mbps": 35,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.7230606366478741,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.7230606366478741
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.7230606366478741,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.7230606366478741
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 38.48199118639061,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            38.48199118639061
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 1922.1079109766358,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1922.1079109766358
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 7404.825867549235,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            7404.825867549235
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 22012.232862652952,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            22012.232862652952
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 0.6757450147002965,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.6757450147002965
+          ]
+        },
+        "power_w": {
+          "mean": 185.65907382550284,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            185.65907382550284
+          ]
+        },
+        "violation_percent": {
+          "mean": 44.82948331672026,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            44.82948331672026
+          ]
+        }
+      }
+    },
+    {
+      "method": "wo_pet_bf",
+      "label": "w/o PET-BF",
+      "rate_mbps": 1,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.2077845343312243,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.2077845343312243
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.2077845343312243,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.2077845343312243
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.004923804131071666,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.004923804131071666
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 9.148556950250114,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            9.148556950250114
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 15.814000000000002,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            15.814000000000002
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 18.72,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            18.72
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 4.989383351435758,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            4.989383351435758
+          ]
+        },
+        "power_w": {
+          "mean": 4.990120805369125,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            4.990120805369125
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.19714796786754427,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.19714796786754427
+          ]
+        }
+      }
+    },
+    {
+      "method": "wo_pet_bf",
+      "label": "w/o PET-BF",
+      "rate_mbps": 19,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.2737635096875846,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.2737635096875846
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.2737635096875846,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.2737635096875846
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.34959009330608826,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.34959009330608826
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 2.2637101547716214,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            2.2637101547716214
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 1.6226470243153228,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.6226470243153228
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 10.384788524121173,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            10.384788524121173
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 4.9702938970050745,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            4.9702938970050745
+          ]
+        },
+        "power_w": {
+          "mean": 49.9365704697987,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            49.9365704697987
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.6839944835426558,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.6839944835426558
+          ]
+        }
+      }
+    },
+    {
+      "method": "wo_pet_bf",
+      "label": "w/o PET-BF",
+      "rate_mbps": 35,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.3232477412048549,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.3232477412048549
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.3232477412048549,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.3232477412048549
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 17.35148575789655,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            17.35148575789655
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 1336.8460098030382,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1336.8460098030382
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 4512.191131611709,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            4512.191131611709
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 15055.833524401298,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            15055.833524401298
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 4.123882371120051,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            4.123882371120051
+          ]
+        },
+        "power_w": {
+          "mean": 185.7999999999995,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            185.7999999999995
+          ]
+        },
+        "violation_percent": {
+          "mean": 47.882008423874986,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            47.882008423874986
+          ]
+        }
+      }
+    },
+    {
+      "method": "wo_otr_ra",
+      "label": "w/o OTR-RA",
+      "rate_mbps": 1,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.20113739875427755,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.20113739875427755
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.20113739875427755,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.20113739875427755
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.004923804131071666,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.004923804131071666
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 3.443010721565008,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            3.443010721565008
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 5.929,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            5.929
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 8.940999999999999,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            8.940999999999999
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 1.088283387910656,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.088283387910656
+          ]
+        },
+        "power_w": {
+          "mean": 9.870791946308733,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            9.870791946308733
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.17933010771039617,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.17933010771039617
+          ]
+        }
+      }
+    },
+    {
+      "method": "wo_otr_ra",
+      "label": "w/o OTR-RA",
+      "rate_mbps": 19,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.25012924985844065,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.25012924985844065
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.25012924985844065,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.25012924985844065
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.21418547970161747,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.21418547970161747
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 8.229680706291575,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            8.229680706291575
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 1.4340586775779383,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.4340586775779383
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 207.2495206209531,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            207.2495206209531
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 1.0893041735651696,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.0893041735651696
+          ]
+        },
+        "power_w": {
+          "mean": 51.050409395973254,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            51.050409395973254
+          ]
+        },
+        "violation_percent": {
+          "mean": 3.574014623799515,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            3.574014623799515
+          ]
+        }
+      }
+    },
+    {
+      "method": "wo_otr_ra",
+      "label": "w/o OTR-RA",
+      "rate_mbps": 35,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.32201679017208695,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.32201679017208695
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.32201679017208695,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.32201679017208695
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 15.89896353923041,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            15.89896353923041
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 1145.9623158763263,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1145.9623158763263
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 3778.200085471751,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            3778.200085471751
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 14365.696169709094,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            14365.696169709094
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 0.9108333186581702,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.9108333186581702
+          ]
+        },
+        "power_w": {
+          "mean": 185.7999999999995,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            185.7999999999995
+          ]
+        },
+        "violation_percent": {
+          "mean": 44.98297997200182,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            44.98297997200182
+          ]
+        }
+      }
+    },
+    {
+      "method": "o_mappo",
+      "label": "O-MAPPO-adapted",
+      "rate_mbps": 1,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.09256751766414732,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.09256751766414732
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.09256751766414732,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.09256751766414732
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 1.0610797902459441,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.0610797902459441
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 8.033025722931082,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            8.033025722931082
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 15.042,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            15.042
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 18.211000000000002,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            18.211000000000002
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 1.0157721760808442,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.0157721760808442
+          ]
+        },
+        "power_w": {
+          "mean": 5.059671140939599,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            5.059671140939599
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.032145442069445224,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.032145442069445224
+          ]
+        }
+      }
+    },
+    {
+      "method": "o_mappo",
+      "label": "O-MAPPO-adapted",
+      "rate_mbps": 19,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.2063073930919028,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.2063073930919028
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.2063073930919028,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.2063073930919028
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 8.74959994091435,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            8.74959994091435
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 31.478356111839968,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            31.478356111839968
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 1.6909427201752842,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.6909427201752842
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 561.1437812762314,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            561.1437812762314
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 0.9482494660784013,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.9482494660784013
+          ]
+        },
+        "power_w": {
+          "mean": 92.95527516778522,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            92.95527516778522
+          ]
+        },
+        "violation_percent": {
+          "mean": 4.734879066269651,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            4.734879066269651
+          ]
+        }
+      }
+    },
+    {
+      "method": "o_mappo",
+      "label": "O-MAPPO-adapted",
+      "rate_mbps": 35,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.583716979738546,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.583716979738546
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.583716979738546,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.583716979738546
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 27.639774489770797,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            27.639774489770797
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 1329.5509619980594,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1329.5509619980594
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 3891.4574164729934,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            3891.4574164729934
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 16055.477158592905,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            16055.477158592905
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 0.8002287921386871,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.8002287921386871
+          ]
+        },
+        "power_w": {
+          "mean": 183.6546375838921,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            183.6546375838921
+          ]
+        },
+        "violation_percent": {
+          "mean": 60.40481084476051,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            60.40481084476051
+          ]
+        }
+      }
+    },
+    {
+      "method": "mts",
+      "label": "MTS-GS-HBF-adapted",
+      "rate_mbps": 1,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.029296634579876413,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.029296634579876413
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.029296634579876413,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.029296634579876413
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 0.5883945936630641,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.5883945936630641
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 9.32375315053816,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            9.32375315053816
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 16.465038899773827,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            16.465038899773827
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 18.876,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            18.876
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 1.5522645370263817,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.5522645370263817
+          ]
+        },
+        "power_w": {
+          "mean": 2.552724832214766,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            2.552724832214766
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.038257333290350685,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.038257333290350685
+          ]
+        }
+      }
+    },
+    {
+      "method": "mts",
+      "label": "MTS-GS-HBF-adapted",
+      "rate_mbps": 19,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.022895689209483247,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.022895689209483247
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.022895689209483247,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.022895689209483247
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 5.854403111844211,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            5.854403111844211
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 1.8220116628044665,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.8220116628044665
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 1.6802765926088206,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.6802765926088206
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 6.0460940046353135,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            6.0460940046353135
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 1.469931210573437,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.469931210573437
+          ]
+        },
+        "power_w": {
+          "mean": 64.92940939597314,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            64.92940939597314
+          ]
+        },
+        "violation_percent": {
+          "mean": 0.29369398883472286,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.29369398883472286
+          ]
+        }
+      }
+    },
+    {
+      "method": "mts",
+      "label": "MTS-GS-HBF-adapted",
+      "rate_mbps": 35,
+      "seeds": [
+        1
+      ],
+      "n": 1,
+      "metrics": {
+        "blocked_vehicle_time_percent": {
+          "mean": 0.24988305965188704,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.24988305965188704
+          ]
+        },
+        "handovers_per_vehicle_s": {
+          "mean": 0.24988305965188704,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            0.24988305965188704
+          ]
+        },
+        "macro_association_percent": {
+          "mean": 19.64597848297595,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            19.64597848297595
+          ]
+        },
+        "mean_proxy_ms": {
+          "mean": 1041.1316020060644,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1041.1316020060644
+          ]
+        },
+        "p90_proxy_ms": {
+          "mean": 3510.2500418240766,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            3510.2500418240766
+          ]
+        },
+        "p99_proxy_ms": {
+          "mean": 12854.60642579082,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            12854.60642579082
+          ]
+        },
+        "pilots_per_vehicle_slot": {
+          "mean": 1.2528022579829177,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            1.2528022579829177
+          ]
+        },
+        "power_w": {
+          "mean": 183.7772751677848,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            183.7772751677848
+          ]
+        },
+        "violation_percent": {
+          "mean": 42.67755765525789,
+          "sd": null,
+          "ci95_halfwidth": null,
+          "seed_values": [
+            42.67755765525789
+          ]
+        }
+      }
+    }
+  ]
+}
