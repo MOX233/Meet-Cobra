@@ -249,8 +249,13 @@ def evaluate_one(task):
     output, timeline, selected, rician, *options = CONTEXT
     vectorized = bool(options[0]) if options else False
     physics_gpu = options[1] if len(options) > 1 else None
+    compiled_matching = bool(options[2]) if len(options) > 2 else False
     torch.set_num_threads(1)
     single_thread_solvers()
+    if compiled_matching:
+        import utils.alg_utils as alg
+        from utils.compiled_matching import km_algorithm_compiled
+        alg.km_algorithm = km_algorithm_compiled
     np.random.seed(seed)
     args = paper_args(rate * 1e6)
     args.device = torch.device("cpu")
@@ -301,6 +306,7 @@ def evaluate_one(task):
                solver_threads=1,
                physics_gpu=physics_gpu,
                fading_generator="torch_float64_cuda" if physics_gpu is not None else "numpy_float64",
+               matching_backend=("numba_original_order" if compiled_matching else "python_original_order") if method == "meet_cobra" else "not_applicable",
                metrics=metrics, elapsed_s=time.monotonic()-started,
                checkpoint_sha256=None if method == "meet_cobra" else digest(checkpoint))
     write_json(path, row)
@@ -308,7 +314,7 @@ def evaluate_one(task):
     return row
 
 
-def evaluate(output, methods, rates, seeds, workers, end, ho_ms, rician, vectorized, physics_gpu):
+def evaluate(output, methods, rates, seeds, workers, end, ho_ms, rician, vectorized, physics_gpu, compiled_matching):
     global CONTEXT
     torch.set_num_threads(1)
     timeline = temporal_slice(read_pickle(output / "test_prepared.pkl"), 800, end)
@@ -319,7 +325,12 @@ def evaluate(output, methods, rates, seeds, workers, end, ho_ms, rician, vectori
         raise RuntimeError("No validation-selected shared policy")
     if "shared" in methods:
         write_json(output / "selected_policy.json", min(choices, key=lambda x: x["score"]))
-    CONTEXT = (output, timeline, selected, rician, vectorized, physics_gpu)
+    CONTEXT = (output, timeline, selected, rician, vectorized, physics_gpu, compiled_matching)
+    if compiled_matching:
+        # Compile in the CPU-only parent before forking, not concurrently in
+        # CUDA workers. The CUDA context is still first created by each worker.
+        from utils.compiled_matching import km_algorithm_compiled
+        km_algorithm_compiled(np.zeros((2, 2)))
     tasks = [(m, r, s, ho_ms) for r in rates for s in seeds for m in methods]
     # GPU inference has already finished in a separate command; workers fork
     # only the read-only CPU timeline, never a live CUDA context.
@@ -344,6 +355,7 @@ def main():
     parser.add_argument("--rician", action="store_true")
     parser.add_argument("--vectorized-pet", action="store_true")
     parser.add_argument("--physics-gpu", type=int)
+    parser.add_argument("--compiled-matching", action="store_true")
     args = parser.parse_args()
     if args.phase == "prepare":
         prepare(args.output, args.gpu)
@@ -351,7 +363,7 @@ def main():
         train(args.output, args.training_seed, args.episodes)
     else:
         evaluate(args.output, args.methods.split(","), [int(x) for x in args.rates.split(",")],
-                 [int(x) for x in args.seeds.split(",")], args.workers, args.test_end, args.ho_ms, args.rician, args.vectorized_pet, args.physics_gpu)
+                 [int(x) for x in args.seeds.split(",")], args.workers, args.test_end, args.ho_ms, args.rician, args.vectorized_pet, args.physics_gpu, args.compiled_matching)
 
 
 if __name__ == "__main__":
