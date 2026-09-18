@@ -1,0 +1,31 @@
+{
+  "diagnostics_sha256": "df93c0499fafeae00eaf06fe657a22bd3ee885a02acf56c421a872383cec2583",
+  "elapsed_s": 147.87639303319156,
+  "frames": 300,
+  "gpu": 1,
+  "label": "w/o GAP-HO",
+  "method": "wo_gap_ho",
+  "method_configuration_sha256": null,
+  "metrics": {
+    "blocked_vehicle_time_percent": 0.20532263226568848,
+    "handovers_per_vehicle_s": 0.20532263226568848,
+    "macro_association_percent": 0.06154755163839582,
+    "mean_proxy_ms": 2.0614764397814946,
+    "p90_proxy_ms": 1.9987692307692306,
+    "p99_proxy_ms": 2.3202610845230613,
+    "pilots_per_vehicle_slot": 1.0881379990965807,
+    "power_w": 29.767597315436227,
+    "violation_percent": 0.23625717066463234
+  },
+  "origin": "control_rerun",
+  "previous_reference": {
+    "path": "experiment/results/revision_fig5_8_20260917/runs/wo_gap_ho_rate13_seed1.json",
+    "sha256": "470ce85c8979ec9d726a2c64d767231605db69c1c1028ca13e151ae1b3493ddf"
+  },
+  "protocol_sha256": "74c443d7b49f78bc7e535be9f95ab33d3c79861233cd907007e0d6cf27e1d161",
+  "rate_mbps": 13,
+  "raw_sha256": "2c51c22fc7439674f918c70a5d311d5b1c68646e902fd1b22d23df3d38061db5",
+  "retained_frames": 298,
+  "seed": 1,
+  "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96"
+}
