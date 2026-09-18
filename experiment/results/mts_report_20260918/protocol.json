@@ -1,0 +1,125 @@
+{
+  "code_sha256": {
+    "experiment/mts_report_experiment.py": "e4870909195d43b6a3ee126622fbc3633494b45ece7b18d1f1ded12f82d35cf2",
+    "test_mts_report.py": "16f34a45273aea11d4628ef5b3ab9717dddb03cef0f3b154ad95c5ddb7c8ec64",
+    "utils/mts_report.py": "af2f23bde7ff9d60292ceae6c0fc4c670c9b10a2a74f8bae03f3e85c34d583e8",
+    "utils/mts_report_sim.py": "c62b87f11e2550e898bbc9bb9bc7b063acdc5d4bb47e1cb9641f6c109520cfa9"
+  },
+  "config": {
+    "admission_capacity_factor": 1.0,
+    "association_interval_frames": 5,
+    "bs_demand_weight": 0.25,
+    "bs_queue_weight": 2.0,
+    "bs_rate_weight": 1.0,
+    "bs_stay_bonus": 0.1,
+    "energy_weight": 4.0,
+    "full_sweep_interval_frames": 5,
+    "handover_hysteresis": 0.25,
+    "handover_penalty": 0.5,
+    "ho_interruption_ms": 10,
+    "load_weight": 1.0,
+    "local_tracking_interval_frames": 1,
+    "minimum_demand_rb": 0.05,
+    "name": "pressure_early",
+    "num_micro_bs": 4,
+    "num_rx_beams": 8,
+    "num_tx_beams": 32,
+    "pressure_adaptive": true,
+    "pressure_full_ratio": 1.0,
+    "pressure_start_ratio": 0.25,
+    "queue_drain_cap_ratio": 2.0,
+    "queue_drain_weight": 0.5,
+    "rate_weight": 1.0,
+    "sinr_threshold_db": -5.0,
+    "track_rx_radius": 1,
+    "track_tx_radius": 1,
+    "tracking_pilots": 1,
+    "urgent_bs_queue_weight": 4.0,
+    "urgent_energy_weight": 0.25,
+    "urgent_handover_hysteresis": 0.05,
+    "urgent_handover_penalty": 0.1,
+    "urgent_load_weight": 2.5,
+    "urgent_queue_drain_weight": 1.0
+  },
+  "evaluation": {
+    "fading": "paired FP64 GPU Rician",
+    "frame_ms": 100,
+    "ho_ms": 10,
+    "interval_s": [
+      800,
+      830
+    ],
+    "latency_ms": 20,
+    "service_frames": 300,
+    "slot_ms": 1,
+    "warmup_frames": 2
+  },
+  "frontend": {
+    "beam": {
+      "architecture": "BeamPredictionLSTMModel(\n  (lstm_layers): LSTM(128, 128, batch_first=True)\n  (shared_layers): Sequential()\n  (output_heads): ModuleList(\n    (0-3): 4 x Sequential(\n      (0): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (1): ReLU()\n      (2): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (3): ReLU()\n      (4): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (5): ReLU()\n      (6): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=256, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=256, out_features=256, bias=False)\n        (bn2): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n        (downsample): Sequential(\n          (0): Linear(in_features=128, out_features=256, bias=False)\n          (1): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        )\n      )\n    )\n  )\n)",
+      "checkpoint": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/stateful_tbptt_unified_split_20260913/stage2_stateful_tbptt/beam/best.pth",
+      "parameter_bytes": 4243456,
+      "parameter_count": 1060864,
+      "selected_stage2_epoch": 88,
+      "selection_metric": "maximum validation Top-1",
+      "sha256": "3ab0a2defe9f4795eceb2cb3d8de0bb2265a8d074e39c353a1cda6a8748abd4b",
+      "state_dict_bytes": 4288800
+    },
+    "desired_gain": {
+      "architecture": "BestGainPredictionLSTMModel(\n  (lstm_layers): LSTM(128, 128, batch_first=True)\n  (shared_layers): Sequential()\n  (output_heads): ModuleList(\n    (0-3): 4 x Sequential(\n      (0): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (1): ReLU()\n      (2): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (3): ReLU()\n      (4): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (5): ReLU()\n      (6): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=1, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=1, out_features=1, bias=False)\n        (bn2): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n        (downsample): Sequential(\n          (0): Linear(in_features=128, out_features=1, bias=False)\n          (1): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        )\n      )\n    )\n  )\n)",
+      "checkpoint": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/stateful_tbptt_unified_split_20260913/stage2_stateful_tbptt/desired_gain/best.pth",
+      "parameter_bytes": 2134096,
+      "parameter_count": 533524,
+      "selected_stage2_epoch": 59,
+      "selection_metric": "minimum validation MAE",
+      "sha256": "8c8bc19f2bb30214742f44b3fb1626029a549ecbe6d66249098480f11ce627eb",
+      "state_dict_bytes": 2163120
+    },
+    "interfering_gain": {
+      "architecture": "BestGainPredictionLSTMModel(\n  (lstm_layers): LSTM(128, 128, batch_first=True)\n  (shared_layers): Sequential()\n  (output_heads): ModuleList(\n    (0-3): 4 x Sequential(\n      (0): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (1): ReLU()\n      (2): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (3): ReLU()\n      (4): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (5): ReLU()\n      (6): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=1, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=1, out_features=1, bias=False)\n        (bn2): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n        (downsample): Sequential(\n          (0): Linear(in_features=128, out_features=1, bias=False)\n          (1): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        )\n      )\n    )\n  )\n)",
+      "checkpoint": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/stateful_tbptt_unified_split_20260913/stage2_stateful_tbptt/interfering_gain/best.pth",
+      "parameter_bytes": 2134096,
+      "parameter_count": 533524,
+      "selected_stage2_epoch": 91,
+      "selection_metric": "minimum validation MAE",
+      "sha256": "620905d03a2d82a52ede2b8e31f383b5fb6b01fb253e5e1b0bfe4c51bf5619df",
+      "state_dict_bytes": 2163120
+    }
+  },
+  "information": {
+    "beam": "five ordered predicted candidates, paid measurements at first available slot, fixed for remaining frame",
+    "forbidden": "no full H or oracle-best-pair lookup in matching controller",
+    "load": "predicted interference and predicted desired gains; last serving measurement replaces serving optimum when BS unchanged",
+    "matching": "position, predicted optimal/interference gains, queues, mean arrival rates, estimated load, association",
+    "slot_ra": "measured serving beam and same physical interference convention as frozen MEET/MTS"
+  },
+  "interpretation": "Preliminary one-seed comparison, not an isolated information ablation; no tuning on these points.",
+  "overhead": {
+    "candidates": 5,
+    "explanation": "5 at first active slot; 1 in each other active slot; zero during HO",
+    "per_micro_frame_with_ho": 94,
+    "per_micro_frame_without_ho": 104,
+    "tracking_pilots": 1
+  },
+  "prediction_cache_sha256": "db7b133893bd7745e27efeb9e96593433ab6f3b82f2f331e77ab11e8c6b3c8cb",
+  "rates_mbps": [
+    1,
+    13,
+    23,
+    29
+  ],
+  "reference_protocol_sha256": "3780ffb6ffa1b7c7c1586b872976167a87b67d7c12ddf0f16166bbb43d1284c7",
+  "rollback_tag": "pre-mts-report-20260918",
+  "seeds": [
+    1
+  ],
+  "timing": {
+    "association_period_frames": 5,
+    "beam_period_frames": 1,
+    "beams": "report[x] candidate list is probed in x+1, after interruption if applicable",
+    "matching": "report[x] drives association applied in x+1",
+    "ra_period_slots": 1,
+    "reference_caveat": "frozen MEET BF uses cache[x] during x, although prediction target is x+1; reference not modified"
+  },
+  "version": 1
+}
