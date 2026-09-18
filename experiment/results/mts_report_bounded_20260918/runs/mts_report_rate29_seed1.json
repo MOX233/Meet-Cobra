@@ -1,0 +1,38 @@
+{
+  "diagnostics": {
+    "candidate_probes": 170090,
+    "full_sweeps": 0,
+    "matching_epochs": 60,
+    "max_estimated_capacity_overflow": 120.04390183931278,
+    "unassigned_at_matching": 56
+  },
+  "diagnostics_sha256": "f15e12debe4f37d99546de846e0e5f503255761f2994c47b238245340b5746e3",
+  "elapsed_s": 89.16534257214516,
+  "frames": 300,
+  "gpu": 3,
+  "label": "MTS-GS-HBF-adapted (prediction reports; bounded occupancy)",
+  "method": "mts_report",
+  "metrics": {
+    "blocked_vehicle_time_percent": 0.1061079790245944,
+    "handovers_per_vehicle_s": 0.1061079790245944,
+    "macro_association_percent": 16.580910411383837,
+    "mean_proxy_ms": 9.74801654419181,
+    "p90_proxy_ms": 1.449637748930909,
+    "p99_proxy_ms": 284.58227392404655,
+    "pilots_per_vehicle_slot": 0.8672646742942421,
+    "power_w": 156.82236241610735,
+    "violation_percent": 2.6752068077645434
+  },
+  "protocol_sha256": "45ab72e2a276c5a0f4080d40095711a83402862855baab8758f00e6627e8e726",
+  "rate_mbps": 29,
+  "raw_sha256": "24255f7c1498f6a9219cd98b7538593fe880a8e0a73167af9a27b2265b0f62d8",
+  "reference_sha256": {
+    "experiment/results/revision_fig5_8_20260917/runs/meet_cobra_rate29_seed1.json": "f859cef3bf094efc2b59486a68a99c58a4268975af4606ed88576381a4579c79",
+    "experiment/results/revision_fig5_8_20260917/runs/mts_rate29_seed1.json": "db5031ebacf8a657e3e1d51e1b293456a8bf4ca71fb1a3622d122b393c7c0d2f",
+    "experiment/results/revision_fig5_8_20260917/runs/oracle_mc_rate29_seed1.json": "e8d60ded30d26a8167ebf63c4c47bb040d6114049c7056ce007a93e39a0ad6a4"
+  },
+  "retained_frames": 298,
+  "seed": 1,
+  "traffic_sha256": "11603376449b7b5dd5edc506d646b3700075ae08e516148459f028bd51fdc77f",
+  "variant": "capacity-bounded occupancy feedback"
+}

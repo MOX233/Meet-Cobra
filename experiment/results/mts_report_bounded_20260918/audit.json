@@ -1,0 +1,391 @@
+{
+  "bounded_protocol_sha256": "45ab72e2a276c5a0f4080d40095711a83402862855baab8758f00e6627e8e726",
+  "cases": [
+    {
+      "max_proxy_ms": 1112.3482414484567,
+      "mean_frame_proxy_ms": 9.406847789022283,
+      "mean_rb_per_bs": [
+        0.0012416107382550335,
+        5.845604026845631,
+        7.9186577181208095,
+        6.184999999999999,
+        4.673489932885909
+      ],
+      "method": "meet_cobra",
+      "pooled_proxy_above_100ms_percent": 0.11081021196976783,
+      "rate_mbps": 1,
+      "raw_sha256": "b597e620ae60864b30ac990e77cbd3d560679a1bbc9562f7df7c0d3e73e90084",
+      "traffic_sha256": "070d65048c8440b63450a3da2a718816ef0fdc14e0db07d4cadb77c730ca55d2"
+    },
+    {
+      "max_proxy_ms": 26.915000000000003,
+      "mean_frame_proxy_ms": 9.32375315053816,
+      "mean_rb_per_bs": [
+        0.13906040268456366,
+        3.561073825503355,
+        2.4005033557046964,
+        2.933422818791944,
+        3.1733221476510067
+      ],
+      "method": "mts",
+      "pooled_proxy_above_100ms_percent": 0.0,
+      "rate_mbps": 1,
+      "raw_sha256": "9b8fe67e19f868d69a85f54fd1da42a41a410cbbea45d77be0144d9a45182527",
+      "traffic_sha256": "070d65048c8440b63450a3da2a718816ef0fdc14e0db07d4cadb77c730ca55d2"
+    },
+    {
+      "max_proxy_ms": 25.899605453211397,
+      "mean_frame_proxy_ms": 9.537759437320275,
+      "mean_rb_per_bs": [
+        0.0,
+        2.1934563758389287,
+        1.900268456375838,
+        2.5596644295302027,
+        2.2155369127516775
+      ],
+      "method": "oracle_mc",
+      "pooled_proxy_above_100ms_percent": 0.0,
+      "rate_mbps": 1,
+      "raw_sha256": "fb057c2981d83a6d614d403c7cf21c1a8f50d885bc097802e0268c987d13a3a4",
+      "traffic_sha256": "070d65048c8440b63450a3da2a718816ef0fdc14e0db07d4cadb77c730ca55d2"
+    },
+    {
+      "candidate_probes": 184890,
+      "estimated_rb_above_capacity_frames": 47,
+      "full_sweeps": 0,
+      "matching_epochs": 60,
+      "matching_overflow_epochs": 0,
+      "max_estimated_capacity_overflow": 0.0,
+      "max_estimated_rb": 1.5196769746826268e+16,
+      "max_proxy_ms": 522.9906686735927,
+      "mean_frame_proxy_ms": 9.21151863478142,
+      "mean_rb_per_bs": [
+        2.156308724832214,
+        6.122852348993279,
+        6.2835234899328745,
+        6.4910067114093835,
+        4.028020134228185
+      ],
+      "method": "report_unbounded",
+      "pooled_proxy_above_100ms_percent": 0.18506117826632856,
+      "rate_mbps": 1,
+      "raw_sha256": "77b6cfbaa5503fc3addd683961d703e49e615df94d4d0038468eab115503f9b4",
+      "traffic_sha256": "070d65048c8440b63450a3da2a718816ef0fdc14e0db07d4cadb77c730ca55d2",
+      "unassigned_at_matching": 0
+    },
+    {
+      "candidate_probes": 196950,
+      "estimated_rb_above_capacity_frames": 0,
+      "full_sweeps": 0,
+      "matching_epochs": 60,
+      "matching_overflow_epochs": 0,
+      "max_estimated_capacity_overflow": 0.0,
+      "max_estimated_rb": 66.0,
+      "max_proxy_ms": 524.3340756022833,
+      "mean_frame_proxy_ms": 9.680392389200694,
+      "mean_rb_per_bs": [
+        0.8030536912751685,
+        6.464395973154347,
+        5.378456375838915,
+        7.574530201342273,
+        5.267751677852339
+      ],
+      "method": "report_bounded",
+      "pooled_proxy_above_100ms_percent": 0.19530269085895763,
+      "rate_mbps": 1,
+      "raw_sha256": "f97483b59c8eec280e5b5f3ad2c21b3613713b1ecbefb4ab395a85d50ef2d4e5",
+      "traffic_sha256": "070d65048c8440b63450a3da2a718816ef0fdc14e0db07d4cadb77c730ca55d2",
+      "unassigned_at_matching": 0
+    },
+    {
+      "max_proxy_ms": 1110.9399347398341,
+      "mean_frame_proxy_ms": 2.0687309288760884,
+      "mean_rb_per_bs": [
+        0.17573825503355708,
+        36.909328859060366,
+        33.07802013422818,
+        43.18395973154362,
+        34.27127516778522
+      ],
+      "method": "meet_cobra",
+      "pooled_proxy_above_100ms_percent": 0.14741869568428567,
+      "rate_mbps": 13,
+      "raw_sha256": "c4b0086714bfe8bcb55321f3413849abbdca70fabd95cb4bd8e15e55237e2246",
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96"
+    },
+    {
+      "max_proxy_ms": 207.9023760749704,
+      "mean_frame_proxy_ms": 1.6045117166918583,
+      "mean_rb_per_bs": [
+        7.704597315436233,
+        38.76466442953022,
+        28.410402684563763,
+        37.06892617449663,
+        34.450167785234896
+      ],
+      "method": "mts",
+      "pooled_proxy_above_100ms_percent": 0.012678795637509538,
+      "rate_mbps": 13,
+      "raw_sha256": "d5408303d790bf46dcadadfefa2b80d3ae3587a05d8179d5fcf777f28ace932f",
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96"
+    },
+    {
+      "max_proxy_ms": 13.297570154463832,
+      "mean_frame_proxy_ms": 1.5568439065840733,
+      "mean_rb_per_bs": [
+        0.0,
+        33.628724832214765,
+        27.312348993288598,
+        39.26429530201342,
+        31.412516778523468
+      ],
+      "method": "oracle_mc",
+      "pooled_proxy_above_100ms_percent": 0.0,
+      "rate_mbps": 13,
+      "raw_sha256": "7f687a40f4c8eafd3b730ccdf31d89ab707390e88cf643461480b8bc9581b679",
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96"
+    },
+    {
+      "candidate_probes": 193430,
+      "estimated_rb_above_capacity_frames": 46,
+      "full_sweeps": 0,
+      "matching_epochs": 60,
+      "matching_overflow_epochs": 0,
+      "max_estimated_capacity_overflow": 0.0,
+      "max_estimated_rb": 2.8137354400689904e+17,
+      "max_proxy_ms": 722.212054870447,
+      "mean_frame_proxy_ms": 2.202544437735349,
+      "mean_rb_per_bs": [
+        15.062751677852333,
+        34.36862416107384,
+        28.047583892617446,
+        36.99993288590605,
+        32.64379194630873
+      ],
+      "method": "report_unbounded",
+      "pooled_proxy_above_100ms_percent": 0.19062507693443953,
+      "rate_mbps": 13,
+      "raw_sha256": "373c1a10177c7400fc962bbaf00817410c8f5e697916f82c118a79490cbc0d8b",
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "unassigned_at_matching": 0
+    },
+    {
+      "candidate_probes": 201850,
+      "estimated_rb_above_capacity_frames": 0,
+      "full_sweeps": 0,
+      "matching_epochs": 60,
+      "matching_overflow_epochs": 0,
+      "max_estimated_capacity_overflow": 0.0,
+      "max_estimated_rb": 133.0,
+      "max_proxy_ms": 722.212054870447,
+      "mean_frame_proxy_ms": 2.169749696812036,
+      "mean_rb_per_bs": [
+        3.435671140939591,
+        40.88520134228186,
+        28.828825503355727,
+        39.08765100671139,
+        33.62187919463086
+      ],
+      "method": "report_bounded",
+      "pooled_proxy_above_100ms_percent": 0.17664147320219603,
+      "rate_mbps": 13,
+      "raw_sha256": "25df3d9913cbe54cb66807eac09c2280849356ae5462f0a49f2fff8b111f8200",
+      "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+      "unassigned_at_matching": 0
+    },
+    {
+      "max_proxy_ms": 711.5964257028085,
+      "mean_frame_proxy_ms": 2.0221647363895072,
+      "mean_rb_per_bs": [
+        21.278959731543626,
+        63.67244966442954,
+        64.10057046979864,
+        63.349328859060456,
+        63.789664429530276
+      ],
+      "method": "meet_cobra",
+      "pooled_proxy_above_100ms_percent": 0.20025111401068466,
+      "rate_mbps": 23,
+      "raw_sha256": "5dd4e8d358f3d2e3be100e8bffa704186193b6de333df6094e86f1faa35f6526",
+      "traffic_sha256": "23bcc291855aa565077e4652365a9ecf3c31795e867945a4c3bb1c3dc7c8c47e"
+    },
+    {
+      "max_proxy_ms": 902.7516913480575,
+      "mean_frame_proxy_ms": 3.138200634929659,
+      "mean_rb_per_bs": [
+        46.2303020134228,
+        61.53453020134227,
+        53.196812080536915,
+        60.32842281879194,
+        61.12691275167783
+      ],
+      "method": "mts",
+      "pooled_proxy_above_100ms_percent": 0.5092444422560871,
+      "rate_mbps": 23,
+      "raw_sha256": "1073217b527bcd15562ef07b6ba99cee5b873e9197c523bc37709ac176955b9b",
+      "traffic_sha256": "23bcc291855aa565077e4652365a9ecf3c31795e867945a4c3bb1c3dc7c8c47e"
+    },
+    {
+      "max_proxy_ms": 89.12540655747138,
+      "mean_frame_proxy_ms": 1.3713151429087944,
+      "mean_rb_per_bs": [
+        11.868456375838932,
+        64.25751677852345,
+        63.76020134228187,
+        64.30590604026847,
+        64.15973154362416
+      ],
+      "method": "oracle_mc",
+      "pooled_proxy_above_100ms_percent": 0.0,
+      "rate_mbps": 23,
+      "raw_sha256": "479eeddc18352a4b3223f351f9cc36fa8f40e1cd678d9f2b7964abfb0c3cbdf8",
+      "traffic_sha256": "23bcc291855aa565077e4652365a9ecf3c31795e867945a4c3bb1c3dc7c8c47e"
+    },
+    {
+      "candidate_probes": 185610,
+      "estimated_rb_above_capacity_frames": 54,
+      "full_sweeps": 0,
+      "matching_epochs": 60,
+      "matching_overflow_epochs": 0,
+      "max_estimated_capacity_overflow": 0.0,
+      "max_estimated_rb": 5.807971717974188e+17,
+      "max_proxy_ms": 1259.9715471489012,
+      "mean_frame_proxy_ms": 3.5326987915406165,
+      "mean_rb_per_bs": [
+        46.37187919463087,
+        61.543624161073836,
+        52.502382550335525,
+        59.193187919463114,
+        57.8624832214765
+      ],
+      "method": "report_unbounded",
+      "pooled_proxy_above_100ms_percent": 0.5470100199414067,
+      "rate_mbps": 23,
+      "raw_sha256": "793436c775f92bc723e470fe896bd8e481e939f1510353b05ae3edb8e6e25faf",
+      "traffic_sha256": "23bcc291855aa565077e4652365a9ecf3c31795e867945a4c3bb1c3dc7c8c47e",
+      "unassigned_at_matching": 0
+    },
+    {
+      "candidate_probes": 185440,
+      "estimated_rb_above_capacity_frames": 0,
+      "full_sweeps": 0,
+      "matching_epochs": 60,
+      "matching_overflow_epochs": 0,
+      "max_estimated_capacity_overflow": 0.0,
+      "max_estimated_rb": 133.0,
+      "max_proxy_ms": 1174.9755471489011,
+      "mean_frame_proxy_ms": 3.58168798381367,
+      "mean_rb_per_bs": [
+        46.461275167785224,
+        62.89305369127512,
+        51.79845637583891,
+        59.23003355704703,
+        58.89379194630876
+      ],
+      "method": "report_bounded",
+      "pooled_proxy_above_100ms_percent": 0.5786208424628869,
+      "rate_mbps": 23,
+      "raw_sha256": "b897d822ecdb98fcaed16ac26c7edc92eaef299ca5a3ac94f8fb2b6807c73e06",
+      "traffic_sha256": "23bcc291855aa565077e4652365a9ecf3c31795e867945a4c3bb1c3dc7c8c47e",
+      "unassigned_at_matching": 0
+    },
+    {
+      "max_proxy_ms": 898.6420070865205,
+      "mean_frame_proxy_ms": 2.1345686796425287,
+      "mean_rb_per_bs": [
+        105.39738255033546,
+        64.0092617449664,
+        64.18104026845637,
+        63.858523489932914,
+        63.97875838926175
+      ],
+      "method": "meet_cobra",
+      "pooled_proxy_above_100ms_percent": 0.23594869396095422,
+      "rate_mbps": 29,
+      "raw_sha256": "e40d7a5055328c9a19a868e308e5c0ecf74df6cc5688e3506210b7ba36cefeae",
+      "traffic_sha256": "11603376449b7b5dd5edc506d646b3700075ae08e516148459f028bd51fdc77f"
+    },
+    {
+      "max_proxy_ms": 2592.76462149413,
+      "mean_frame_proxy_ms": 13.145747451169386,
+      "mean_rb_per_bs": [
+        106.81006711409397,
+        64.9560067114094,
+        64.27939597315435,
+        64.96315436241612,
+        64.81345637583892
+      ],
+      "method": "mts",
+      "pooled_proxy_above_100ms_percent": 1.887121790295182,
+      "rate_mbps": 29,
+      "raw_sha256": "2bd0858ff865d6744b473650c255beaeefa5fe5f2ca698680230100c8bc83d84",
+      "traffic_sha256": "11603376449b7b5dd5edc506d646b3700075ae08e516148459f028bd51fdc77f"
+    },
+    {
+      "max_proxy_ms": 687.4261744781368,
+      "mean_frame_proxy_ms": 1.5100462242513368,
+      "mean_rb_per_bs": [
+        96.65419463087245,
+        63.95557046979869,
+        63.858187919463035,
+        64.31496644295301,
+        64.11956375838925
+      ],
+      "method": "oracle_mc",
+      "pooled_proxy_above_100ms_percent": 0.07646667815554298,
+      "rate_mbps": 29,
+      "raw_sha256": "566818631270e543624a4534a2e90361582441e19f1425d6439b77d7aa5fc54f",
+      "traffic_sha256": "11603376449b7b5dd5edc506d646b3700075ae08e516148459f028bd51fdc77f"
+    },
+    {
+      "candidate_probes": 169865,
+      "estimated_rb_above_capacity_frames": 103,
+      "full_sweeps": 0,
+      "matching_epochs": 60,
+      "matching_overflow_epochs": 11,
+      "max_estimated_capacity_overflow": 120.04390183931278,
+      "max_estimated_rb": 7.346119135577303e+17,
+      "max_proxy_ms": 2570.3284356156873,
+      "mean_frame_proxy_ms": 10.99878710140986,
+      "mean_rb_per_bs": [
+        106.34258389261745,
+        64.1604026845637,
+        63.48986577181208,
+        63.85892617449662,
+        64.2942953020134
+      ],
+      "method": "report_unbounded",
+      "pooled_proxy_above_100ms_percent": 1.9518944336394297,
+      "rate_mbps": 29,
+      "raw_sha256": "ec10ab2338273302bdfac04540330bacb644308976021756c557df51324acda3",
+      "traffic_sha256": "11603376449b7b5dd5edc506d646b3700075ae08e516148459f028bd51fdc77f",
+      "unassigned_at_matching": 66
+    },
+    {
+      "candidate_probes": 170090,
+      "estimated_rb_above_capacity_frames": 0,
+      "full_sweeps": 0,
+      "matching_epochs": 60,
+      "matching_overflow_epochs": 9,
+      "max_estimated_capacity_overflow": 120.04390183931278,
+      "max_estimated_rb": 133.0,
+      "max_proxy_ms": 2184.841119014101,
+      "mean_frame_proxy_ms": 9.74801654419181,
+      "mean_rb_per_bs": [
+        105.50244966442945,
+        64.33429530201339,
+        63.596577181208026,
+        64.12184563758387,
+        64.54684563758389
+      ],
+      "method": "report_bounded",
+      "pooled_proxy_above_100ms_percent": 1.7651345429478815,
+      "rate_mbps": 29,
+      "raw_sha256": "24255f7c1498f6a9219cd98b7538593fe880a8e0a73167af9a27b2265b0f62d8",
+      "traffic_sha256": "11603376449b7b5dd5edc506d646b3700075ae08e516148459f028bd51fdc77f",
+      "unassigned_at_matching": 56
+    }
+  ],
+  "report_protocol_sha256": "812a556decceaa4a8e7cf782cc22c1c32465479f9582245b4e29ff266e1d6613",
+  "tests": "17 unique CPU/GPU tests; detailed commands in experiment report"
+}
