@@ -1,8 +1,8 @@
-"""Opt-in, bounded GAP-HO fixed-point refinement.
+"""Finite-round GAP-HO refinement with capacity-bounded RB usage feedback.
 
-No new setting affects the legacy path. Two iterations with tolerance=None
-reproduce its two solves and final repair, including its reserve and pilot
-estimators. HO interruption changes capacity coefficients only.
+Two iterations with tolerance=None match the explicit two-pass path, including
+its reserve and pilot estimators. HO interruption changes capacity coefficients
+only. ``gap_cap_rb_usage=False`` restores the earlier unbounded usage update.
 """
 
 import collections
@@ -34,26 +34,37 @@ class GAPRefinementConfig:
             raise ValueError('relaxation_factor must be finite and greater than one')
 
 
-def iterate_assignment(initial_load, demand_function, assignment_function, config):
-    """Apply the undamped manuscript update; stopping is tested before repair.
+def iterate_assignment(initial_load, demand_function, assignment_function, config,
+                       rb_capacity=None):
+    """Update estimated usage, optionally capped at each BS's physical capacity.
 
-    The residual is max_m |new frame-average load_m - input load_m| in RBs.
+    Link demands passed to the assignment solver are never clipped. The residual
+    is max_m |new frame-average usage_m - input usage_m| in RBs, before repair.
     A repeated iterate is recorded, never treated as convergence or used to
     override the specified stopping rule. None disables early stopping; zero
     instead requires exact equality.
     """
     load = np.asarray(initial_load, dtype=float).copy()
+    if rb_capacity is not None:
+        rb_capacity = np.asarray(rb_capacity, dtype=float)
+        if (rb_capacity.shape != load.shape or not np.isfinite(rb_capacity).all()
+                or (rb_capacity < 0).any()):
+            raise ValueError('RB capacity must be finite, nonnegative and match the load shape')
+        load = np.minimum(load, rb_capacity)
     traces = []
     seen = [load.copy()]
     for iteration in range(config.max_iterations):
         demand = demand_function(load, iteration)
         assignment = assignment_function(demand)
-        new_load = (demand * assignment).sum(axis=1)
-        if not np.isfinite(new_load).all():
+        implied_demand = (demand * assignment).sum(axis=1)
+        if not np.isfinite(implied_demand).all():
             raise ValueError('Nonfinite load in GAP refinement')
+        new_load = (np.minimum(implied_demand, rb_capacity)
+                    if rb_capacity is not None else implied_demand)
         residual = float(np.max(np.abs(new_load - load)))
         traces.append(dict(
             residual_rb=residual, input_load=load.tolist(),
+            implied_demand=implied_demand.tolist(),
             implied_load=new_load.tolist(),
             repeated_load=any(np.array_equal(new_load, old) for old in seen)))
         load = new_load
@@ -93,6 +104,7 @@ def refined_gap_handover(args, veh_set_cur, backlog_queue_dict,
     reserve = (0 if len(history) == 0 else
                (np.asarray(history[-100:]) > args.vio_prob_threshold).mean() * .1)
     capacity = np.array([args.num_RB_macro] + [args.num_RB_micro]*(num_bs-1), dtype=float)
+    cap_rb_usage = kwargs.get('gap_cap_rb_usage', True)
     planning_capacity = np.array([int(k*(1-reserve)) for k in capacity], dtype=float)
     powers = np.array([args.p_macro] + [args.p_micro]*(num_bs-1))
     pred_g_db = np.zeros((len(vehicles), num_bs))
@@ -145,22 +157,26 @@ def refined_gap_handover(args, veh_set_cur, backlog_queue_dict,
             b=planning_capacity, adap_mtp=config.relaxation_factor)
 
     demand, assignment, traces, stop_reason = iterate_assignment(
-        capacity, demand_function, assignment_function, config)
+        capacity, demand_function, assignment_function, config,
+        rb_capacity=capacity if cap_rb_usage else None)
     before_repair = assignment.copy()
     assignment, feasible = alg_utils._ITERATIVE_OFFLOAD(
         assignment, demand*factors, planning_capacity, powers,
         T_COST=demand*powers[:, None])
-    loads = (demand*assignment).sum(axis=1)
+    implied_demand = (demand*assignment).sum(axis=1)
+    loads = np.minimum(implied_demand, capacity) if cap_rb_usage else implied_demand
     if diagnostics is not None:
         diagnostics.append(dict(
             iterations=len(traces), stop_reason=stop_reason, traces=traces,
             tolerance_rb=config.tolerance_rb, max_iterations=config.max_iterations,
             relaxation_factor=config.relaxation_factor, reserve_ratio=float(reserve),
+            cap_rb_usage=bool(cap_rb_usage), physical_capacity=capacity.tolist(),
             pre_repair_residual_rb=traces[-1]['residual_rb'],
             repair_changed_vehicles=int(np.sum(
                 before_repair.argmax(axis=0) != assignment.argmax(axis=0))),
             capacity_feasible_after_repair=bool(feasible),
             post_repair_frame_average_load=loads.tolist(),
+            post_repair_frame_average_demand=implied_demand.tolist(),
             planning_capacity=planning_capacity.tolist(),
             post_repair_capacity_load=(demand*factors*assignment).sum(axis=1).tolist(),
             elapsed_s=time.perf_counter()-started))

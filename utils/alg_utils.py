@@ -1058,14 +1058,17 @@ def HO_EE_GAP_APX_SINR_conservative(args, veh_set_cur, backlog_queue_dict, veh_d
 
 
 def HO_EE_GAP_APX_SINR_conservative_adaptive(args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict, pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs):
-    # Opt-in only: keep the historical two-pass implementation below intact.
+    # Configurable refinement or the equivalent explicit two-pass implementation.
     if kwargs.get('gap_refinement_config') is not None:
         from utils.gap_refinement import refined_gap_handover
         return refined_gap_handover(
             args, veh_set_cur, backlog_queue_dict, veh_data_rate_dict,
             pred_loc_dict, pred_g_dict, BS_loc_array, **kwargs)
-    # Only capacities use active-service RB demand. Costs and interference use
-    # full-frame average RB demand. Both options default to the legacy behavior.
+    # Only capacity constraints use active-service demand. Costs retain nominal
+    # frame-average demand; interference uses usage capped at physical capacity.
+    cap_rb_usage = kwargs.get('gap_cap_rb_usage', True)
+    physical_capacity = np.array(
+        [args.num_RB_macro] + [args.num_RB_micro]*(len(BS_loc_array)-1), dtype=float)
     capacity_correction = kwargs.get('ho_capacity_correction', False)
     factors = capacity_factors(
         list(veh_set_cur), len(BS_loc_array), kwargs.get('current_connection'),
@@ -1141,6 +1144,8 @@ def HO_EE_GAP_APX_SINR_conservative_adaptive(args, veh_set_cur, backlog_queue_di
         T_COST=k_tilde_matrix.swapaxes(0, 1) * pm_table[:, None],
     )
     _num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    if cap_rb_usage:
+        _num_RB_allocated_perBS = np.minimum(_num_RB_allocated_perBS, physical_capacity)
     _T_HO = T_HO
     
     # 在上次迭代的基础上，进行微调
@@ -1188,6 +1193,8 @@ def HO_EE_GAP_APX_SINR_conservative_adaptive(args, veh_set_cur, backlog_queue_di
         T_COST=k_tilde_matrix.swapaxes(0, 1) * pm_table[:, None],
     )
     num_RB_allocated_perBS = (k_tilde_matrix.swapaxes(0, 1)*T_HO).sum(axis=-1)
+    if cap_rb_usage:
+        num_RB_allocated_perBS = np.minimum(num_RB_allocated_perBS, physical_capacity)
     
     for i, veh in enumerate(veh_set_cur):
         HO_cmd[veh] = T_HO[:, i].argmax()

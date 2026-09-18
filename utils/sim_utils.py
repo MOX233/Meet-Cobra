@@ -540,6 +540,8 @@ def run_sim_withUMa(
         if ho_capacity_correction:
             ho_options = dict(current_connection=connection_dict_cur,
                               ho_capacity_correction=True, ho_interruption_slots=ho_slots)
+        if 'gap_cap_rb_usage' in kwargs:
+            ho_options['gap_cap_rb_usage'] = kwargs['gap_cap_rb_usage']
         if kwargs.get('gap_refinement_config') is not None:
             ho_options['gap_refinement_config'] = kwargs['gap_refinement_config']
             ho_options['gap_refinement_diagnostics'] = kwargs.get('gap_refinement_diagnostics')
