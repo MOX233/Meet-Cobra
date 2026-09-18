@@ -1,8 +1,9 @@
 """Protocol partition and per-round cap audit tests for the new full grid."""
 import copy
+import json
 import unittest
 import numpy as np
-from experiment.revision_cap_grid import GapAudit,RERUN,REUSE,METHODS,RATES,SEEDS,audit_unaffected_sources
+from experiment.revision_cap_grid import GapAudit,RERUN,REUSE,METHODS,RATES,SEEDS,audit_unaffected_sources,json_native
 
 
 class RevisionCapGridTests(unittest.TestCase):
@@ -36,6 +37,14 @@ class RevisionCapGridTests(unittest.TestCase):
 
     def test_unaffected_reference_sources(self):
         self.assertEqual(audit_unaffected_sources()['unchanged_methods'],REUSE)
+
+    def test_numpy_diagnostics_serialization(self):
+        record=dict(association={np.int64(12):np.int64(2)},
+                    active=np.array([np.bool_(True)]),load=np.array([1.,66.]),
+                    slots=np.int64(100),power=np.float64(1.25))
+        restored=json.loads(json.dumps(json_native(record),sort_keys=True))
+        self.assertEqual(restored,dict(association={'12':2},active=[True],
+                                      load=[1.,66.],slots=100,power=1.25))
 
 
 if __name__=='__main__':

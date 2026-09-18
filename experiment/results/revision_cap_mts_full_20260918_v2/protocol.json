@@ -1,0 +1,266 @@
+{
+  "candidate_beams": 5,
+  "code_sha256": {
+    "experiment/ho_interruption_experiment.py": "2bf932ee3aaf1343e8a3509a50a66ea8dfa7b9846c59c22e980874d8b4dd3e6a",
+    "experiment/launch_revision_cap_grid.py": "df6284b92f0eb29f8115f9acb898289daf36403ba06df39aa85bbb7d55a4c955",
+    "experiment/o_mappo_shared_frontend.py": "7f0b1ceeee9d4a9821d11f55e2fd7c2cd184bdf467788986ea3abde49d589a45",
+    "experiment/pql_ba_experiment.py": "627d5d89c6ee4f0f7b38d6187d0faa7ad10851bfb3ef5ced21400e7044c97bf0",
+    "experiment/revision_cap_grid.py": "0a38e040ef5c8594a589d6cdc6e33451a3fa975d3935343d4cba0f8022e55809",
+    "experiment/revision_grid.py": "1529425530f3998a5c56ab67d764ff4da239ad02601b45fc37639ba3fc767752",
+    "experiment/summarize_revision_cap_grid.py": "10e81f7be5faec98ceadbae57880c49526df97f4f42bdd9828b8bf92a05fb50c",
+    "experiment/summarize_revision_grid.py": "0024a663b1757410813065da4bc4afa32d598e6fc6fb9d6a463759d73f820c9a",
+    "test_revision_cap_grid.py": "aa078051d406c0ccb8c240ac6eefddfc826708bfb9befeaddaac3e32f6083a76",
+    "utils/NN_utils.py": "351dc4bd5a9e75304bc3dd7ea2019c35971eefa1ac1c7bbadb5ffcc7cb75dc26",
+    "utils/alg_utils.py": "64709f181ee92472210e242be06d371b72ec5ba5d4ecc383d2b51a77171449ee",
+    "utils/beam_utils.py": "8fe098b270986b576a20b3b87bc54596b6efe3a74b8891b3ba786c9e640d50ae",
+    "utils/channel_utils.py": "9261fb7ddf9a333c9e79b386d21c48caf1f0dfa8a36f6c734f015ee53093818d",
+    "utils/compiled_matching.py": "da5cfcddf05d2670c853bacd5f0e89b6233551ddde21710787aaef142ce9891c",
+    "utils/data_utils.py": "31c464cab50c22d49386cb14f3de2f8f459733a24ccf11a539a3cccd6a1a2689",
+    "utils/dql_hbt.py": "0439641b9cb32b8a65f4ccf067525a576b13946a9e0f984c718ee653970d443d",
+    "utils/dql_hbt_sim.py": "10302f03f9a522edfdfd12841af46a13c482c7bf4f62a511f9186d964f9962df",
+    "utils/fast_pet_measurement.py": "402fd8bd7b4ff6211acb5dfef23a8ab839523bb14dc4b247d181dd9aa4d46d18",
+    "utils/gap_refinement.py": "1630cc6de55e2cb9a3e2e9eba50968c9ba4157d5e8d67d74901df21d7cd620d4",
+    "utils/gpu_phy.py": "df0e5a5653f1d20db4cd2d61f0c1a698ec0ad2d940762c2970b61224867667c6",
+    "utils/ho_utils.py": "e79cb32a267df12e77c40b8e8ae229a757e32f22778935a424253e0a96857959",
+    "utils/mox_utils.py": "f85d3e8d6f89fd4ac19efe870a6a57fcbb4b3ec1535452fb025c4b54b38b150e",
+    "utils/mts_gs_hbf.py": "07beb6a84ab2bb344bb323e8b2e73723e8a2b8919ede5d65832345ae8297fa48",
+    "utils/mts_gs_hbf_sim.py": "7c4dd26c848d5ce9e83d1b4468e688e2a04845346f0ac4a375c7948b8145bc2b",
+    "utils/mts_report.py": "af2f23bde7ff9d60292ceae6c0fc4c670c9b10a2a74f8bae03f3e85c34d583e8",
+    "utils/mts_report_bounded.py": "0f24fcb5d311e178aad5041c713ae9051229538c19c735dec0a3185fbc7530f2",
+    "utils/mts_report_sim.py": "c62b87f11e2550e898bbc9bb9bc7b063acdc5d4bb47e1cb9641f6c109520cfa9",
+    "utils/o_mappo.py": "8ca9b909834c035f702d32a78682e7e890e136f811d40924f3e4c77782ed5d66",
+    "utils/o_mappo_sim.py": "ac4ad06cf6c46d560d2c0fdc4f6c0c2a4fb0c7a20cae2650987b111033b64815",
+    "utils/options.py": "bc017eea07093eb041ea3ad88253d7d7ce32acb52a1d6ffe74ac00d7e8c8f8f6",
+    "utils/plot_utils.py": "33bb91ae9ea16ee3bccc6bb4f7a68753f0b9213135869e247840f2e72455190d",
+    "utils/pql_ba.py": "0065974385c1e67ae6a5785a5fb86f1f0a74f1580474a06aef8228db5de8bc3c",
+    "utils/pql_ba_adapted.py": "c1ef2a8ce8158e9d50f8d0dc1abb8dcf24be5af8e3c5c882c29ffae86cda7691",
+    "utils/pql_ba_sim.py": "ac3863d807e1a291ae7d6ac5c31d38cd60f525bcc10dffca6a8815fe99fb2c36",
+    "utils/queue_utils.py": "8182b609e468c8ff214478faf9e115e659419a7e94c819b884706da2ea17c6db",
+    "utils/randomTrips.py": "33c65d6832a5b8ee79eca22ac5f08497fc55f32755cc1ec69738fe5cea0e3528",
+    "utils/sim_utils.py": "340566cb3aecb437cf2f86ecd7fca23d10cf178cdfbe84c269162bf51395b8a8",
+    "utils/sumo_utils.py": "2ed3916ee1f637745edb5959bd0ddcbf3e3201ebe873e67d0a2cf34b4190dfea"
+  },
+  "common_ra_estimator": "Unchanged for MEET and original baselines; only GAP feedback has been capped. MTS uses its separately confirmed bounded estimator.",
+  "expected_new_cases": 450,
+  "expected_reused_cases": 180,
+  "fading": "torch FP64, frame/seed keyed, same draws irrespective of actions",
+  "frontend": {
+    "frontend": {
+      "beam": {
+        "architecture": "BeamPredictionLSTMModel(\n  (lstm_layers): LSTM(128, 128, batch_first=True)\n  (shared_layers): Sequential()\n  (output_heads): ModuleList(\n    (0-3): 4 x Sequential(\n      (0): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (1): ReLU()\n      (2): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (3): ReLU()\n      (4): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (5): ReLU()\n      (6): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=256, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=256, out_features=256, bias=False)\n        (bn2): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n        (downsample): Sequential(\n          (0): Linear(in_features=128, out_features=256, bias=False)\n          (1): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        )\n      )\n    )\n  )\n)",
+        "checkpoint": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/stateful_tbptt_unified_split_20260913/stage2_stateful_tbptt/beam/best.pth",
+        "parameter_bytes": 4243456,
+        "parameter_count": 1060864,
+        "selected_stage2_epoch": 88,
+        "selection_metric": "maximum validation Top-1",
+        "sha256": "3ab0a2defe9f4795eceb2cb3d8de0bb2265a8d074e39c353a1cda6a8748abd4b",
+        "state_dict_bytes": 4288800
+      },
+      "desired_gain": {
+        "architecture": "BestGainPredictionLSTMModel(\n  (lstm_layers): LSTM(128, 128, batch_first=True)\n  (shared_layers): Sequential()\n  (output_heads): ModuleList(\n    (0-3): 4 x Sequential(\n      (0): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (1): ReLU()\n      (2): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (3): ReLU()\n      (4): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (5): ReLU()\n      (6): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=1, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=1, out_features=1, bias=False)\n        (bn2): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n        (downsample): Sequential(\n          (0): Linear(in_features=128, out_features=1, bias=False)\n          (1): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        )\n      )\n    )\n  )\n)",
+        "checkpoint": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/stateful_tbptt_unified_split_20260913/stage2_stateful_tbptt/desired_gain/best.pth",
+        "parameter_bytes": 2134096,
+        "parameter_count": 533524,
+        "selected_stage2_epoch": 59,
+        "selection_metric": "minimum validation MAE",
+        "sha256": "8c8bc19f2bb30214742f44b3fb1626029a549ecbe6d66249098480f11ce627eb",
+        "state_dict_bytes": 2163120
+      },
+      "interfering_gain": {
+        "architecture": "BestGainPredictionLSTMModel(\n  (lstm_layers): LSTM(128, 128, batch_first=True)\n  (shared_layers): Sequential()\n  (output_heads): ModuleList(\n    (0-3): 4 x Sequential(\n      (0): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (1): ReLU()\n      (2): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (3): ReLU()\n      (4): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (5): ReLU()\n      (6): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=1, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=1, out_features=1, bias=False)\n        (bn2): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n        (downsample): Sequential(\n          (0): Linear(in_features=128, out_features=1, bias=False)\n          (1): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        )\n      )\n    )\n  )\n)",
+        "checkpoint": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/stateful_tbptt_unified_split_20260913/stage2_stateful_tbptt/interfering_gain/best.pth",
+        "parameter_bytes": 2134096,
+        "parameter_count": 533524,
+        "selected_stage2_epoch": 91,
+        "selection_metric": "minimum validation MAE",
+        "sha256": "620905d03a2d82a52ede2b8e31f383b5fb6b01fb253e5e1b0bfe4c51bf5619df",
+        "state_dict_bytes": 2163120
+      }
+    },
+    "inference_device": "cuda:5",
+    "observation_noise_seed": 20260917,
+    "prediction_alignment": "CSI at x predicts x+1; no future label input",
+    "rollback_git": "cdd095a58dc99504629522532a0f7cb751a99f81",
+    "test": {
+      "cache_sha256": "db7b133893bd7745e27efeb9e96593433ab6f3b82f2f331e77ab11e8c6b3c8cb",
+      "frames": 301,
+      "source": "/home/ubuntu/niulab/Meet_Cobra/data4sim/lbd1.00_800_830_tx(1,32)_rx(1,8)_freq2.8e+10_Np8_mode0_lookahead10.pkl",
+      "source_sha256": "d15ad88b1ca8c443cabcda677b7647b76d773b3936d32900e06884060eae2067"
+    },
+    "test_interval": [
+      800,
+      830
+    ],
+    "test_selection": false,
+    "train": {
+      "cache_sha256": "8f96a3276615bba4a673526431463d87043f11b8d8a053ba09ca9d2b7c534dbb",
+      "frames": 5301,
+      "source": "/home/ubuntu/niulab/Meet_Cobra/sionna_result/trajectoryInfo_lbd1.00_200_800_3Dbeam_tx(1,32)_rx(1,8)_freq2.8e+10.pkl",
+      "source_sha256": "5fee0780bddd6adbc9e92f29b6972ca0a0f08158c1ebbc29cbc2145baa7adfbf"
+    },
+    "training_interval": [
+      200,
+      700
+    ],
+    "validation_cache_interval": [
+      700.1,
+      730
+    ],
+    "validation_interval": [
+      700.1,
+      710
+    ]
+  },
+  "gap_cap_rb_usage": true,
+  "gap_iterations": 2,
+  "ho_ms": 10,
+  "latency_ms": 20,
+  "legacy_policy": {
+    "path": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo/final_load1/final_policy.pt",
+    "sha256": "9e7fd2a6a1ba96472003d5502cea8dd053245c5e48b8e559d756b1afea55ab3c"
+  },
+  "methods": [
+    "meet_cobra",
+    "oracle_mc",
+    "wo_gap_ho",
+    "wo_pet_bf",
+    "wo_otr_ra",
+    "o_mappo",
+    "mts_report"
+  ],
+  "mts_config": {
+    "admission_capacity_factor": 1.0,
+    "association_interval_frames": 5,
+    "bs_demand_weight": 0.25,
+    "bs_queue_weight": 2.0,
+    "bs_rate_weight": 1.0,
+    "bs_stay_bonus": 0.1,
+    "energy_weight": 4.0,
+    "full_sweep_interval_frames": 5,
+    "handover_hysteresis": 0.25,
+    "handover_penalty": 0.5,
+    "ho_interruption_ms": 10,
+    "load_weight": 1.0,
+    "local_tracking_interval_frames": 1,
+    "minimum_demand_rb": 0.05,
+    "name": "pressure_early",
+    "num_micro_bs": 4,
+    "num_rx_beams": 8,
+    "num_tx_beams": 32,
+    "pressure_adaptive": true,
+    "pressure_full_ratio": 1.0,
+    "pressure_start_ratio": 0.25,
+    "queue_drain_cap_ratio": 2.0,
+    "queue_drain_weight": 0.5,
+    "rate_weight": 1.0,
+    "sinr_threshold_db": -5.0,
+    "track_rx_radius": 1,
+    "track_tx_radius": 1,
+    "tracking_pilots": 1,
+    "urgent_bs_queue_weight": 4.0,
+    "urgent_energy_weight": 0.25,
+    "urgent_handover_hysteresis": 0.05,
+    "urgent_handover_penalty": 0.1,
+    "urgent_load_weight": 2.5,
+    "urgent_queue_drain_weight": 1.0
+  },
+  "mts_information": "Shared frozen predictions; target/serving BS only, five paid probes per frame; original GS weights; bounded occupied-RB estimates with separate demand cue.",
+  "mts_load_estimator": "utils/mts_report_bounded.py:estimate_bounded_report_load",
+  "mts_pilot_protocol_sha256": "45ab72e2a276c5a0f4080d40095711a83402862855baab8758f00e6627e8e726",
+  "old_protocol_sha256": "3780ffb6ffa1b7c7c1586b872976167a87b67d7c12ddf0f16166bbb43d1284c7",
+  "oracle_cr_lb": "pending separate mathematical definition; never fabricate queue metrics",
+  "oracle_hold_macro_position": true,
+  "physical_parameters": {
+    "K_rician": 3,
+    "N0": 3.981071705534986e-21,
+    "NF_macro_dB": 5.0,
+    "NF_micro_dB": 10.0,
+    "RB_intervel_macro": 360000.0,
+    "RB_intervel_micro": 1440000.0,
+    "num_RB_macro": 133,
+    "num_RB_micro": 66,
+    "p_macro": 1.0,
+    "p_micro": 0.2,
+    "pilot_overhead_factor": 0.017857142857142856
+  },
+  "power_ceiling_w": 185.8,
+  "prediction_timing": "MEET retains existing BF cache[x] in x; MTS probes report[x-1] in x. No unapproved timing change; not a strict timing-controlled ablation.",
+  "preflight": {
+    "methods": [
+      "meet_cobra",
+      "oracle_mc",
+      "wo_pet_bf",
+      "wo_otr_ra",
+      "mts_report"
+    ],
+    "rates": [
+      1,
+      13,
+      35
+    ],
+    "seeds": [
+      1
+    ]
+  },
+  "random_bf_index_fix": true,
+  "rates": [
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31,
+    33,
+    35
+  ],
+  "reactive_configuration": "reactive_configuration.json (separately confirmed)",
+  "reference_status": "Reactive-OBRA input and Oracle-CR-LB definition remain outside this run; original true-CSI MTS retained only as historical comparison.",
+  "rerun_methods": [
+    "meet_cobra",
+    "oracle_mc",
+    "wo_pet_bf",
+    "wo_otr_ra",
+    "mts_report"
+  ],
+  "reuse_methods": [
+    "wo_gap_ho",
+    "o_mappo"
+  ],
+  "rollback_git": "c5ea7cf",
+  "rollback_tag": "pre-full-cap-mts-grid-20260918",
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "service_frames": 300,
+  "slot_s": 0.001,
+  "slots_per_frame": 100,
+  "superseded_preflight": "revision_cap_mts_full_20260918: control arrays/metrics matched, but diagnostic JSON serialization failed; no accepted runs; preserved unchanged.",
+  "test_interval": [
+    800,
+    830
+  ],
+  "unaffected_source_audit": {
+    "unchanged_methods": [
+      "wo_gap_ho",
+      "o_mappo"
+    ],
+    "verification": "All frozen files unchanged except documented GAP function/refinement and optional simulator kwarg forwarding; no GAP call in O-MAPPO; w/o GAP-HO uses unchanged greedy function."
+  },
+  "version": 3,
+  "warmup_frames": 2,
+  "zeta": 1.1
+}

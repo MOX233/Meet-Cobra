@@ -12,7 +12,7 @@ import time
 import traceback
 
 ROOT=Path(__file__).resolve().parents[1]
-OUTPUT=ROOT/'experiment/results/revision_cap_mts_full_20260918'
+OUTPUT=ROOT/'experiment/results/revision_cap_mts_full_20260918_v2'
 RERUN=['meet_cobra','oracle_mc','wo_pet_bf','wo_otr_ra','mts_report']
 
 

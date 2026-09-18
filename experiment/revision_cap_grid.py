@@ -27,7 +27,7 @@ import utils.mts_report_sim as mts_sim
 import numpy as np
 import torch
 
-OUTPUT=ROOT/'experiment/results/revision_cap_mts_full_20260918'
+OUTPUT=ROOT/'experiment/results/revision_cap_mts_full_20260918_v2'
 RATES=list(range(1,36,2))
 SEEDS=[1,2,3,4,5]
 RERUN=['meet_cobra','oracle_mc','wo_pet_bf','wo_otr_ra','mts_report']
@@ -42,6 +42,19 @@ CODE=sorted(set(old.CODE)|{str(p.relative_to(ROOT)) for p in (ROOT/'utils').glob
      'experiment/summarize_revision_cap_grid.py','test_revision_cap_grid.py',
      'experiment/pql_ba_experiment.py','experiment/o_mappo_shared_frontend.py',
      'experiment/ho_interruption_experiment.py','experiment/summarize_revision_grid.py'})
+
+
+def json_native(value):
+    """Preserve numeric diagnostics while converting NumPy scalars and arrays."""
+    if isinstance(value,np.generic):
+        return value.item()
+    if isinstance(value,np.ndarray):
+        return json_native(value.tolist())
+    if isinstance(value,dict):
+        return {json_native(key):json_native(item) for key,item in value.items()}
+    if isinstance(value,(list,tuple)):
+        return [json_native(item) for item in value]
+    return value
 
 
 def reference_row(method,rate,seed,check_raw=False):
@@ -86,7 +99,8 @@ def prepare():
     if shutil.disk_usage(OUTPUT.parent).free < 25*2**30:
         raise RuntimeError('Need at least 25 GiB free for this retained-raw grid')
     protocol=old.protocol()
-    protocol.update(version=2,rollback_git='c5ea7cf',rollback_tag=ROLLBACK,
+    protocol.update(version=3,rollback_git='c5ea7cf',rollback_tag=ROLLBACK,
+        superseded_preflight='revision_cap_mts_full_20260918: control arrays/metrics matched, but diagnostic JSON serialization failed; no accepted runs; preserved unchanged.',
         methods=METHODS,rerun_methods=RERUN,reuse_methods=REUSE,
         expected_new_cases=450,expected_reused_cases=180,rates=RATES,seeds=SEEDS,
         preflight=dict(rates=PREFLIGHT_RATES,seeds=[1],methods=RERUN),
@@ -233,7 +247,7 @@ def run_case(method,rate,seed,gpu,control=False):
         np.savez_compressed(tmp,**raw)
         os.replace(tmp,rawpath)
         diagpath=prefix/'diagnostics'/f'{key}.json'
-        old.write_json(diagpath,diagnostics)
+        old.write_json(diagpath,json_native(diagnostics))
         row=dict(method=method,label=LABELS[method],rate_mbps=rate,seed=seed,gpu=gpu,
             frames=300,retained_frames=298,metrics=metrics,traffic_sha256=traffic['sha256'],
             protocol_sha256=sha,method_configuration_sha256=None,raw_sha256=old.digest(rawpath),
