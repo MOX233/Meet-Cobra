@@ -1,0 +1,203 @@
+{
+  "control_match": null,
+  "diagnostics": {
+    "active_micro_vehicle_slots": 3475314,
+    "active_rb_mean_reference_inr_db": 16.00607188538814,
+    "allocated_micro_rb_slots": 4024116.0,
+    "comparisons": {
+      "frame_to_slot_mean": {
+        "interference_sum_ratio": 1.000251396067373,
+        "potential_service_ratio": 0.9998858906982283,
+        "sinr_abs_error_median_db": 0.11193557387208103,
+        "sinr_abs_error_p95_db": 0.3445265697527283,
+        "sinr_error_mean_db": -0.003374196978564495
+      },
+      "gain_only": {
+        "interference_sum_ratio": 0.9154176324691309,
+        "potential_service_ratio": 0.9143831896531095,
+        "sinr_abs_error_median_db": 5.6608686538968955,
+        "sinr_abs_error_p95_db": 9.026222887832809,
+        "sinr_error_mean_db": -3.0713117533421808
+      },
+      "legacy_to_frame_mean": {
+        "interference_sum_ratio": 1.7783829815727437,
+        "potential_service_ratio": 0.8969900761467345,
+        "sinr_abs_error_median_db": 3.2796745322747567,
+        "sinr_abs_error_p95_db": 5.285581372253001,
+        "sinr_error_mean_db": -3.2110024307055713
+      },
+      "overlap_only_average": {
+        "interference_sum_ratio": 0.9986164661516443,
+        "potential_service_ratio": 0.908328423706078,
+        "sinr_abs_error_median_db": 3.148951446745923,
+        "sinr_abs_error_p95_db": 12.988681781211806,
+        "sinr_error_mean_db": -2.803936718056026
+      },
+      "overlap_only_directional": {
+        "interference_sum_ratio": 1.0065006921732205,
+        "potential_service_ratio": 0.8851048292583381,
+        "sinr_abs_error_median_db": 3.7103822367938664,
+        "sinr_abs_error_p95_db": 17.235031991427807,
+        "sinr_error_mean_db": -3.9049440438563927
+      }
+    },
+    "directional_diagonal_max_error_db": 7.105427357601002e-14,
+    "modes": {
+      "average_expected": {
+        "interference_sum_ratio": 0.9213684807077509,
+        "potential_service_ratio": 0.80932497695461,
+        "relative_service_abs_error_p95": 0.3620807244712825,
+        "relative_service_error_median": -0.18905063397617555,
+        "sinr_of_mean_interference_abs_error_db_median": 7.920334698846608,
+        "sinr_of_mean_interference_abs_error_db_p95": 13.485593209383163,
+        "sinr_of_mean_interference_error_db_mean": -6.976255797198579,
+        "useful_departure_ratio": 0.8985142094813234
+      },
+      "average_explicit": {
+        "interference_sum_ratio": 0.922644991283207,
+        "potential_service_ratio": 0.8910047905937775,
+        "relative_service_abs_error_p95": 0.3198745210631496,
+        "relative_service_error_median": -0.11284176106775179,
+        "sinr_of_mean_interference_abs_error_db_median": 4.777883865437814,
+        "sinr_of_mean_interference_abs_error_db_p95": 12.215609542043259,
+        "sinr_of_mean_interference_error_db_mean": -4.172319079142546,
+        "useful_departure_ratio": 0.9316539216077535
+      },
+      "directional_expected": {
+        "interference_sum_ratio": 1.0065006921732205,
+        "potential_service_ratio": 0.8851048292583381,
+        "relative_service_abs_error_p95": 0.5201354485678814,
+        "relative_service_error_median": -0.0715487016559978,
+        "sinr_of_mean_interference_abs_error_db_median": 3.7103822367938664,
+        "sinr_of_mean_interference_abs_error_db_p95": 17.235031991427807,
+        "sinr_of_mean_interference_error_db_mean": -3.9049440438563927,
+        "useful_departure_ratio": 0.9415531683045364
+      },
+      "directional_explicit": {
+        "interference_sum_ratio": 1.0,
+        "potential_service_ratio": 1.0,
+        "relative_service_abs_error_p95": 0.0,
+        "relative_service_error_median": 0.0,
+        "sinr_of_mean_interference_abs_error_db_median": 0.0,
+        "sinr_of_mean_interference_abs_error_db_p95": 0.0,
+        "sinr_of_mean_interference_error_db_mean": 0.0,
+        "useful_departure_ratio": 1.0
+      },
+      "frame_average": {
+        "interference_sum_ratio": 0.9216001091204022,
+        "potential_service_ratio": 0.8092326254465834,
+        "relative_service_abs_error_p95": 0.36204183358782904,
+        "relative_service_error_median": -0.18914022725928353,
+        "sinr_of_mean_interference_abs_error_db_median": 7.92266903897617,
+        "sinr_of_mean_interference_abs_error_db_p95": 13.478042268956923,
+        "sinr_of_mean_interference_error_db_mean": -6.979629994177135,
+        "useful_departure_ratio": 0.8984702329469537
+      },
+      "legacy": {
+        "interference_sum_ratio": 1.6389579498753066,
+        "potential_service_ratio": 0.7258736343197527,
+        "relative_service_abs_error_p95": 0.46749425485807516,
+        "relative_service_error_median": -0.26703561679247334,
+        "sinr_of_mean_interference_abs_error_db_median": 10.888564268117946,
+        "sinr_of_mean_interference_abs_error_db_p95": 17.319613661179474,
+        "sinr_of_mean_interference_error_db_mean": -10.190632424882708,
+        "useful_departure_ratio": 0.8287299793191965
+      }
+    },
+    "noise_w": 5.73274325597038e-14,
+    "overlap_expected_realized": [
+      [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          481699.51515152707,
+          481696.0
+        ],
+        [
+          584211.4242424201,
+          584077.0
+        ],
+        [
+          480450.9090909131,
+          481003.0
+        ]
+      ],
+      [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          543770.8787878691,
+          544426.0
+        ],
+        [
+          452975.46969697386,
+          452798.0
+        ]
+      ],
+      [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          560785.5757575643,
+          561328.0
+        ]
+      ],
+      [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ]
+    ]
+  },
+  "diagnostics_sha256": "5ecae18fb411e7ce17ab86c1ac67dd0257450bcc3c471eef2f472042212fd3c3",
+  "elapsed_s": 515.0071405544877,
+  "metrics": {
+    "blocked_vehicle_time_percent": 0.20409168123292054,
+    "handovers_per_vehicle_s": 0.20409168123292054,
+    "macro_association_percent": 0.03692853098303749,
+    "mean_proxy_ms": 1.9144363985434858,
+    "p90_proxy_ms": 2.004153846153846,
+    "p99_proxy_ms": 2.3061006108190507,
+    "pilots_per_vehicle_slot": 1.0879911479372115,
+    "power_w": 27.183194630872453,
+    "violation_percent": 0.22741505546211754
+  },
+  "mode": "average_expected",
+  "protocol_sha256": "7ba6aa652a6055c62e2d5830fdaca965654f6939659157e22cb30ea0217cf343",
+  "rate_mbps": 13,
+  "raw_sha256": "c60aa96b87600cc673c091172c102f8ffe18fb2b80f377a298ecff5b702aee13",
+  "samples_sha256": "9334417a61d5651c1a420c859723cf2d8e581e4846a445a49728e266adf6f344",
+  "seed": 1,
+  "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96"
+}

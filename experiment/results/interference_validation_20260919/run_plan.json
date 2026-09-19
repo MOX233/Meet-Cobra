@@ -1,0 +1,11 @@
+{
+  "expected_cases": 21,
+  "fixed_schedule_additional_rates": [1, 23, 35],
+  "fixed_schedule_additional_seeds": [1],
+  "paired_closed_loop_rates": [13, 29],
+  "paired_closed_loop_seeds": [1, 2, 3],
+  "paired_modes": ["legacy", "average_expected", "directional_explicit"],
+  "rationale": "Five representative load points for fixed-schedule diagnostics; three paired seeds at an intermediate and a near-capacity load for closed-loop effects. The directional reference uses the existing Sionna RT channels with the frozen slot-fading realization, actual selected beam pairs and explicit random RB indices. No baseline ranking claim from these MEET-only tests.",
+  "code_commit": "4178976",
+  "protocol_sha256": "7ba6aa652a6055c62e2d5830fdaca965654f6939659157e22cb30ea0217cf343"
+}
