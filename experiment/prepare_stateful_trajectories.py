@@ -24,7 +24,7 @@ import numpy as np
 DEFAULT_SOURCE = ROOT / "sionna_result/trajectoryInfo_lbd1.00_200_800_3Dbeam_tx(1,32)_rx(1,8)_freq2.8e+10.pkl"
 
 
-def frame_values(records, pilot_power=0.1, pilot_count=8):
+def frame_values(records, pilot_power=0.1, pilot_count=8, interference_label="legacy-max"):
     """Vectorized labels and noiseless pilot observations for one frame."""
     h = np.stack([record["h"] for record in records]).astype(np.complex64, copy=False)
     # The repository DFT codebook uses exp(-j2*pi*n*k/N), i.e., np.fft.fft.
@@ -37,7 +37,13 @@ def frame_values(records, pilot_power=0.1, pilot_count=8):
     flat = response.reshape(len(h), h.shape[2], -1)
     beam = flat.argmax(-1).astype(np.int16)
     desired = (20 * np.log10(flat.max(-1) / np.sqrt(h.shape[1] * h.shape[3]) + 1e-9)).astype(np.float32)
-    interference = (20 * np.log10(np.abs(h).max(axis=(1, 3)) + 1e-9)).astype(np.float32)
+    if interference_label == "beam-average":
+        from utils.directional_service import beam_average_gain_db
+        interference = beam_average_gain_db(h).astype(np.float32)
+    elif interference_label == "legacy-max":
+        interference = (20 * np.log10(np.abs(h).max(axis=(1, 3)) + 1e-9)).astype(np.float32)
+    else:
+        raise ValueError("Unknown interference label")
     return clean_csi, beam, desired, interference
 
 
@@ -57,7 +63,9 @@ def audit_fft(records, outputs, count=32):
         np.testing.assert_allclose(desired[i], expected_gain, rtol=0, atol=2e-5)
 
 
-def build(source, output):
+def build(source, output, interference_label="legacy-max"):
+    if output.exists() or output.with_suffix('.json').exists():
+        raise FileExistsError(f"Refusing to overwrite {output}")
     started = time.monotonic()
     with source.open("rb") as handle:
         timeline = pickle.load(handle)
@@ -67,7 +75,7 @@ def build(source, output):
     for fi, frame in enumerate(frames):
         ids = list(timeline[frame])
         records = [timeline[frame][v] for v in ids]
-        values = frame_values(records)
+        values = frame_values(records, interference_label=interference_label)
         if not audited:
             audit_fft(records, values)
             audited = True
@@ -121,6 +129,7 @@ def build(source, output):
         "pilot_count": 8, "pilot_power_w": 0.1, "pilot_noise_power_w": 1e-14,
         "label_alignment": "clean CSI at x predicts beam and gains computed from h at x+1",
         "gain_units": "dB; training normalizes as gain/20+7",
+        "interference_label": interference_label,
         "fft_parity_audit": "passed against repository DFT matrices on first frame",
         "elapsed_seconds": time.monotonic() - started,
     }
@@ -132,10 +141,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--interference-label", choices=("legacy-max", "beam-average"), default="legacy-max")
     args = parser.parse_args()
     if args.output.exists() or args.output.with_suffix(".json").exists():
         raise FileExistsError(f"Refusing to overwrite {args.output}")
-    build(args.source, args.output)
+    build(args.source, args.output, args.interference_label)
 
 
 if __name__ == "__main__":

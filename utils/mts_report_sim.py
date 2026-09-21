@@ -62,7 +62,8 @@ def probe_and_hold(physical,connection,states,reports,switched,ho_slots,k=5,trac
 
 def run_sim_mts_report(args,micro_bs_locations,timeline,config,traffic_trace,seed=1,
                        physics_device='cuda:0',ho_interruption_ms=10.,k=5,
-                       diagnostics=None,progress_callback=None):
+                       diagnostics=None,progress_callback=None,directional_service=False,
+                       predicted_ra_interference=False,service_diagnostics=None):
     config = dataclasses.replace(config,ho_interruption_ms=ho_interruption_ms)
     config.validate()
     assert config.local_tracking_interval_frames == 1 and k*args.pilot_overhead_factor < 1
@@ -112,6 +113,12 @@ def run_sim_mts_report(args,micro_bs_locations,timeline,config,traffic_trace,see
         association,_ = update_BS_association_state(bs_dict,connection)
         reports = reports_from_records(records,frame,config,k)
         estimated_rb,load = estimate_report_load(args,reports,connection,rates,config,bs_locations,measured_last)
+        ra_estimated_rb = estimated_rb
+        if predicted_ra_interference:
+            # Current service uses reports targeting this frame, not the fresh
+            # reports used by the matching optimizer for next-frame commands.
+            current_reports = {v: reports_last[v] if v in reports_last else reports[v] for v in ids}
+            ra_estimated_rb,_ = estimate_report_load(args,current_reports,connection,rates,config,bs_locations,measured_last)
         start = time.perf_counter()
         if fi % config.association_interval_frames == 0:
             commands,matching = report_matching(args,reports,connection,{v:queue[v][0] for v in ids},upper,rates,load,config,k)
@@ -132,13 +139,24 @@ def run_sim_mts_report(args,micro_bs_locations,timeline,config,traffic_trace,see
         assert all(np.isclose(reports_last[v].source_frame,frames[fi]) for v in micro)
         previous_pairs = {v:(states[v].tx_beam,states[v].rx_beam) for v in ids}
         gains,pilots,chosen = probe_and_hold(physical,connection,states,reports_last,switched,blocked_slots,k,config.tracking_pilots)
+        service_evaluator = None
+        if directional_service:
+            from utils.directional_service import DirectionalService, state_pairs
+            service_evaluator = DirectionalService(physical, state_pairs(physical,connection,states),
+                connection, seed, frame, service_diagnostics)
         del physical
         result.beam_switch_record[fi] = sum(v in switched or previous_pairs[v]!=(states[v].tx_beam,states[v].rx_beam) for v in ids)
         result.local_sweep_record[fi] = len(micro)
         result.local_tracking_epoch_record[fi] = 1
         # Same slot-level interference convention as MEET and original MTS.
         # This true environment quantity is NEVER passed to report_matching.
-        physical_interference = {v:np.r_[macro_gain_db(args,records[v]['pos'],np.zeros(2)),no_bf_gain_db(records[v]['h'])] for v in ids}
+        physical_interference = {v:np.r_[macro_gain_db(args,records[v]['pos'],np.zeros(2)),
+            np.full(config.num_micro_bs,-180.) if predicted_ra_interference else no_bf_gain_db(records[v]['h'])] for v in ids}
+        ra_interference = physical_interference
+        if predicted_ra_interference:
+            ra_interference = {v:np.r_[physical_interference[v][0], reports_last[v].interference
+                if v in reports_last else np.full(config.num_micro_bs, -180.)] for v in ids}
+            assert all(v in reports_last for v in micro)
         arrivals = traffic_trace['arrivals'][frame]
         energy = 0.
         for slot in range(slots):
@@ -160,11 +178,11 @@ def run_sim_mts_report(args,micro_bs_locations,timeline,config,traffic_trace,see
                     veh_set=[v for v in association[bs] if v not in blocked],
                     veh_data_rate_dict=rates,Q_ub_dict=upper,q_dict=queue,a_dict=arrivals,
                     g_dict=gain_slot,num_pilot_dict=pilot_slot,BS_association_dict=association,
-                    infer_g_dict=physical_interference,est_num_RB_allocated_perBS=estimated_rb)
+                    infer_g_dict=ra_interference,est_num_RB_allocated_perBS=ra_estimated_rb)
                 allocation.update(local)
                 rb[bs] = sum(local.values())
             assert (rb<=capacities).all() and (rb>=0).all()
-            queue = update4slot_vehset_backlog_queue(args,slot_idx=slot,RA_dict=allocation,
+            queue = (service_evaluator.update if service_evaluator is not None else update4slot_vehset_backlog_queue)(args,slot_idx=slot,RA_dict=allocation,
                 veh_set=ids,connection_dict=connection,backlog_queue_dict=queue,a_dict=arrivals,
                 g_dict=gain_slot,infer_g_dict=physical_interference,num_RB_allocated_perBS=rb,
                 num_pilot_dict=pilot_slot,sinr_flag=True)

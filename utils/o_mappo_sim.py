@@ -91,6 +91,8 @@ def run_sim_o_mappo(
     physics_device=None,
     progress_callback=None,
     optimizer_input_hook=None,
+    directional_service=False,
+    service_diagnostics=None,
 ) -> OMAPPOSimulationResult:
     """Evaluate O-MAPPO with causal commands and the common exact scheduler.
 
@@ -548,11 +550,18 @@ def run_sim_o_mappo(
         pilot_by_slot = np.zeros(args.slots_per_frame)
         rb_by_vehicle = collections.defaultdict(float)
         gpu_gains = None
+        service_evaluator = None
         if physics_device is not None:
             from utils.gpu_phy import GPUFramePHY
             physical = GPUFramePHY(args, records, frame_cur, paired_fading_seed, physics_device)
             gpu_gains = physical.fixed_pairs(connection, learners)
+            if directional_service:
+                from utils.directional_service import DirectionalService, state_pairs
+                service_evaluator = DirectionalService(physical, state_pairs(physical, connection, learners),
+                    connection, paired_fading_seed, frame_cur, service_diagnostics)
             del physical
+        if directional_service and service_evaluator is None:
+            raise ValueError('Directional service requires the paired physical backend')
         for slot_index in range(args.slots_per_frame):
             blocked = {v for v in ordered_vehicles if outcomes[v].handover and slot_index < ho_slots}
             if paired_fading_seed is not None and gpu_gains is None:
@@ -629,7 +638,7 @@ def run_sim_o_mappo(
                 energy_this_frame += rb_per_bs[bs_id] * power * args.slot_len
                 for vehicle, rb in bs_ra.items():
                     rb_by_vehicle[vehicle] += rb
-            queue_cur = update4slot_vehset_backlog_queue(
+            queue_cur = (service_evaluator.update if service_evaluator is not None else update4slot_vehset_backlog_queue)(
                 args,
                 slot_idx=slot_index,
                 RA_dict=ra_dict,

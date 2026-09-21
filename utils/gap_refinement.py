@@ -152,6 +152,9 @@ def refined_gap_handover(args, veh_set_cur, backlog_queue_dict,
         return matrix.swapaxes(0, 1)
 
     def assignment_function(demand):
+        callback = kwargs.get('gap_problem_callback')
+        if callback is not None:
+            callback(demand*powers[:, None], demand*factors, planning_capacity)
         return alg_utils.alg_GAP_APX_adap(
             c=demand*powers[:, None], a=demand*factors,
             b=planning_capacity, adap_mtp=config.relaxation_factor)
