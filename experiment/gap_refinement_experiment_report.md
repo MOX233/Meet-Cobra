@@ -226,7 +226,10 @@ python experiment/gap_refinement_experiment.py --seconds 10 \
 3. The tested 10-ms-interruption, 30-s three-seed results favor retaining the
    legacy two-pass behavior for the power/U pair. Do not automatically adopt
    three or five rounds simply to preserve the manuscript's historical
-   `N_iter=3` statement. The user has not approved a new formal default.
+   `N_iter=3` statement. In the subsequent discussion on 2026-09-16, the user
+   approved a fixed two-round paper configuration, retaining the general
+   loop but removing its tolerance-based stopping test. The optional code
+   and all recorded experimental configurations remain unchanged.
 4. Keep the configurable implementation for subsequent experiments. Its
    explicit two-round/no-early-stop setting is a verified way to reproduce
    the legacy behavior. Tolerance 0.1 RB is a tested candidate, not a recovered
