@@ -1,5 +1,19 @@
 # 最新预测输入与方向性干扰：训练和重跑入口
 
+## 2026-09-22：恢复原有零增益处理
+
+干扰增益仍采用波束平均定义，但 dB 标签恢复为
+`20*log10(sqrt(mean(abs(H)**2))+1e-9)`，零信道为 **−180 dB**。
+这恢复了原有的幅度域 epsilon，不是对最终 MAE 或模型输出作事后截断。
+物理服务计算仍使用真实线性增益，不向零信道人为添加可用信号功率。
+
+修正数据另存于 `experiment/results/revision_directional_20260922/training_data.npz`；
+20260921 目录的 −300 dB 数据和已训练模型保留，不覆盖或改写其标签说明。
+训练、模型打包和缓存入口现在校验 `interference_db_convention`，防止两套数值约定混用。
+
+本次仅修正零增益的数值处理，**没有启动重训，也没有改变 batch size 或初始化方式**。
+以下训练命令仍是此前的从头训练方案；是否改为旧 checkpoint 微调，需另行确定。
+
 ## 版本与适用范围
 
 修改前快照：`c0c7029`，标签 `pre-directional-prediction-rerun-20260921`。
@@ -37,7 +51,7 @@
 ```bash
 cd /home/ubuntu/niulab/Meet_Cobra
 conda activate sionna
-export REV_RUN=experiment/results/revision_directional_20260921
+export REV_RUN=experiment/results/revision_directional_20260922
 nvidia-smi
 ```
 

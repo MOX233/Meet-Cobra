@@ -29,7 +29,7 @@ class RevisionDirectionalTests(unittest.TestCase):
         new=frame_values(records,interference_label='beam-average')
         for a,b in zip(old[:3],new[:3]): np.testing.assert_array_equal(a,b)
         h=np.stack([r['h'] for r in records]).astype(np.complex64)
-        expected=10*np.log10(np.mean(np.abs(h).astype(np.float64)**2,axis=(1,3)))
+        expected=20*np.log10(np.sqrt(np.mean(np.abs(h).astype(np.float64)**2,axis=(1,3)))+1e-9)
         np.testing.assert_allclose(new[3],expected,atol=1e-5)
         np.testing.assert_array_equal(old[3],(20*np.log10(abs(h).max(axis=(1,3))+1e-9)).astype(np.float32))
         self.assertGreater(np.max(abs(new[3]-old[3])),1.)
@@ -38,8 +38,19 @@ class RevisionDirectionalTests(unittest.TestCase):
         h=self.records[0]['h']
         rx=np.exp(-2j*np.pi*np.outer(np.arange(8),np.arange(8))/8)/np.sqrt(8)
         tx=np.exp(-2j*np.pi*np.outer(np.arange(32),np.arange(32))/32)/np.sqrt(32)
-        expected=[10*np.log10(np.mean(abs(rx.conj().T@h[:,b,:]@tx)**2)) for b in range(4)]
+        expected=[20*np.log10(np.sqrt(np.mean(abs(rx.conj().T@h[:,b,:]@tx)**2))+1e-9) for b in range(4)]
         np.testing.assert_allclose(beam_average_gain_db(h),expected,rtol=1e-12)
+
+    def test_zero_and_weak_channels_keep_original_db_convention(self):
+        amplitudes=np.array([0.,1e-15,1e-10,1e-9,1e-5])
+        h=np.broadcast_to(amplitudes[:,None,None,None],(len(amplitudes),8,4,32)).astype(np.complex64)
+        expected=np.broadcast_to(20*np.log10(np.abs(h[:,0,0,0]).astype(np.float64)+1e-9)[:,None],(len(amplitudes),4))
+        np.testing.assert_allclose(beam_average_gain_db(h),expected,atol=1e-12,rtol=0)
+        old=frame_values([dict(h=row) for row in h])
+        new=frame_values([dict(h=row) for row in h],interference_label='beam-average')
+        np.testing.assert_array_equal(new[3][0],np.full(4,-180.,np.float32))
+        np.testing.assert_allclose(new[3],old[3],atol=2e-5,rtol=0)
+        for a,b in zip(old[:3],new[:3]): np.testing.assert_array_equal(a,b)
 
     def test_service_parity_and_no_proxy_read(self):
         phy=GPUFramePHY(self.args,self.records,800.1,2,self.device)

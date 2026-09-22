@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from experiment.benchmark_nn_overhead import digest, json_write
 from utils.beam_utils import generate_dft_codebook
+from utils.directional_service import BEAM_AVERAGE_DB_CONVENTION
 import numpy as np
 
 DEFAULT_SOURCE = ROOT / "sionna_result/trajectoryInfo_lbd1.00_200_800_3Dbeam_tx(1,32)_rx(1,8)_freq2.8e+10.pkl"
@@ -130,6 +131,8 @@ def build(source, output, interference_label="legacy-max"):
         "label_alignment": "clean CSI at x predicts beam and gains computed from h at x+1",
         "gain_units": "dB; training normalizes as gain/20+7",
         "interference_label": interference_label,
+        "interference_db_convention": (BEAM_AVERAGE_DB_CONVENTION if interference_label == "beam-average"
+                                       else "20*log10(max(abs(H))+1e-9)"),
         "fft_parity_audit": "passed against repository DFT matrices on first frame",
         "elapsed_seconds": time.monotonic() - started,
     }

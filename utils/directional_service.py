@@ -7,10 +7,18 @@ import numpy as np
 import torch
 
 
+BEAM_AVERAGE_DB_CONVENTION = '20*log10(sqrt(mean(abs(H)**2))+1e-9)'
+
+
 def beam_average_gain_db(channel):
-    """10 log10(||H||_F^2/(M_R M_T)); H ends in (R, BS, T)."""
+    """Beam-averaged power in dB, with the original amplitude-domain epsilon.
+
+    H ends in (R, BS, T). Adding 1e-9 before taking the amplitude logarithm
+    preserves the original -180 dB value for a zero channel. This numerical
+    convention does not change the physical evaluator's linear gains.
+    """
     power = np.mean(np.abs(channel).astype(np.float64) ** 2, axis=(-3, -1))
-    return 10 * np.log10(np.maximum(power, 1e-30))
+    return 20 * np.log10(np.sqrt(power) + 1e-9)
 
 
 def state_pairs(physical, connection, states):

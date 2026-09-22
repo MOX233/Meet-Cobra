@@ -26,7 +26,7 @@ for name in ('OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','NUMBA_N
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 import numpy as np
-from experiment.revision_training import atomic_json
+from experiment.revision_training import atomic_json, require_current_gain_convention
 
 METHODS=('meet_cobra','oracle_mc','reactive_obra','wo_gap_ho','wo_pet_bf','wo_otr_ra','o_mappo','mts_report')
 LEGACY_POLICY=ROOT/'experiment/results/o_mappo/final_load1/final_policy.pt'
@@ -56,6 +56,7 @@ def protocol(args):
     cache_meta=read(args.cache.with_suffix('.json'))
     if cache_meta.get('interference_label')!='beam-average' or digest(args.cache)!=cache_meta['cache_sha256']:
         raise ValueError('Unvalidated prediction cache')
+    require_current_gain_convention(cache_meta)
     if cache_meta.get('smoke') and not args.allow_smoke:
         raise ValueError('Smoke-trained model is not allowed in a formal grid')
     methods=items(args.methods)

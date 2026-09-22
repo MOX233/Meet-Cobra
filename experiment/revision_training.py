@@ -21,6 +21,7 @@ from experiment.prepare_stateful_trajectories import DEFAULT_SOURCE, build
 from experiment import train_finite_window_vehicle_split as finite
 from experiment import train_stateful_tbptt as stateful
 from experiment.vehicle_split import trajectory_indices
+from utils.directional_service import BEAM_AVERAGE_DB_CONVENTION
 
 DEFAULT_SPLIT = ROOT/'experiment/results/stateful_tbptt_unified_split_20260913/vehicle_split_seed20.npz'
 DEFAULT_TEST = ROOT/'data4sim/lbd1.00_800_830_tx(1,32)_rx(1,8)_freq2.8e+10_Np8_mode0_lookahead10.pkl'
@@ -42,6 +43,11 @@ def atomic_torch(path, obj):
     os.replace(temp, path)
 
 
+def require_current_gain_convention(metadata):
+    if metadata.get('interference_db_convention') != BEAM_AVERAGE_DB_CONVENTION:
+        raise ValueError('Interfering-gain dB convention mismatch: use data/checkpoints with the original 1e-9 amplitude epsilon (-180 dB for zero channels); do not relabel existing -300 dB artifacts')
+
+
 def train(args):
     if min(args.stage1_epochs,args.stage2_epochs,args.batch_size,args.cpu_threads) < 1:
         raise ValueError('Epochs, batch size and CPU threads must be positive')
@@ -52,15 +58,18 @@ def train(args):
     source_meta = json.loads(args.data.with_suffix('.json').read_text())
     if source_meta.get('interference_label') != 'beam-average':
         raise ValueError('Training requires explicitly audited beam-average labels')
+    require_current_gain_convention(source_meta)
     config = dict(data_sha256=digest(args.data), split_sha256=digest(args.split_file),
         stage1_epochs=args.stage1_epochs, stage2_epochs=args.stage2_epochs,
         batch_size=args.batch_size, seed=args.seed, chunk_length=10, backend=device.type,
         stage1_lr=1e-3, stage2_lr=1e-4, weight_decay=1e-4,
+        interference_db_convention=BEAM_AVERAGE_DB_CONVENTION,
         max_samples=args.max_samples, max_trajectories=args.max_trajectories,
         smoke=bool(args.max_samples or args.max_trajectories or source_meta.get('smoke')),
         source_code={str(p.relative_to(ROOT)):digest(p) for p in
             (Path(__file__), ROOT/'experiment/train_finite_window_vehicle_split.py',
-             ROOT/'experiment/train_stateful_tbptt.py', ROOT/'utils/NN_utils.py')})
+             ROOT/'experiment/train_stateful_tbptt.py', ROOT/'utils/NN_utils.py',
+             ROOT/'utils/directional_service.py')})
     if source_meta['output_sha256'] != config['data_sha256']:
         raise ValueError('Training dataset hash changed')
     args.output.mkdir(parents=True, exist_ok=True)
@@ -165,6 +174,7 @@ def train(args):
             atomic_json(dest/'metadata.json',dict(task=task,best_epoch=best_epoch,best_validation_metric=best,
                 epochs_completed=epochs,best_checkpoint_sha256=digest(dest/'best.pth'),
                 input_normalization='paper',interference_label='beam-average',smoke=config['smoke'],
+                interference_db_convention=BEAM_AVERAGE_DB_CONVENTION,
                 data_sha256=config['data_sha256'],split_sha256=config['split_sha256'],
                 chunk_length=10 if stage==2 else None,stage=stage,selection_metric='minimum validation MAE',
                 elapsed_seconds=elapsed+time.monotonic()-started))
@@ -180,6 +190,7 @@ def assemble(args):
     metadata = {task:json.loads((path/'metadata.json').read_text()) for task,path in paths.items()}
     if metadata['interfering_gain'].get('interference_label') != 'beam-average':
         raise ValueError('Wrong interference label')
+    require_current_gain_convention(metadata['interfering_gain'])
     if not metadata['interfering_gain'].get('smoke') and len({m['split_sha256'] for m in metadata.values()}) != 1:
         raise ValueError('The three formal models must use the same vehicle split')
     manifest = {task:dict(path=str(path.resolve()),sha256=digest(path/'best.pth'),metadata=metadata[task]) for task,path in paths.items()}
@@ -215,9 +226,11 @@ def _cache(args):
     meta = json.loads((args.models/'interfering_gain/metadata.json').read_text())
     if meta.get('interference_label') != 'beam-average':
         raise ValueError('Refusing legacy interfering-gain checkpoint')
+    require_current_gain_convention(meta)
     expected = dict(source=str(args.source.resolve()),source_sha256=digest(args.source),models=inventory,
                     start=args.start,end=args.end,top_k=5,device=args.device,
                     interference_label='beam-average',smoke=bool(meta.get('smoke')),
+                    interference_db_convention=BEAM_AVERAGE_DB_CONVENTION,
                     source_code={str(p.relative_to(ROOT)):digest(p) for p in
                         (Path(__file__),ROOT/'experiment/compare_stateful_prediction.py',ROOT/'utils/NN_utils.py')},
                     alignment='source x predicts target x+0.1; consumers use matching target')

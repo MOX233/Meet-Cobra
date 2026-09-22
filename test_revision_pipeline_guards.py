@@ -7,7 +7,8 @@ import unittest
 from unittest.mock import patch
 
 from experiment import revision_pipeline as pipeline
-from experiment.revision_training import atomic_json
+from experiment.revision_training import atomic_json, require_current_gain_convention
+from utils.directional_service import BEAM_AVERAGE_DB_CONVENTION
 
 
 class PipelineGuards(unittest.TestCase):
@@ -17,7 +18,8 @@ class PipelineGuards(unittest.TestCase):
             cache = root/'cache.pkl'
             cache.write_bytes(b'smoke fixture')
             atomic_json(cache.with_suffix('.json'),dict(interference_label='beam-average',
-                cache_sha256=pipeline.digest(cache),smoke=True,frames=9))
+                cache_sha256=pipeline.digest(cache),smoke=True,frames=9,
+                interference_db_convention=BEAM_AVERAGE_DB_CONVENTION))
             args = SimpleNamespace(cache=cache,allow_smoke=False)
             with self.assertRaisesRegex(ValueError,'Smoke-trained'):
                 pipeline.protocol(args)
@@ -32,6 +34,12 @@ class PipelineGuards(unittest.TestCase):
             cache.write_bytes(b'altered')
             with self.assertRaisesRegex(ValueError,'Unvalidated'):
                 pipeline.protocol(SimpleNamespace(cache=cache,allow_smoke=False))
+
+    def test_old_minus300_artifacts_are_not_reused_as_corrected(self):
+        for metadata in ({},{'interference_db_convention':'10*log10(max(power,1e-30))'}):
+            with self.assertRaisesRegex(ValueError,'dB convention mismatch'):
+                require_current_gain_convention(metadata)
+        require_current_gain_convention({'interference_db_convention':BEAM_AVERAGE_DB_CONVENTION})
 
     def test_modified_source_rejected(self):
         with TemporaryDirectory() as temp:
