@@ -34,6 +34,7 @@ from torch.distributions import Categorical
 
 from utils.beam_utils import generate_dft_codebook
 from utils.dql_hbt import effective_sinr_db, local_track_beam_pair
+from utils.hierarchical_beam import hierarchical_beam_pair
 from utils.pql_ba import (
     _LearnerState,
     best_beam_pair,
@@ -165,6 +166,7 @@ class OMAPPOConfig:
     num_micro_bs: int = 4
     num_tx_beams: int = 32
     num_rx_beams: int = 8
+    beam_search_variant: str = "exhaustive"  # opt-in hierarchical32 acquisition
     track_tx_radius: int = 1
     track_rx_radius: int = 1
     tracking_pilots: int = 1
@@ -189,6 +191,8 @@ class OMAPPOConfig:
 
     @property
     def full_sweep_pilots(self) -> int:
+        if self.beam_search_variant == "hierarchical32":
+            return 32  # 8x2 coarse measurements + 4x4 fine measurements
         return self.num_tx_beams * self.num_rx_beams
 
     @property
@@ -196,6 +200,10 @@ class OMAPPOConfig:
         return (2 * self.track_tx_radius + 1) * (2 * self.track_rx_radius + 1)
 
     def validate(self) -> None:
+        if self.beam_search_variant not in ("exhaustive", "hierarchical32"):
+            raise ValueError("invalid beam_search_variant")
+        if self.beam_search_variant == "hierarchical32" and (self.num_tx_beams, self.num_rx_beams) != (32, 8):
+            raise ValueError("hierarchical32 requires 32 TX and 8 RX beams")
         if self.state_variant not in ("source", "adapted", "feasibility", "pilot", "report", "gain_report", "gain_derived", "predicted_adapted"):
             raise ValueError("invalid state_variant")
         if self.information_mode not in ("legacy", "shared_prediction"):
@@ -275,6 +283,7 @@ def apply_o_mappo_command(
     learner.last_handover = False
     if command is None:
         return OMAPPOActionOutcome(False, False, 0)
+    acquire = hierarchical_beam_pair if config.beam_search_variant == "hierarchical32" else best_beam_pair
     old_bs = int(learner.action)
     old_pair = (learner.tx_beam, learner.rx_beam)
     learner.last_trigger = int(command.trigger)
@@ -283,7 +292,7 @@ def apply_o_mappo_command(
         target = old_bs
         if old_bs > 0:
             if learner.tx_beam is None or learner.rx_beam is None:
-                learner.tx_beam, learner.rx_beam, _ = best_beam_pair(
+                learner.tx_beam, learner.rx_beam, _ = acquire(
                     vehicle_record["h"], old_bs - 1, dft_tx, dft_rx
                 )
                 learner.current_sweep_pilots = config.full_sweep_pilots
@@ -311,7 +320,7 @@ def apply_o_mappo_command(
             learner.tx_beam = None
             learner.rx_beam = None
         else:
-            learner.tx_beam, learner.rx_beam, _ = best_beam_pair(
+            learner.tx_beam, learner.rx_beam, _ = acquire(
                 vehicle_record["h"], target - 1, dft_tx, dft_rx
             )
             learner.current_sweep_pilots = config.full_sweep_pilots

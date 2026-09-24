@@ -72,11 +72,12 @@ def protocol(args):
         backend=args.backend,warmup_frames=2,frame_s=.1,ho_ms=10,top_k=5,
         environment={name:importlib.metadata.version(name) for name in ('numpy','scipy','torch','numba')},
         gap_iterations=2,gap_capacity_correction=True,gap_rb_usage_capped=True,
+        o_mappo_beam_search=args.o_mappo_beam_search,
         service='actual directional beams, explicit orthogonal RB indices, per-RB service feeds queues',
         prediction_timing='record x predicts x+1; current BF/RA uses report from x-1',
         information=dict(meet_cobra='causal prediction reports and observed serving gains only',
             mts_report='causal shared reports; no private H in matching or RA interference',
-            o_mappo='frozen original privileged-information actor and optimizer, unchanged',
+            o_mappo='frozen original privileged-information actor; target optimizer uses the configured acquisition overhead; candidate gains retain original full-CSI maxima',
             reactive_obra='current perfect gain measurements; no NN; privileged measurement reference'),
         baseline_handover='Existing HO_EE_Greedy_offload (energy-cost ordering), retained for Reactive-OBRA and w/o GAP-HO; not an RSS-first implementation',
         oracle_cr_lb='continuous relaxation of the final P2 instance along Oracle-MC; conditional power reference, not global dynamic optimum; infeasible ceiling flagged',
@@ -182,7 +183,7 @@ def case(args):
         params=shared.paper_args(args.rate*1e6); params.device=torch.device('cpu')
         traffic=make_paired_traffic(params,timeline,args.seed)
         np.random.seed(args.seed)
-        diagnostic=[]; service=[]; gap=[]
+        diagnostic=[]; service=[]; gap=[]; beam_search=[]
         def progress(n,total):
             atomic_json(args.root/'progress'/f'{name}.json',dict(frame=n,total=total,pid=os.getpid(),device=args.device))
             if n%25==0 or n==total: print('FRAME',n,total,flush=True)
@@ -196,11 +197,19 @@ def case(args):
             result=run_sim_o_mappo(params,shared.MICRO_BS_LOCATIONS,timeline,OMAPPPolicy.load(p['policy']),
                 seed=args.seed,prt=False,optimizer_solver='milp',traffic_trace=traffic,ho_interruption_ms=10,
                 paired_fading_seed=args.seed,physics_device=args.device,progress_callback=progress,
-                directional_service=True,service_diagnostics=service)
+                directional_service=True,service_diagnostics=service,
+                beam_search_variant=p.get('o_mappo_beam_search','exhaustive'),
+                beam_search_diagnostics=beam_search)
         else:
             result=run_revised_meet(params,shared.MICRO_BS_LOCATIONS,timeline,args.method,traffic,args.seed,args.device,
                 diagnostics=diagnostic,service_diagnostics=service,gap_diagnostics=gap,progress_callback=progress)
         metrics,raw=extract(params,result,traffic,p['warmup_frames'])
+        if args.method=='o_mappo':
+            raw['acquisition_count']=result.full_sweep_record
+            raw['local_search_count']=result.local_sweep_record
+            raw['decision_count']=result.decision_record
+            metrics['acquisition_count']=int(result.full_sweep_record[p['warmup_frames']:].sum())
+            metrics['local_search_count']=int(result.local_sweep_record[p['warmup_frames']:].sum())
         if len(service)!=len(result.energy_record) or any(d['slots']!=params.slots_per_frame for d in service):
             raise AssertionError('Not every queue update used directional service')
         if args.method=='oracle_mc':
@@ -217,7 +226,8 @@ def case(args):
         temp=args.root/'raw'/f'{name}.{os.getpid()}.tmp.npz'; output=args.root/'raw'/f'{name}.npz'
         np.savez_compressed(temp,**raw); os.replace(temp,output)
         dpath=args.root/'diagnostics'/f'{name}.json'
-        atomic_json(dpath,native(dict(ho=diagnostic,gap=gap,service=service,comparison=comparison)))
+        atomic_json(dpath,native(dict(ho=diagnostic,gap=gap,service=service,comparison=comparison,
+                                    beam_search=beam_search)))
         atomic_json(args.root/'runs'/f'{name}.json',dict(method=args.method,rate_mbps=args.rate,seed=args.seed,
             protocol_sha256=sha,traffic_sha256=traffic['sha256'],raw_sha256=digest(output),
             diagnostics_sha256=digest(dpath),metrics=metrics,comparison=comparison,device=args.device,
@@ -347,6 +357,7 @@ def main():
     a.add_argument('--methods',default=','.join(METHODS)); a.add_argument('--rates',default=','.join(map(str,range(1,36,2))))
     a.add_argument('--seeds',default='1,2,3,4,5'); a.add_argument('--reactive-input',choices=('pending','current'),default='pending')
     a.add_argument('--backend',choices=('cpu','cuda'),default='cuda'); a.add_argument('--allow-smoke',action='store_true')
+    a.add_argument('--o-mappo-beam-search',choices=('exhaustive','hierarchical32'),default='exhaustive')
     a=sub.add_parser('case'); a.add_argument('--root',type=Path,required=True); a.add_argument('--method',choices=METHODS,required=True)
     a.add_argument('--rate',type=int,required=True); a.add_argument('--seed',type=int,required=True); a.add_argument('--device',default='cuda:0')
     a=sub.add_parser('run'); a.add_argument('--root',type=Path,required=True); a.add_argument('--devices',default='cuda:0')

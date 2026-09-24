@@ -93,6 +93,8 @@ def run_sim_o_mappo(
     optimizer_input_hook=None,
     directional_service=False,
     service_diagnostics=None,
+    beam_search_variant=None,
+    beam_search_diagnostics=None,
 ) -> OMAPPOSimulationResult:
     """Evaluate O-MAPPO with causal commands and the common exact scheduler.
 
@@ -105,6 +107,9 @@ def run_sim_o_mappo(
     ho_slots = interruption_slots(ho_interruption_ms, args.slot_len, args.slots_per_frame)
     # Apply the same interruption-aware target capacities to both interfaces.
     config = dataclasses.replace(config, ho_interruption_ms=ho_interruption_ms)
+    if beam_search_variant is not None:
+        config = dataclasses.replace(config, beam_search_variant=beam_search_variant)
+    config.validate()
     shared = config.information_mode == "shared_prediction"
     if paired_fading_seed is not None and traffic_trace is None:
         raise ValueError("Paired fading requires independently replayed traffic")
@@ -240,6 +245,18 @@ def run_sim_o_mappo(
             outcomes[vehicle] = outcome
             if outcome.sweep_pilots == config.full_sweep_pilots:
                 full_sweep_record[frame_index] += 1
+                if beam_search_diagnostics is not None and learner.action > 0:
+                    # Offline diagnostic only: the reference cannot change the
+                    # chosen beam, actor inputs, or target optimizer inputs.
+                    ref_tx, ref_rx, ref_gain = best_beam_pair(
+                        records[vehicle]["h"], learner.action - 1, dft_tx, dft_rx
+                    )
+                    gain = fixed_pair_gain_db(records[vehicle]["h"], learner.action - 1,
+                                              learner.tx_beam, learner.rx_beam, dft_tx, dft_rx)
+                    beam_search_diagnostics.append(dict(frame=frame_index, vehicle=str(vehicle),
+                        bs=int(learner.action), tx=int(learner.tx_beam), rx=int(learner.rx_beam),
+                        gain_db=gain, exhaustive_gain_db=ref_gain,
+                        exhaustive_tx=ref_tx, exhaustive_rx=ref_rx, probes=outcome.sweep_pilots))
             elif outcome.sweep_pilots > 0:
                 local_sweep_record[frame_index] += 1
         handover_record[frame_index] = sum(x.handover for x in outcomes.values())
