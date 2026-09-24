@@ -20,8 +20,9 @@ class PipelineGuards(unittest.TestCase):
             atomic_json(cache.with_suffix('.json'),dict(interference_label='beam-average',
                 cache_sha256=pipeline.digest(cache),smoke=True,frames=9,
                 interference_db_convention=BEAM_AVERAGE_DB_CONVENTION))
-            args = SimpleNamespace(cache=cache,allow_smoke=False)
-            with self.assertRaisesRegex(ValueError,'Smoke-trained'):
+            args = SimpleNamespace(cache=cache,allow_smoke=False,o_mappo_policy=root/'policy.pt')
+            with patch('utils.o_mappo.OMAPPPolicy.load',return_value=SimpleNamespace(config=None)), \
+                 self.assertRaisesRegex(ValueError,'Smoke-trained'):
                 pipeline.protocol(args)
 
     def test_modified_cache_rejected(self):
@@ -32,8 +33,9 @@ class PipelineGuards(unittest.TestCase):
             atomic_json(cache.with_suffix('.json'),dict(interference_label='beam-average',
                 cache_sha256=pipeline.digest(cache),smoke=False,frames=301))
             cache.write_bytes(b'altered')
-            with self.assertRaisesRegex(ValueError,'Unvalidated'):
-                pipeline.protocol(SimpleNamespace(cache=cache,allow_smoke=False))
+            with patch('utils.o_mappo.OMAPPPolicy.load',return_value=SimpleNamespace(config=None)), \
+                 self.assertRaisesRegex(ValueError,'Unvalidated'):
+                pipeline.protocol(SimpleNamespace(cache=cache,allow_smoke=False,o_mappo_policy=root/'policy.pt'))
 
     def test_old_minus300_artifacts_are_not_reused_as_corrected(self):
         for metadata in ({},{'interference_db_convention':'10*log10(max(power,1e-30))'}):
