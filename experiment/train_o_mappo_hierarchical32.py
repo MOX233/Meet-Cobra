@@ -15,6 +15,7 @@ import multiprocessing as mp
 import os
 from pathlib import Path
 import pickle
+import shutil
 import sys
 import time
 
@@ -35,7 +36,7 @@ from utils.o_mappo_sim import run_sim_o_mappo
 from utils.ho_utils import make_paired_traffic
 
 RATES = list(range(1, 36, 2))
-DEFAULT_ROOT = ROOT / 'experiment/results/o_mappo_h32_retrained_20260924_v4'
+DEFAULT_ROOT = ROOT / 'experiment/results/o_mappo_h32_retrained_20260924_v5'
 SOURCE = ROOT / DEFAULT_TRAIN_PATH
 DATA = None
 
@@ -117,8 +118,7 @@ def bind_worker():
     identity = mp.current_process()._identity
     if identity:
         core = CPU_POOL[(identity[-1]-1) % len(CPU_POOL)]
-        for task in Path('/proc/self/task').iterdir():
-            os.sched_setaffinity(int(task.name), {core})
+        os.sched_setaffinity(0, {core})
 
 
 def rollout(job):
@@ -166,9 +166,11 @@ def train(args):
     lock = (args.root/'training.lock').open('a')
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     config = configuration()
+    data_root = args.data_root or args.root
     seeds = [int(x) for x in args.training_seeds.split(',')]
     manifest = dict(config=dataclasses.asdict(config), training_seeds=seeds, rates=RATES,
         source=str(SOURCE), source_sha256=digest(SOURCE), train_interval=[200, 650],
+        data_root=str(data_root.resolve()),
         validation_interval=[700, 710], exact_validation_interval=[710, 740],
         test_interval=[800, 830], rollout_seconds=args.rollout_seconds,
         validation_every=args.validate_every,
@@ -187,7 +189,9 @@ def train(args):
     else:
         atomic_json(path, native(manifest))
     print('PREPARE SHARED ARRAYS', SOURCE, flush=True)
-    prepare_arrays(args.root)
+    prepare_arrays(data_root)
+    if data_root.resolve() != args.root.resolve():
+        shutil.copyfile(data_root/'exact_validation.pkl',args.root/'exact_validation.pkl')
     # Fresh interpreters avoid this server's Intel OpenMP post-fork assertion.
     # Immutable channel samples remain shared through the file-backed mmap.
     torch.set_num_threads(1)
@@ -211,7 +215,7 @@ def train(args):
     started = time.monotonic()
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.workers,
             mp_context=mp.get_context('spawn'), initializer=initialize_worker,
-            initargs=(str(args.root.resolve()),)) as pool:
+            initargs=(str(data_root.resolve()),)) as pool:
         reference_path = args.root / 'reference.json'
         if reference_path.exists():
             reference = np.array(read(reference_path)['costs'])
@@ -338,6 +342,7 @@ def main():
     sub = parser.add_subparsers(dest='command', required=True)
     p = sub.add_parser('train')
     p.add_argument('--root', type=Path, default=DEFAULT_ROOT)
+    p.add_argument('--data-root', type=Path)
     p.add_argument('--training-seeds', default='11,22,33')
     p.add_argument('--rounds', type=int, default=160)
     p.add_argument('--rollout-seconds', type=float, default=10)
