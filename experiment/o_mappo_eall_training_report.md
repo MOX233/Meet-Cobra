@@ -1,6 +1,6 @@
 # E_all 配套训练：与原版等预算续训的配对比较
 
-日期：2026-09-24。状态：训练入口及单元测试完成，正式结果待运行。
+日期：2026-09-24。状态：正式配对续训已启动，前 10 轮及第一次续训验证完成；最终结果尚待训练及精确评估完成。
 
 ## 研究问题与控制变量
 
@@ -36,10 +36,14 @@
 
 训练前标签：`pre-omappo-eall-training-20260924`。
 
-新增独立入口 `experiment/o_mappo_eall_training.py` 和测试 `test_o_mappo_eall_training.py`。20 项相关测试通过。正式协议记录代码、模型、验证/测试缓存与训练数据 hash。GPU 用于精确物理仿真，轻量网络及 MILP 采样在多核 CPU 上训练。
+新增独立入口 `experiment/o_mappo_eall_training.py` 和测试 `test_o_mappo_eall_training.py`，代码提交 `3c8ca14`。44 项相关测试通过。真实数据预检查中，原版 13 Mbps、seed101、10 s 及 E_all 13 Mbps、seed101、30 s 的全部原始数组分别与已有结果完全一致；六组均通过真实数据单轮采样及 PPO 更新。预检查结果保存在 `experiment/results/o_mappo_eall_training_smoke_20260924/`。
+
+正式协议记录代码、模型、验证/测试缓存与训练数据 hash。GPU 用于精确物理仿真，轻量网络及 MILP 采样在 36 个 CPU worker 上训练。
 
 ```bash
 PYTHONHASHSEED=0 python -u experiment/o_mappo_eall_training.py run
+# 完成后重新核验原始数据并生成训练诊断图
+python experiment/audit_o_mappo_eall_training.py
 ```
 
 相同命令支持恢复；训练从最近一个完整的 10 轮验证边界恢复模型、Adam 和 shuffle RNG，未完成的后续轮次重做。精确仿真经协议和原始文件 hash 检查后跳过已完成 case。更改源代码或输入须使用新目录。
@@ -53,5 +57,6 @@ PYTHONHASHSEED=0 python -u experiment/o_mappo_eall_training.py run
 - `selection.json`：全负载统一模型选择记录。
 - `paired_test/`：36 个精确测试 case 的指标、原始数据和逐帧诊断。
 - `results_summary.json`：最终配对结果及稳定性检查。
+- `audit.json`、`training_diagnostics.pdf`：独立原始数据核验及训练/验证曲线。核验工具也支持 `--wait` 等待主流程完成后自动执行。
 
 本轮不修改论文、回复信、正式图片或正式 baseline 的默认 checkpoint。
