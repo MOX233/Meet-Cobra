@@ -1,0 +1,36 @@
+{
+  "actor_sha256": "9b4d87a4f1505a46cc79675bacd1105ab86c8c7c2e43a35016426bf4604756d9",
+  "actual_rb_utilization": [
+    0.32167230155926724,
+    0.714565792149685,
+    0.6358943461460239,
+    0.8117561521252795,
+    0.684934919666463
+  ],
+  "diagnostics_sha256": "01d90bf27eb19bcececfd35c0e71b25d2e5508210e4553b103312dba9f3eebe2",
+  "elapsed_s": 113.0581847599824,
+  "frames": 300,
+  "metrics": {
+    "handovers": 657,
+    "macro_association_percent": 14.84034565105,
+    "mean_overflow_rb": 0.10719786457077911,
+    "mean_proxy_ms": 1.3901132633641187,
+    "optimizer_calls": 236,
+    "optimizer_failures": 0,
+    "p90_proxy_ms": 1.9814615384615384,
+    "p99_proxy_ms": 2.1860405835092314,
+    "pilots_per_vehicle_slot": 0.8599495052636172,
+    "power_w": 80.36481208053691,
+    "violation_percent": 0.10317179979701036
+  },
+  "protocol_sha256": "a2d224d3a6d55849e45920869398fea948347c34c5a68753d186e14dc325fa6e",
+  "raw_sha256": "46cbe402caa96a1b71ae8f0e6fa0368b6a4f9ee845dbf355e2006f8045337701",
+  "settings": {
+    "candidates": 3,
+    "gain": "max",
+    "load": "clip",
+    "objective": "mixed"
+  },
+  "traffic_sha256": "8741fd197b327fcd8dd4b42a25ba410ccf140b542321d0a244899b215a511a96",
+  "variant": "clip_only"
+}
