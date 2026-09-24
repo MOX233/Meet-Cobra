@@ -167,6 +167,8 @@ class OMAPPOConfig:
     num_tx_beams: int = 32
     num_rx_beams: int = 8
     beam_search_variant: str = "exhaustive"  # opt-in hierarchical32 acquisition
+    candidate_gain_mode: str = "optimal"  # legacy, or current-frame search outcome
+    reward_sweep_reference_pilots: Optional[int] = None
     track_tx_radius: int = 1
     track_rx_radius: int = 1
     tracking_pilots: int = 1
@@ -200,6 +202,10 @@ class OMAPPOConfig:
         return (2 * self.track_tx_radius + 1) * (2 * self.track_rx_radius + 1)
 
     def validate(self) -> None:
+        if self.candidate_gain_mode not in ("optimal", "search"):
+            raise ValueError("invalid candidate_gain_mode")
+        if self.reward_sweep_reference_pilots is not None and self.reward_sweep_reference_pilots <= 0:
+            raise ValueError("invalid reward sweep normalization")
         if self.beam_search_variant not in ("exhaustive", "hierarchical32"):
             raise ValueError("invalid beam_search_variant")
         if self.beam_search_variant == "hierarchical32" and (self.num_tx_beams, self.num_rx_beams) != (32, 8):
@@ -332,6 +338,13 @@ def apply_o_mappo_command(
         beam_switch=handover or pair != old_pair,
         sweep_pilots=int(learner.current_sweep_pilots),
     )
+
+
+def candidate_beam_pair(record, micro_index, config, dft_tx, dft_rx):
+    """Causal candidate estimate; never read the execution frame's channel."""
+    if config.candidate_gain_mode == "search" and config.beam_search_variant == "hierarchical32":
+        return hierarchical_beam_pair(record["h"], micro_index, dft_tx, dft_rx)
+    return best_beam_pair(record["h"], micro_index, dft_tx, dft_rx)
 
 
 def source_gate_allows(
@@ -775,8 +788,8 @@ def candidate_feasibility_context(
                 )
                 pilots = float(config.tracking_pilots)
             else:
-                _, _, gain = best_beam_pair(
-                    record["h"], bs - 1, dft_tx, dft_rx
+                _, _, gain = candidate_beam_pair(
+                    record, bs - 1, config, dft_tx, dft_rx
                 )
                 pilots = average_sweep_pilots(
                     args, config.full_sweep_pilots, config.tracking_pilots
@@ -1094,6 +1107,7 @@ class OMAPPPolicy:
                 "critic_optimizer": self.critic_optimizer.state_dict(),
                 "update_count": self.update_count,
                 "decision_count": self.decision_count,
+                "shuffle_rng_state": self.rng.bit_generator.state,
             },
             path,
         )
@@ -1109,22 +1123,16 @@ class OMAPPPolicy:
         if load_optimizers:
             policy.actor_optimizer.load_state_dict(checkpoint["actor_optimizer"])
             policy.critic_optimizer.load_state_dict(checkpoint["critic_optimizer"])
+            if "shuffle_rng_state" in checkpoint:
+                policy.rng.bit_generator.state = checkpoint["shuffle_rng_state"]
         policy.update_count = int(checkpoint.get("update_count", 0))
         policy.decision_count = int(checkpoint.get("decision_count", 0))
         return policy
 
 
 def average_sweep_pilots(args, total_sweep_pilots: int, tracking_pilots: int) -> float:
-    overhead = 0.0
-    for slot in range(args.slots_per_frame):
-        pilots = sweep_pilots_for_slot(
-            total_sweep_pilots,
-            tracking_pilots,
-            slot,
-            args.pilot_overhead_factor,
-        )
-        overhead += min(pilots * args.pilot_overhead_factor, 1.0)
-    return overhead / args.slots_per_frame / args.pilot_overhead_factor
+    return _cached_report_sweep_average(args.slots_per_frame, args.pilot_overhead_factor,
+                                       total_sweep_pilots, tracking_pilots)
 
 
 @functools.lru_cache(maxsize=32)
@@ -1223,7 +1231,7 @@ def _candidate_links(
                 tx = rx = None  # Target assignment does not choose a beam.
                 gain = float(prediction["gain"][bs - 1])
             else:
-                tx, rx, gain = best_beam_pair(record["h"], bs - 1, dft_tx, dft_rx)
+                tx, rx, gain = candidate_beam_pair(record, bs - 1, config, dft_tx, dft_rx)
             interference = _interference_db(args, bs, no_bf, load)
             pilot_average = sweep_average
             power = args.p_micro
@@ -1659,6 +1667,7 @@ def run_fluid_o_mappo_episode(
     seed: int = 1,
     learn: bool = False,
     macro_bs_loc: Sequence[float] = (0.0, 0.0),
+    collect_only: bool = False,
 ) -> Dict[str, float]:
     """Collect an on-policy episode in the common frame-level surrogate."""
 
@@ -1767,7 +1776,7 @@ def run_fluid_o_mappo_episode(
                 queue_upper_bound,
                 offered_bits,
                 outcomes,
-                config.full_sweep_pilots,
+                config.reward_sweep_reference_pilots or config.full_sweep_pilots,
             )
         for vehicle in present:
             learner = learners[vehicle]
@@ -1844,8 +1853,8 @@ def run_fluid_o_mappo_episode(
                         gain = macro_gain_db(args, record["pos"], macro_loc)
                         interference = -np.inf
                     else:
-                        _, _, gain = best_beam_pair(
-                            record["h"], target - 1, dft_tx, dft_rx
+                        _, _, gain = candidate_beam_pair(
+                            record, target - 1, config, dft_tx, dft_rx
                         )
                         interference = _interference_db(
                             args, target, no_bf, step.load_ratio
@@ -2010,7 +2019,7 @@ def run_fluid_o_mappo_episode(
         )
         if reward is not None:
             rewards.append(reward)
-    update = policy.update(memory) if learn else {
+    update = policy.update(memory) if learn and not collect_only else {
         "actor_loss": 0.0,
         "critic_loss": 0.0,
         "entropy": 0.0,
@@ -2018,7 +2027,7 @@ def run_fluid_o_mappo_episode(
     }
     episode_s = len(frames) * duration
     mean_count = float(np.mean(counts))
-    return {
+    result = {
         "data_rate_mbps": float(data_rate_mbps),
         "learn": bool(learn),
         "decisions": float(decisions),
@@ -2050,6 +2059,7 @@ def run_fluid_o_mappo_episode(
             trigger_counts / max(trigger_counts.sum(), 1)
         ).astype(float).tolist(),
     }
+    return (result, memory) if collect_only else result
 
 
 def train_o_mappo(

@@ -26,6 +26,7 @@ from utils.o_mappo import (
     apply_o_mappo_command,
     append_state_sequence,
     candidate_feasibility_context,
+    candidate_beam_pair,
     critic_local_feature_count,
     make_global_state,
     make_local_state,
@@ -366,8 +367,8 @@ def run_sim_o_mappo(
                         gain = inference_gain[vehicle][0]
                         target_interference = -np.inf
                     else:
-                        _, _, gain = best_beam_pair(
-                            records[vehicle]["h"], target - 1, dft_tx, dft_rx
+                        _, _, gain = candidate_beam_pair(
+                            records[vehicle], target - 1, config, dft_tx, dft_rx
                         )
                         target_interference = _interference_db(
                             args, target, inference_gain[vehicle], estimated_load

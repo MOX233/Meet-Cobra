@@ -1,6 +1,7 @@
 """Checks for 16 coarse + 16 fine acquisition, with unchanged local tracking."""
 
 import dataclasses
+import collections
 import unittest
 
 import numpy as np
@@ -9,7 +10,8 @@ from experiment.pql_ba_experiment import paper_args
 from utils.beam_utils import generate_dft_codebook
 from utils.hierarchical_beam import coarse_codebook, hierarchical_beam_pair
 from utils.o_mappo import (OMAPPOConfig, OMAPPOCommand, OMAPPOLearnerState,
-                          apply_o_mappo_command, average_sweep_pilots, _candidate_links)
+                          apply_o_mappo_command, average_sweep_pilots, _candidate_links,
+                          OMAPPPolicy, run_fluid_o_mappo_episode, o_mappo_reward_presets)
 from utils.pql_ba import best_beam_pair, fixed_pair_gain_db, sweep_pilots_for_slot
 
 
@@ -81,6 +83,31 @@ class HierarchicalBeamTest(unittest.TestCase):
         for c in new:
             self.assertEqual(c.gain_db, old[c.bs].gain_db)
             self.assertLess(c.required_rb, old[c.bs].required_rb)
+
+    def test_search_consistent_target_gain(self):
+        config = OMAPPOConfig(beam_search_variant='hierarchical32', candidate_gain_mode='search',
+                             candidate_count=4)
+        record = dict(h=self.h, pos=np.ones(2))
+        candidates = _candidate_links(paper_args(), 'v', record, 0, 1e6,
+                                      np.ones(5)/2, config, self.tx, self.rx, np.zeros(2))
+        for c in candidates:
+            expected = hierarchical_beam_pair(self.h, c.bs-1, self.tx, self.rx)
+            self.assertEqual((c.tx_beam, c.rx_beam), expected[:2])
+            self.assertAlmostEqual(c.gain_db, expected[2])
+
+    def test_collect_only_does_not_update_actor(self):
+        import torch
+        policy = OMAPPPolicy(OMAPPOConfig(beam_search_variant='hierarchical32',
+            candidate_gain_mode='search', ho_interruption_ms=10, torch_threads=1))
+        timeline = collections.OrderedDict((i/10, {'v':dict(h=self.h, pos=np.array([i*11.,20.]),
+            v=11., angle=0.)}) for i in range(8))
+        before = {k:v.clone() for k,v in policy.actor.state_dict().items()}
+        result, memory = run_fluid_o_mappo_episode(paper_args(), timeline, policy,
+            o_mappo_reward_presets()['qos_energy020_load1'], 5, learn=True, collect_only=True)
+        self.assertGreater(len(memory), 0)
+        for k,v in policy.actor.state_dict().items():
+            self.assertTrue(torch.equal(v,before[k]))
+        self.assertEqual(result['actor_loss'], 0)
 
 
 if __name__ == "__main__":

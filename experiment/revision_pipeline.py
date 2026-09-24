@@ -53,6 +53,8 @@ def key(method,rate,seed): return f'{method}_rate{rate}_seed{seed}'
 
 
 def protocol(args):
+    from utils.o_mappo import OMAPPPolicy
+    actor_config = OMAPPPolicy.load(str(args.o_mappo_policy)).config
     cache_meta=read(args.cache.with_suffix('.json'))
     if cache_meta.get('interference_label')!='beam-average' or digest(args.cache)!=cache_meta['cache_sha256']:
         raise ValueError('Unvalidated prediction cache')
@@ -73,15 +75,16 @@ def protocol(args):
         environment={name:importlib.metadata.version(name) for name in ('numpy','scipy','torch','numba')},
         gap_iterations=2,gap_capacity_correction=True,gap_rb_usage_capped=True,
         o_mappo_beam_search=args.o_mappo_beam_search,
+        o_mappo_candidate_gain_mode=actor_config.candidate_gain_mode,
         service='actual directional beams, explicit orthogonal RB indices, per-RB service feeds queues',
         prediction_timing='record x predicts x+1; current BF/RA uses report from x-1',
         information=dict(meet_cobra='causal prediction reports and observed serving gains only',
             mts_report='causal shared reports; no private H in matching or RA interference',
-            o_mappo='frozen original privileged-information actor; target optimizer uses the configured acquisition overhead; candidate gains retain original full-CSI maxima',
+            o_mappo='frozen supplied privileged-information actor; target optimizer uses the configured acquisition overhead; candidate gains: '+actor_config.candidate_gain_mode,
             reactive_obra='current perfect gain measurements; no NN; privileged measurement reference'),
         baseline_handover='Existing HO_EE_Greedy_offload (energy-cost ordering), retained for Reactive-OBRA and w/o GAP-HO; not an RSS-first implementation',
         oracle_cr_lb='continuous relaxation of the final P2 instance along Oracle-MC; conditional power reference, not global dynamic optimum; infeasible ceiling flagged',
-        policy=str(LEGACY_POLICY),policy_sha256=digest(LEGACY_POLICY),
+        policy=str(args.o_mappo_policy.resolve()),policy_sha256=digest(args.o_mappo_policy),
         git_revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         code_sha256={str(p.relative_to(ROOT)):digest(p) for p in code})
 
@@ -358,6 +361,7 @@ def main():
     a.add_argument('--seeds',default='1,2,3,4,5'); a.add_argument('--reactive-input',choices=('pending','current'),default='pending')
     a.add_argument('--backend',choices=('cpu','cuda'),default='cuda'); a.add_argument('--allow-smoke',action='store_true')
     a.add_argument('--o-mappo-beam-search',choices=('exhaustive','hierarchical32'),default='exhaustive')
+    a.add_argument('--o-mappo-policy',type=Path,default=LEGACY_POLICY)
     a=sub.add_parser('case'); a.add_argument('--root',type=Path,required=True); a.add_argument('--method',choices=METHODS,required=True)
     a.add_argument('--rate',type=int,required=True); a.add_argument('--seed',type=int,required=True); a.add_argument('--device',default='cuda:0')
     a=sub.add_parser('run'); a.add_argument('--root',type=Path,required=True); a.add_argument('--devices',default='cuda:0')
