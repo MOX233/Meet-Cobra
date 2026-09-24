@@ -765,14 +765,23 @@ tracking otherwise. This baseline derives its channel-dependent decision
 inputs from true channel matrices. The additional cost of obtaining that
 information is not charged, giving it an information advantage over MEET-COBRA.
 
-\textbf{MTS-GS-HBF-adapted} follows the multiple-timescale association and BF
-idea of Heydarian et al. [23]. We adapt its Gale--Shapley matching to our BS
-capacities, queue urgency, and transmit power costs, updating associations
-every five frames. The original hybrid BF is replaced by searching the five
-reported DFT candidates once per frame and retaining the strongest measured
-pair. This baseline uses the same causal prediction reports as MEET-COBRA.
-It therefore tests preference-based association matching and periodic BF
-against GAP-HO's system power objective and PET-BF's slot-level search.
+\textbf{MTS-GS-HBF-adapted} follows the framework of Heydarian et al. [23],
+which coordinates user association, analog BF, and user selection with
+digital BF on progressively shorter timescales. In our adaptation,
+Gale--Shapley matching updates BS--vehicle associations every five frames,
+while beam pairs are updated every frame. The baseline uses the same
+prediction reports as MEET-COBRA. We adapt the matching preferences so that vehicles rank
+candidate BSs by balancing predicted rates against BS loads, energy costs,
+and HO costs. BSs rank vehicles according to queue urgency, predicted rates,
+and estimated RB demands, and consider their RB capacities when determining
+BS--vehicle associations. To accommodate our DFT beam-pair model, we replace the
+original hybrid BF with codebook beam-pair selection. Each serving micro BS
+probes the $M_{\rm P}=5$ reported beam pairs for each associated vehicle and
+retains the beam pair with the highest measured gain for the remainder of the frame.
+The beam-selection procedure remains distinct from PET-BF's slot-level search
+with early termination. The comparison therefore evaluates matching and
+periodic beam selection together, rather than isolating the association mechanism.
+
 Both added baselines use OTR-RA; the physical evaluation accounts for their
 respective BF overheads and the same $10$~ms HO interruption.
 
@@ -813,6 +822,12 @@ with $33$~Mbps for MTS-GS-HBF-adapted and $21$~Mbps for O-MAPPO-adapted.
 \begin{manuscriptchanges}
 Section V-C adds the two comparators, explaining their source methods,
 adaptations, information inputs, and differences from MEET-COBRA.
+The MTS-GS-HBF-adapted description specifies the preferences of vehicles and
+BSs separately and explains the replacement of hybrid BF by DFT beam selection
+once per frame.
+Oracle-CR-LB is removed from Section V-C and Fig.~5 because its relaxed
+\textbf{P2} objective is only a reference for estimated association cost.
+Oracle-MC is retained to assess the effect of prediction errors.
 Section V-D and Figs.~5--8 now include both baselines, three-seed statistics,
 and their power and latency tradeoffs. Figure~7 presents $L_{90}$ and $L_{99}$
 separately. The updated discussion includes:
@@ -1217,15 +1232,24 @@ inputs are derived from true channel matrices, without accounting for the
 additional CSI acquisition cost, giving it an information advantage over
 MEET-COBRA.
 
-\textbf{MTS-GS-HBF-adapted}, adapted from Heydarian et al. [23], uses
-Gale--Shapley matching to update BS-vehicle associations every five frames.
-We adapt the matching preferences and admission decisions to account for
-predicted rates, BS loads, transmit power costs, HO costs, queue urgency,
-and RB capacities. The original hybrid BF is replaced by probing the five
-reported DFT candidates once per frame and retaining the strongest measured
-pair. It uses the same prediction reports as MEET-COBRA, but coordinates
-association and BF through preference matching and periodic beam selection,
-rather than GAP-HO's system power objective and PET-BF's slot-level search.
+\textbf{MTS-GS-HBF-adapted} follows the framework of Heydarian et al. [23],
+which coordinates user association, analog BF, and user selection with
+digital BF on progressively shorter timescales. In our adaptation,
+Gale--Shapley matching updates BS--vehicle associations every five frames,
+while beam pairs are updated every frame. The baseline uses the same
+prediction reports as MEET-COBRA. We adapt the matching preferences
+so that vehicles rank candidate BSs by balancing predicted rates against
+BS loads, energy costs, and HO costs. BSs rank vehicles according to queue
+urgency, predicted rates, and estimated RB demands, and consider their RB
+capacities when determining BS--vehicle associations. To accommodate our DFT beam-pair model,
+we replace the original hybrid BF with codebook beam-pair selection. Each
+serving micro BS probes the $M_{\rm P}=5$ reported beam pairs for each associated
+vehicle and retains the beam pair with the highest measured gain for the remainder
+of the frame. The beam-selection procedure remains distinct from PET-BF's
+slot-level search with early termination. The comparison therefore evaluates
+matching and periodic beam selection together, rather than isolating the
+association mechanism.
+
 Both baselines use OTR-RA, with their respective beam-search overheads and
 the same $10$~ms HO interruption included in the evaluation.
 
@@ -1255,9 +1279,15 @@ and showing their power and latency tradeoffs.
 \end{authorresponse}
 \begin{manuscriptchanges}
 Section V-C introduces both baselines, explaining their core ideas,
-adaptations, and differences from MEET-COBRA. Section V-D and Figs.~5--8
+adaptations, and differences from MEET-COBRA. The MTS-GS-HBF-adapted description
+specifies the preferences of vehicles and BSs separately and explains the
+replacement of hybrid BF by DFT beam selection once per frame.
+Section V-D and Figs.~5--8
 include their results across all evaluated loads and discuss the resulting
 power and latency tradeoffs.
+Oracle-CR-LB is removed from Section V-C and Fig.~5 because its relaxed
+\textbf{P2} objective is only a reference for estimated association cost.
+Oracle-MC is retained to assess the effect of prediction errors.
 \end{manuscriptchanges}
 \revisionlocation{Pages 12--13, Section V-C, O-MAPPO-adapted and MTS-GS-HBF-adapted;
 Pages 13--14, Section V-D and Figs.~5--8, multi-seed performance comparisons.}
