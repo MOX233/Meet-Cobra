@@ -35,7 +35,7 @@ from utils.o_mappo_sim import run_sim_o_mappo
 from utils.ho_utils import make_paired_traffic
 
 RATES = list(range(1, 36, 2))
-DEFAULT_ROOT = ROOT / 'experiment/results/o_mappo_h32_retrained_20260924_v3'
+DEFAULT_ROOT = ROOT / 'experiment/results/o_mappo_h32_retrained_20260924_v4'
 SOURCE = ROOT / DEFAULT_TRAIN_PATH
 DATA = None
 
@@ -64,7 +64,7 @@ def initialize_worker(root):
     torch.set_num_threads(1)
     single_thread_solvers()
     root=Path(root)
-    with np.load(root/'channel_index.npz') as archive:
+    with np.load(root/'channel_index.npz',allow_pickle=True) as archive:
         index={key:archive[key] for key in archive.files}
     DATA=(np.load(root/'channels.npy',mmap_mode='r'),index)
 
@@ -90,13 +90,12 @@ def prepare_arrays(root):
     index=0
     for records in timeline.values():
         for vehicle,record in records.items():
-            if not isinstance(vehicle,str): raise ValueError('Expected SUMO string vehicle IDs')
             names.append(vehicle)
             channels[index]=record['h']; pos[index]=record['pos']
             speed[index]=record.get('v',0); angle[index]=record.get('angle',0)
             index+=1
     channels.flush()
-    np.savez(root/'channel_index.npz',frames=frames,offsets=offsets,names=np.array(names),
+    np.savez(root/'channel_index.npz',frames=frames,offsets=offsets,names=np.array(names,dtype=object),
              positions=pos,speeds=speed,angles=angle)
     atomic_json(root/'arrays_complete.json',dict(frames=len(frames),records=total,
                 channel_sha256=digest(root/'channels.npy'),index_sha256=digest(root/'channel_index.npz')))
@@ -108,7 +107,7 @@ def array_slice(start,length):
     positions=index['positions']; speeds=index['speeds']; angles=index['angles']
     selected=np.flatnonzero((frames>=start-1e-8)&(frames<=start+length-.1+1e-8))
     return collections.OrderedDict((float(frames[i]),collections.OrderedDict(
-        (str(names[j]),dict(h=channels[j],pos=positions[j],v=float(speeds[j]),angle=float(angles[j])))
+        (names[j],dict(h=channels[j],pos=positions[j],v=float(speeds[j]),angle=float(angles[j])))
         for j in range(offsets[i],offsets[i+1]))) for i in selected)
 
 
