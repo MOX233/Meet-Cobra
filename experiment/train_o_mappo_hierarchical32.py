@@ -20,7 +20,6 @@ import time
 
 for name in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'NUMBA_NUM_THREADS'):
     os.environ[name] = '1'
-os.environ['OMP_PROC_BIND'] = 'false'
 os.environ['KMP_AFFINITY'] = 'disabled'
 CPU_POOL = tuple(sorted(os.sched_getaffinity(0)))
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,7 +35,7 @@ from utils.o_mappo_sim import run_sim_o_mappo
 from utils.ho_utils import make_paired_traffic
 
 RATES = list(range(1, 36, 2))
-DEFAULT_ROOT = ROOT / 'experiment/results/o_mappo_h32_retrained_20260924_v2'
+DEFAULT_ROOT = ROOT / 'experiment/results/o_mappo_h32_retrained_20260924_v3'
 SOURCE = ROOT / DEFAULT_TRAIN_PATH
 DATA = None
 
@@ -60,9 +59,57 @@ def configuration():
         hidden_sizes=(64,), batch_size=256, ppo_epochs=4)
 
 
-def initialize_worker():
+def initialize_worker(root):
+    global DATA
     torch.set_num_threads(1)
     single_thread_solvers()
+    root=Path(root)
+    with np.load(root/'channel_index.npz') as archive:
+        index={key:archive[key] for key in archive.files}
+    DATA=(np.load(root/'channels.npy',mmap_mode='r'),index)
+
+
+def prepare_arrays(root):
+    """Shared read-only mmap allows spawn without copying 5 GB per worker."""
+    if (root/'arrays_complete.json').exists():
+        return
+    with SOURCE.open('rb') as stream:
+        timeline=pickle.load(stream)
+    timeline=temporal_slice(timeline,200,740)
+    with (root/'exact_validation.pkl').open('wb') as stream:
+        pickle.dump(temporal_slice(timeline,710,740),stream,protocol=4)
+    frames=np.array(list(timeline))
+    counts=np.array([len(records) for records in timeline.values()])
+    offsets=np.r_[0,np.cumsum(counts)]
+    total=int(offsets[-1])
+    first=next(iter(next(iter(timeline.values())).values()))['h']
+    channels=np.lib.format.open_memmap(root/'channels.npy',mode='w+',dtype=first.dtype,
+                                      shape=(total,*first.shape))
+    names=[]
+    pos=np.empty((total,2)); speed=np.empty(total); angle=np.empty(total)
+    index=0
+    for records in timeline.values():
+        for vehicle,record in records.items():
+            if not isinstance(vehicle,str): raise ValueError('Expected SUMO string vehicle IDs')
+            names.append(vehicle)
+            channels[index]=record['h']; pos[index]=record['pos']
+            speed[index]=record.get('v',0); angle[index]=record.get('angle',0)
+            index+=1
+    channels.flush()
+    np.savez(root/'channel_index.npz',frames=frames,offsets=offsets,names=np.array(names),
+             positions=pos,speeds=speed,angles=angle)
+    atomic_json(root/'arrays_complete.json',dict(frames=len(frames),records=total,
+                channel_sha256=digest(root/'channels.npy'),index_sha256=digest(root/'channel_index.npz')))
+
+
+def array_slice(start,length):
+    channels,index=DATA
+    frames=index['frames']; offsets=index['offsets']; names=index['names']
+    positions=index['positions']; speeds=index['speeds']; angles=index['angles']
+    selected=np.flatnonzero((frames>=start-1e-8)&(frames<=start+length-.1+1e-8))
+    return collections.OrderedDict((float(frames[i]),collections.OrderedDict(
+        (str(names[j]),dict(h=channels[j],pos=positions[j],v=float(speeds[j]),angle=float(angles[j])))
+        for j in range(offsets[i],offsets[i+1]))) for i in selected)
 
 
 def bind_worker():
@@ -79,7 +126,7 @@ def rollout(job):
     policy_path, rate, start, length, seed, learn = job
     policy = OMAPPPolicy.load(str(policy_path), seed=seed)
     bind_worker()
-    timeline = temporal_slice(DATA, start, start + length - .1)
+    timeline = array_slice(start,length)
     result, memory = run_fluid_o_mappo_episode(paper_args(rate * 1e6), timeline, policy,
         o_mappo_reward_presets()['qos_energy020_load1'], rate, seed=seed, learn=learn, collect_only=True)
     if learn:
@@ -140,14 +187,10 @@ def train(args):
             raise ValueError('Training protocol changed; use a new root')
     else:
         atomic_json(path, native(manifest))
-    print('LOAD', SOURCE, flush=True)
-    with SOURCE.open('rb') as stream:
-        DATA = pickle.load(stream)
-    DATA = temporal_slice(DATA, 200, 740)
-    with (args.root / 'exact_validation.pkl').open('wb') as stream:
-        pickle.dump(temporal_slice(DATA, 710, 740), stream, protocol=4)
-    # CPU-only fork workers share immutable channel arrays. GPU evaluation runs
-    # in a separate process; CUDA is never initialized before the fork.
+    print('PREPARE SHARED ARRAYS', SOURCE, flush=True)
+    prepare_arrays(args.root)
+    # Fresh interpreters avoid this server's Intel OpenMP post-fork assertion.
+    # Immutable channel samples remain shared through the file-backed mmap.
     torch.set_num_threads(1)
     single_thread_solvers()
     policies, histories, probes, last_probs, best_scores = {}, {}, {}, {}, {}
@@ -168,7 +211,8 @@ def train(args):
             save_policy(policies[seed], folder / 'round0000.pt')
     started = time.monotonic()
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.workers,
-            mp_context=mp.get_context('fork'), initializer=initialize_worker) as pool:
+            mp_context=mp.get_context('spawn'), initializer=initialize_worker,
+            initargs=(str(args.root.resolve()),)) as pool:
         reference_path = args.root / 'reference.json'
         if reference_path.exists():
             reference = np.array(read(reference_path)['costs'])
