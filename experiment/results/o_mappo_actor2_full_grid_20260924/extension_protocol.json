@@ -1,0 +1,40 @@
+{
+  "code": {
+    "experiment/evaluate_o_mappo_h32_retrained.py": "d82fbe166ff68adb2c66d74eadde0f3d1b9c61fb238edd1e83d2eb40cd3628e4",
+    "experiment/o_mappo_actor2_full_grid.py": "790e1980b412a43337395b9c9547a3fd71b0adfcb0aaec0f56b67e494bfc9621",
+    "experiment/revision_pipeline.py": "bb1ace4ca84cc260eebd971d8d2e10120bf1bddcc6cff0ec8e3187f5dc50e4c5"
+  },
+  "paper_protocol": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/revision_directional_20260922/grid/protocol.json",
+  "paper_sha256": "6c851155e24935ecaab253b22633c7fb6922ba053bdcd442022eec9ec0068362",
+  "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/checkpoints/actor2_seed33/selected.pt",
+  "policy_sha256": "9b4d87a4f1505a46cc79675bacd1105ab86c8c7c2e43a35016426bf4604756d9",
+  "rates": [
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31,
+    33,
+    35
+  ],
+  "seconds": 30,
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "source_protocol": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/protocol.json",
+  "source_sha256": "d7040a9213892c3d6ea16d2bd3e22e91c170b34b30b0c20e7d96da1e7091a35c",
+  "warmup_frames": 2
+}

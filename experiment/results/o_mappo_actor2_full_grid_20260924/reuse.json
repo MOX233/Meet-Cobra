@@ -1,0 +1,94 @@
+{
+  "cases": [
+    {
+      "raw_sha256": "1490c25c143382d46cf459b7dff556c848764b43c7aeb03ea1163534ea9fa525",
+      "sha256": "c29ecbb31f2d700d8c35b3dc56cc96ed6e1b55fc7c814da5f3ed0c3328bd79fe",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate15_seed1.json"
+    },
+    {
+      "raw_sha256": "fee403362719435dea0ab5c0db113518e1fd2cb65e38b7688864244973310c52",
+      "sha256": "23d74581257f8868b9a70c19f294946c3b4236e116e081ef729c4dc02a536337",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate15_seed2.json"
+    },
+    {
+      "raw_sha256": "3627b97f4f8c7ac788c1861a4d4a3d704220424c482d367a696f4f10d5f73031",
+      "sha256": "4d7ce2e2692e43be87364f0705cead3fecf3bfb3a9167064bb9a5faf89d92b02",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate15_seed3.json"
+    },
+    {
+      "raw_sha256": "e599f5ad722957ae7282e06c4b2cf524f911e7d53046086c6e237ea80f3b7db4",
+      "sha256": "3fda66dfa54b1804b96462b96bf958913e840e0d4f37f8efa3aa8a15340b2880",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate1_seed1.json"
+    },
+    {
+      "raw_sha256": "e863a8c677e46cbf78b65c973ef6111b081e1c9f6cf50588c444c8890d24fcd5",
+      "sha256": "97cd363f8dcf45189849648efd348af346dcc5b5b4d2511b52a6344fc495b24a",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate1_seed2.json"
+    },
+    {
+      "raw_sha256": "91f4c1dec838678f0204f33cf7004b67d661e23d93549b783ac5ad1cc054168f",
+      "sha256": "8949a143d9ec3d68627fe08c32ef3b78d0b5ae92ed043ba7ec3829e7319d1006",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate1_seed3.json"
+    },
+    {
+      "raw_sha256": "a98ea3ed701d97b6f7a4cf73f550856608bba4704fb78fbe7d17d445a7a577d3",
+      "sha256": "b2139f3305631a29e6e9b047c4db3ac0f169bd07414c989322fa0b330cb2386c",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate21_seed1.json"
+    },
+    {
+      "raw_sha256": "90e3d271d4acf1838cd8742524b5d21c81b26b6e099f18111d7de82cbe36fea4",
+      "sha256": "ea207f9d31bb6b09ee2799b404562ccdd363bebe229f7fd9dd912037b7e97aca",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate21_seed2.json"
+    },
+    {
+      "raw_sha256": "1dadc9f2b899b6c447d7bfddbe6de1e230b1b692cbdb4b7ce1cb2630eb3e53b2",
+      "sha256": "31837245ede62b3229eaaee17919a1e962725376f0d57ec48828d5185c6e4e4f",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate21_seed3.json"
+    },
+    {
+      "raw_sha256": "9a72832eeb6300519b44711d77ec10c75ba21c7d8eab023123a5071f682ad389",
+      "sha256": "2725408711aa85dc9ab232cf525159ad4ff4cf7f4f0c57851e4002caf2631e59",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate25_seed1.json"
+    },
+    {
+      "raw_sha256": "ff84f065464781f1797c010649f0c0a7c37b13d66cacbbf6a0550fdb92407009",
+      "sha256": "7c60366861e63ba65a18482286610eed1df5105d197f42d163fb68462359dfcb",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate25_seed2.json"
+    },
+    {
+      "raw_sha256": "445213dff3012d3d7303d6dc54b39b8f2e34af71e6c150469ff6038cd41e72f5",
+      "sha256": "db7b9f9965b5eb7ca43710c8230c142ff0f628551c300b3ef428e0f91d4b1767",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate25_seed3.json"
+    },
+    {
+      "raw_sha256": "108abc0c3277f75c99396ab060f961ec4ecc6c1380e50a1acbe9d8ce8b25eee4",
+      "sha256": "1056ad7c95a1576bfba1f357845d69554a3f518ad17d564f444e610843cd19c8",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate29_seed1.json"
+    },
+    {
+      "raw_sha256": "b9319f894ef2556e73ab08635a1c1f88f23f0f5fd3b2c65326f021da82823ede",
+      "sha256": "2fc0b4b1f660abc6e1afc853486a191dde5b8bd1b0b682a896f88e3237e8b04b",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate29_seed2.json"
+    },
+    {
+      "raw_sha256": "431b2ab50ef0db2ef1309735dc0e24827d3356cf984a216d796626d70a21b2dc",
+      "sha256": "a3f832501d9c73f35887bc8b142b1a5f3c356fd4432b2db4c881bb45fc5bfc3d",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate29_seed3.json"
+    },
+    {
+      "raw_sha256": "0e5e296a72099308f2d51697b7623fe083d065bd9fe80cdc8a163b5a608f09a4",
+      "sha256": "9a235366b6251790c417fc1ef01d2f661f548a252b324907dbe0c14716b4417f",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate5_seed1.json"
+    },
+    {
+      "raw_sha256": "09824ce7c3b7b3ec77d370eefaadf4d6e15d5be7412b03447b679e6ea39bff0a",
+      "sha256": "257c76dff6f466e8428df62a94fd8d974818df4ed15ab11f12ee75ff7dcc6b2d",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate5_seed2.json"
+    },
+    {
+      "raw_sha256": "a2d4f4eed9b19df4fc7460d6d949e3a7c0eef9e62b9fbb98e6b4ee4f1c7ed394",
+      "sha256": "b0a2d3eca307f3325b895701c8e8e6dfc6976633dc13cbcb8d96eb0a78607092",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/paired_test/runs/actor2_seed33_selected_rate5_seed3.json"
+    }
+  ]
+}

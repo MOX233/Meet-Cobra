@@ -759,11 +759,17 @@ and the three module ablations.
 and target BS optimization in Wang et al. [22]. A shared MAPPO policy decides
 whether each vehicle should trigger HO; a mixed-integer optimizer then selects
 the target BSs using RB demands, BS loads, power costs, and overload penalties.
-For our codebook-based system, candidate micro-BS links are evaluated using
-their strongest DFT beam pairs, with exhaustive search upon HO and local
-tracking otherwise. This baseline derives its channel-dependent decision
-inputs from true channel matrices. The additional cost of obtaining that
-information is not charged, giving it an information advantage over MEET-COBRA.
+The shared actor has two hidden layers of 64 neurons each; one checkpoint
+selected on separate validation data is used at all loads. Upon HO to a micro
+BS, hierarchical BF searches eight transmit and two receive sectors, then
+four transmit and four receive DFT beams within the selected sectors, for
+32 probes in total. When the decision retains the serving BS, local tracking
+searches the nine combinations of the current and adjacent beams.
+The optimizer evaluates candidate micro-BS links using gains obtained by
+applying the same hierarchical search to current-frame ground-truth CSI,
+with decisions executed in the next frame. Service-link probing overhead
+is included, but additional CSI acquisition costs for candidate-BS evaluation
+are not charged, giving this baseline an information advantage over MEET-COBRA.
 
 \textbf{MTS-GS-HBF-adapted} follows the framework of Heydarian et al. [23],
 which coordinates user association, analog BF, and user selection with
@@ -798,13 +804,13 @@ Figs.~5--8 contain the full results. Selected operating points are summarized be
 $\lambda$ (Mbps) & Scheme & Mean power (W) & $U$ (\%) \\
 \hline
 23 & MEET-COBRA & 46.17 & 0.241 \\
-23 & O-MAPPO-adapted & 105.54 & 3.597 \\
+23 & O-MAPPO-adapted & 169.49 & 5.345 \\
 23 & MTS-GS-HBF-adapted & 56.62 & 0.300 \\
 29 & MEET-COBRA & 127.75 & 0.194 \\
-29 & O-MAPPO-adapted & 156.85 & 11.817 \\
+29 & O-MAPPO-adapted & 184.72 & 13.735 \\
 29 & MTS-GS-HBF-adapted & 109.01 & 0.604 \\
 35 & MEET-COBRA & 175.80 & 1.150 \\
-35 & O-MAPPO-adapted & 183.08 & 31.454 \\
+35 & O-MAPPO-adapted & 185.31 & 26.922 \\
 35 & MTS-GS-HBF-adapted & 175.26 & 1.917 \\
 \hline
 \end{tabular}
@@ -817,7 +823,7 @@ tradeoff. At $29$~Mbps it uses less power, but its violation probability is
 about three times that of MEET-COBRA. We report this tradeoff explicitly
 rather than claiming that MEET-COBRA dominates both metrics at every load.
 The mean $L_{99}$ first exceeds $20$~ms at $35$~Mbps for MEET-COBRA, compared
-with $33$~Mbps for MTS-GS-HBF-adapted and $21$~Mbps for O-MAPPO-adapted.
+with $33$~Mbps for MTS-GS-HBF-adapted and $19$~Mbps for O-MAPPO-adapted.
 \end{authorresponse}
 \begin{manuscriptchanges}
 Section V-C adds the two comparators, explaining their source methods,
@@ -1225,12 +1231,18 @@ and BF, one based on reinforcement learning and the other on optimization.
 \textbf{O-MAPPO-adapted}, adapted from Wang et al. [22], uses a MAPPO policy
 to decide whether each vehicle should trigger HO. A mixed-integer optimizer
 then selects the target BSs using RB demands, BS loads, and transmit power
-costs. We adapt BF to our DFT codebooks, using exhaustive search upon HO to
-a micro BS and local tracking otherwise. Unlike GAP-HO, it optimizes
-associations only for vehicles whose HO triggers are active. Its decision
-inputs are derived from true channel matrices, without accounting for the
-additional CSI acquisition cost, giving it an information advantage over
-MEET-COBRA.
+costs. The shared actor has two hidden layers of 64 neurons each; one
+checkpoint selected on separate validation data is used at all loads.
+Upon HO to a micro BS, hierarchical BF searches eight transmit and two
+receive sectors, then four transmit and four receive DFT beams within the
+selected sectors, requiring 32 probes. When the decision retains the serving
+BS, local tracking searches the nine combinations of the current and adjacent
+beams. Unlike GAP-HO, it optimizes associations only for vehicles whose HO
+triggers are active. The optimizer uses gains obtained by applying the same
+hierarchical search to current-frame ground-truth CSI, and decisions take
+effect in the next frame. Service-link probing overhead is included, but
+additional CSI acquisition costs for candidate-BS evaluation are not charged,
+giving it an information advantage over MEET-COBRA.
 
 \textbf{MTS-GS-HBF-adapted} follows the framework of Heydarian et al. [23],
 which coordinates user association, analog BF, and user selection with
@@ -1264,7 +1276,7 @@ The table illustrates the comparison at $33$~Mbps and reports three-seed means.
 Scheme & Mean power (W) & $U$ (\%) & $L_{99}$ (ms) \\
 \hline
 MEET-COBRA & 172.81 & 0.524 & 5.00 \\
-O-MAPPO-adapted & 178.77 & 23.931 & 4570.90 \\
+O-MAPPO-adapted & 185.09 & 21.630 & 6994.18 \\
 MTS-GS-HBF-adapted & 160.99 & 1.080 & 33.54 \\
 \hline
 \end{tabular}

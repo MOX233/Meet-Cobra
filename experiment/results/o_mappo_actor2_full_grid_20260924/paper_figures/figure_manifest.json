@@ -1,0 +1,170 @@
+{
+  "protocol_sha256": "6c851155e24935ecaab253b22633c7fb6922ba053bdcd442022eec9ec0068362",
+  "audit": null,
+  "o_mappo_replacement": {
+    "root": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor2_full_grid_20260924",
+    "summary_sha256": "6b7faefb9d488d2682f7006b36952f304c8adfda90cca1179ead2443e5d1132e",
+    "policy_sha256": "9b4d87a4f1505a46cc79675bacd1105ab86c8c7c2e43a35016426bf4604756d9",
+    "cases": 54,
+    "raw_metrics_recomputed": true,
+    "paired_traffic_verified": true
+  },
+  "power_figure_includes_oracle_cr_lb": false,
+  "generated_metrics": [
+    "power_w",
+    "violation_percent",
+    "p90_proxy_ms",
+    "p99_proxy_ms",
+    "macro_association_percent"
+  ],
+  "cases": 432,
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "rates_mbps": [
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31,
+    33,
+    35
+  ],
+  "statistics": "Mean across seeds; envelopes show min/max across seeds in one fixed scenario.",
+  "latency": "Within-seed pooled vehicle-slot percentiles of q_v/lambda_v; then mean across seeds. No extra slot.",
+  "warmup_frames": 2,
+  "duration_s": 30,
+  "fixed_decision_comparison": [
+    {
+      "rate_mbps": 1,
+      "seeds": 3,
+      "interference_ratio": 0.9369226908259045,
+      "service_underestimation_percent": 6.490559106278305
+    },
+    {
+      "rate_mbps": 3,
+      "seeds": 3,
+      "interference_ratio": 0.7282737239126051,
+      "service_underestimation_percent": 10.803088266004124
+    },
+    {
+      "rate_mbps": 5,
+      "seeds": 3,
+      "interference_ratio": 0.7108808485778974,
+      "service_underestimation_percent": 13.481688358080046
+    },
+    {
+      "rate_mbps": 7,
+      "seeds": 3,
+      "interference_ratio": 0.7179853015281696,
+      "service_underestimation_percent": 15.2134988617742
+    },
+    {
+      "rate_mbps": 9,
+      "seeds": 3,
+      "interference_ratio": 0.7174948800039379,
+      "service_underestimation_percent": 16.353758680701556
+    },
+    {
+      "rate_mbps": 11,
+      "seeds": 3,
+      "interference_ratio": 0.7247662206361521,
+      "service_underestimation_percent": 17.258537894479854
+    },
+    {
+      "rate_mbps": 13,
+      "seeds": 3,
+      "interference_ratio": 0.7141424578055466,
+      "service_underestimation_percent": 18.000880244376205
+    },
+    {
+      "rate_mbps": 15,
+      "seeds": 3,
+      "interference_ratio": 0.7676372046036573,
+      "service_underestimation_percent": 18.523551255676963
+    },
+    {
+      "rate_mbps": 17,
+      "seeds": 3,
+      "interference_ratio": 0.755342999943462,
+      "service_underestimation_percent": 18.81264503726854
+    },
+    {
+      "rate_mbps": 19,
+      "seeds": 3,
+      "interference_ratio": 0.6987074980683681,
+      "service_underestimation_percent": 18.899665335023474
+    },
+    {
+      "rate_mbps": 21,
+      "seeds": 3,
+      "interference_ratio": 0.6997897454035179,
+      "service_underestimation_percent": 19.11599410213315
+    },
+    {
+      "rate_mbps": 23,
+      "seeds": 3,
+      "interference_ratio": 0.7341979615938011,
+      "service_underestimation_percent": 19.37470295594239
+    },
+    {
+      "rate_mbps": 25,
+      "seeds": 3,
+      "interference_ratio": 1.0275919689527402,
+      "service_underestimation_percent": 19.502531680894432
+    },
+    {
+      "rate_mbps": 27,
+      "seeds": 3,
+      "interference_ratio": 1.4640300947616318,
+      "service_underestimation_percent": 19.498638624125853
+    },
+    {
+      "rate_mbps": 29,
+      "seeds": 3,
+      "interference_ratio": 1.8304253705777913,
+      "service_underestimation_percent": 19.495409985460597
+    },
+    {
+      "rate_mbps": 31,
+      "seeds": 3,
+      "interference_ratio": 2.5782668770792996,
+      "service_underestimation_percent": 19.48305728412244
+    },
+    {
+      "rate_mbps": 33,
+      "seeds": 3,
+      "interference_ratio": 2.6626927296353506,
+      "service_underestimation_percent": 19.4547537905143
+    },
+    {
+      "rate_mbps": 35,
+      "seeds": 3,
+      "interference_ratio": 2.3741267719200168,
+      "service_underestimation_percent": 19.440914396769816
+    }
+  ],
+  "l99_first_load_above_20ms": {
+    "meet_cobra": 35,
+    "oracle_mc": null,
+    "reactive_obra": 19,
+    "o_mappo": 19,
+    "mts_report": 33,
+    "wo_gap_ho": 25,
+    "wo_pet_bf": 33,
+    "wo_otr_ra": 33
+  }
+}
