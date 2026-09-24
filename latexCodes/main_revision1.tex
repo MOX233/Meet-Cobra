@@ -35,8 +35,8 @@
 % The empty group preserves any explicit leading space inside the marker.
 \newcommand{\currentrev}[1]{\textcolor{red}{{}#1}}
 \newif\ifshowdeletions
-%\showdeletionstrue % Use \showdeletionstrue to show the deleted text.
-\showdeletionsfalse % Use \showdeletionsfalse to hide the deleted text.
+\showdeletionstrue % Use \showdeletionstrue to show the deleted text.
+%\showdeletionsfalse % Use \showdeletionsfalse to hide the deleted text.
 \newcommand{\currentdel}[1]{\ifshowdeletions\textcolor{deletioncolor}{\sout{#1}}\fi}
 %TC:macro \currentdel [ignore]
 \newcommand{\refalg}[1]{Alg.~\ref{#1}}
@@ -85,7 +85,7 @@ We formulate a stochastic integer non-linear program (SINLP) for COBRA to minimi
 However, the NP-hardness of the resulting SINLP, together with the high overhead of acquiring timely and accurate per-link channel state information (CSI), makes online global COBRA optimization computationally prohibitive.
 To address this challenge, we propose the MEET-COBRA framework, which uses machine learning (ML) to predict next-frame beam-pair candidates and channel gains from low-overhead historical CSI measurements, and translates these predictions into per-link resource block (RB) demand estimates for globally optimized proactive handover. 
 Meanwhile, each cell performs prediction-guided beamforming and queue-aware resource allocation to keep the realized link efficiencies consistent with the RB-demand estimates, thereby meeting the latency constraint with low transmit power.
-Simulation results show that, at a medium-to-high traffic load, MEET-COBRA lowers the average transmit power by about 32\% and reduces the latency constraint violation probability from 29.47\% to 0.68\% compared with the Reactive-OBRA baseline, with only lightweight ML inference overhead.
+Simulation results show that, at a medium-to-high traffic load, MEET-COBRA lowers the average transmit power by about \currentdel{32\%}\currentrev{49\%} and reduces the latency constraint violation probability from \currentdel{29.47\% to 0.68\%}\currentrev{9.84\% to 0.16\%} compared with the Reactive-OBRA baseline, with only lightweight ML inference overhead.
 }
 \end{abstract}
 % . To enable practical online operation
@@ -185,7 +185,7 @@ The rest of the paper is organized as follows: Section~II details the system mod
         $M_{\rm T} , M_{\rm R}$ & Numbers of transmit/receive antennas \\
         $\mathcal{C}_{\rm T} , \mathcal{C}_{\rm R}$ & Transmit/receive beam codebooks \\
         $ {\bm{w}_{\rm T}}_{m,v} , {\bm{w}_{\rm R}}_{m,v}$ & Transmit precoding/receive combining vectors \\
-        $g_{m,v} , \currentrev{g_{{\rm I},m',v,v'}}$ & Instantaneous desired-/interfering-link gains \\
+        $g_{m,v} , \rev{g_{{\rm I},m',v,v'}}$ & Instantaneous desired-/interfering-link gains \\
         $G_{m,v} , G_{{\rm I},m,v}$ & Frame-level desired-/interfering-link gains \\
         $\tilde{\mathcal P}_{m,v}$ & Predicted probability distribution over beam pairs \\
         $N_{\rm P}$ & Number of pilots per frame\\
@@ -303,14 +303,14 @@ instantaneous {desired-link} channel gain is
 \label{eq:mimo_instant_gain}
     g_{m,v}^{[x]}(i) = \left| \left({\bm{w}_{\rm R}}_{m,v}^{[x]}(i)\right)^{\dagger} \boldsymbol{H}_{m,v}^{[x]}(i) {\bm{w}_{\rm T}}_{m,v}^{[x]} (i)\right|^2.
 \end{equation}
-\currentdel{For an interfering micro BS-$m$ that does not serve vehicle-$v$, we do not explicitly model its beam pattern toward vehicle-$v$. Instead, the corresponding interference-link channel gain is approximated by the Frobenius norm–based average gain of the MIMO channel matrix:}\currentrev{When another micro BS-$m'$ serves vehicle-$v'$, the interfering-link gain from BS-$m'$ to vehicle-$v$ is}
+\currentdel{For an interfering micro BS-$m$ that does not serve vehicle-$v$, we do not explicitly model its beam pattern toward vehicle-$v$. Instead, the corresponding interference-link channel gain is approximated by the Frobenius norm–based average gain of the MIMO channel matrix:}\rev{When another micro BS-$m'$ serves vehicle-$v'$, the interfering-link gain from BS-$m'$ to vehicle-$v$ is}
 \ifshowdeletions
 \begin{equation*}
     \currentdel{\ensuremath{g_{{\rm I},m,v}^{[x]}(i)\triangleq
     \frac{1}{M_{\rm T}M_{\rm R}}\bigl\|\boldsymbol H_{m,v}^{[x]}(i)\bigr\|_F^2,}}
 \end{equation*}
 \fi
-{\color{red}
+{\color{revisioncolor}
 \begin{equation}
 \label{eq:mimo_instant_gain_interference}
     g_{{\rm I},m',v,v'}^{[x]}(i)
@@ -340,26 +340,26 @@ The instantaneous transmit power of BS-$m$ is then given by
 \end{equation}
 The time-averaged system transmit power is the sum of the average power of all BSs:
 \begin{align}
-    \bar{P} & = \sum_{m=0}^M \bar{P}_m =\lim_{X\to\infty}\frac{1}{X} \sum_{x=0}^{X-1}\currentrev{\frac{1}{N_{\rm HO}}}\sum_{i \in \mathcal{N}_{\rm HO}} \sum_{m=0}^MP_m^{[x]}(i) \nonumber \\
+    \bar{P} & = \sum_{m=0}^M \bar{P}_m =\lim_{X\to\infty}\frac{1}{X} \sum_{x=0}^{X-1}\rev{\frac{1}{N_{\rm HO}}}\sum_{i \in \mathcal{N}_{\rm HO}} \sum_{m=0}^MP_m^{[x]}(i) \nonumber \\
     &=\lim_{X\to\infty}\frac{1}{XN_{\rm HO}}\sum_{x=0}^{X-1}\sum_{i \in \mathcal{N}_{\rm HO}}  \sum_{v\in\mathcal{V}^{[x]}} \sum_{m=0}^M p_m  k_{m,v}^{[x]}(i).
     \label{eq:area timeavg power cons}
 \end{align}
 
-\currentdel{Given allocated RBs, the instantaneous signal to interference plus noise ratio (SINR) of the desired-link from BS-$m$ to vehicle-$v$ is given by}\currentrev{For a link with $k_{m,v}^{[x]}(i)>0$, the signal-to-interference-plus-noise ratio (SINR) is modeled as}
+\currentdel{Given allocated RBs, the instantaneous signal to interference plus noise ratio (SINR) of the desired-link from BS-$m$ to vehicle-$v$ is given by}\rev{For a link with $k_{m,v}^{[x]}(i)>0$, the signal-to-interference-plus-noise ratio (SINR) is modeled as}
 \begin{equation}
     \mathrm{SINR}_{m,v}^{[x]}(i) = \frac{p_{m,v}^{[x]}(i) g_{m,v}^{[x]}(i)}{F_{ m}N_0 W_{m,v}^{[x]}(i) + I_{m,v}^{[x]}(i) },
     \label{eq:SINR}
 \end{equation}
 where $p_{m,v}^{[x]}(i) = k_{m,v}^{[x]}(i) p_m$ is the power allocated to the vehicle, $W_{m,v}^{[x]}(i) = k_{m,v}^{[x]}(i) B_m$ is the allocated bandwidth, $N_0$ is the noise power spectral density, $F_{m}$ is the noise figure, and $I_{m,v}^{[x]}(i)$ is the inter-cell interference. For the macro BS, $I_{0,v}^{[x]}(i)=0$ since its frequency band is orthogonal to those of micro BSs. 
-\currentdel{For each micro BS, since the OFDMA-based RB allocation across different BSs is assumed to be independent and uniformly random, the expected number of overlapping RBs between the set of RBs allocated by BS-$m$ to vehicle-$v$ and the set of RBs utilized by any interfering BS-$m'$ is $\frac{k_{m,v}^{[x]}(i) k_{m'}^{[x]}(i)}{K_\mu}$.}\currentrev{Given the allocated RB counts, each micro BS assigns mutually disjoint RB sets to its associated vehicles uniformly at random, independently of the other micro BSs. The expected number of overlapping RBs between links $(m,v)$ and $(m',v')$, with $m'\ne m$, is therefore $k_{m,v}^{[x]}(i)k_{m',v'}^{[x]}(i)/K_\mu$.}
-Accordingly, \currentdel{the interference can be modeled as}\currentrev{the interference power averaged over the random RB assignments is given by}
+\currentdel{For each micro BS, since the OFDMA-based RB allocation across different BSs is assumed to be independent and uniformly random, the expected number of overlapping RBs between the set of RBs allocated by BS-$m$ to vehicle-$v$ and the set of RBs utilized by any interfering BS-$m'$ is $\frac{k_{m,v}^{[x]}(i) k_{m'}^{[x]}(i)}{K_\mu}$.}\rev{Given the allocated RB counts, each micro BS assigns mutually disjoint RB sets to its associated vehicles uniformly at random, independently of the other micro BSs. The expected number of overlapping RBs between links $(m,v)$ and $(m',v')$, with $m'\ne m$, is therefore $k_{m,v}^{[x]}(i)k_{m',v'}^{[x]}(i)/K_\mu$.}
+Accordingly, \currentdel{the interference can be modeled as}\rev{the interference power averaged over the random RB assignments is given by}
 \begin{equation}
     \begin{aligned}
         & I_{m,v}^{[x]}(i) \\
         & =
         \begin{cases}
             \displaystyle
-            \currentdel{\ensuremath{\sum\limits_{m'\neq 0,m} g_{{\rm I},m',v}^{[x]}(i) \frac{k_{m,v}^{[x]}(i) k_{m'}^{[x]}(i)}{K_\mu} p_{m'}}}\currentrev{\frac{k_{m,v}^{[x]}(i)}{K_\mu}
+            \currentdel{\ensuremath{\sum\limits_{m'\neq 0,m} g_{{\rm I},m',v}^{[x]}(i) \frac{k_{m,v}^{[x]}(i) k_{m'}^{[x]}(i)}{K_\mu} p_{m'}}}\rev{\frac{k_{m,v}^{[x]}(i)}{K_\mu}
             \sum\limits_{\substack{m'\neq 0,m\\v'\in\mathcal V^{[x]}}}
             p_{m'}k_{m',v'}^{[x]}(i)g_{{\rm I},m',v,v'}^{[x]}(i)}, & m>0, \\
             \displaystyle
@@ -369,7 +369,7 @@ Accordingly, \currentdel{the interference can be modeled as}\currentrev{the inte
     \label{eq:interference}
 \end{equation}
 %This formulation provides an average interference approximation, which captures the expected impact of frequency-domain resource overlap among adjacent BSs without requiring explicit RB-level coordination.
-\currentdel{By substituting the expressions for power, bandwidth and interference, the SINR term simplifies to}\currentrev{Under this average interference approximation, the link SINR is approximated as} 
+\currentdel{By substituting the expressions for power, bandwidth and interference, the SINR term simplifies to}\rev{Under this average interference approximation, the link SINR is approximated as}
 \begin{equation}
     \begin{aligned}
         & \mathrm{SINR}_{m,v}^{[x]}(i) \\
@@ -378,8 +378,8 @@ Accordingly, \currentdel{the interference can be modeled as}\currentrev{the inte
             \displaystyle
             \frac{ p_m g_{m,v}^{[x]}(i)}
             {F_m N_0 B_m 
-             + \sum\limits_{\substack{m'\neq 0,m\\\currentrev{v'\in\mathcal V^{[x]}}}}
-               \currentdel{\ensuremath{\frac{k_{m'}^{[x]}(i)}{K_\mu}p_{m'}g_{{\rm I},m',v}^{[x]}(i)}}\currentrev{\frac{p_{m'}k_{m',v'}^{[x]}(i)}{K_\mu}
+             + \sum\limits_{\substack{m'\neq 0,m\\\rev{v'\in\mathcal V^{[x]}}}}
+               \currentdel{\ensuremath{\frac{k_{m'}^{[x]}(i)}{K_\mu}p_{m'}g_{{\rm I},m',v}^{[x]}(i)}}\rev{\frac{p_{m'}k_{m',v'}^{[x]}(i)}{K_\mu}
                g_{{\rm I},m',v,v'}^{[x]}(i)}}, 
             & m>0, \\[2ex]
             \displaystyle
@@ -389,12 +389,12 @@ Accordingly, \currentdel{the interference can be modeled as}\currentrev{the inte
     \end{aligned}
     \label{eq:SINR simplified}
 \end{equation}
-\currentdel{Based on the Shannon-Hartley theorem, the instantaneous achievable rate of this link is expressed as}\currentrev{The corresponding link rate is modeled using the Shannon formula as}
+\currentdel{Based on the Shannon-Hartley theorem, the instantaneous achievable rate of this link is expressed as}\rev{The corresponding link rate is modeled using the Shannon formula as}
 \begin{align}
     R_{m,v}^{[x]}(i) & = W_{m,v}^{[x]}(i) \log_2 \left( 1 + \mathrm{SINR}_{m,v}^{[x]}(i) \right).
     \label{eq:instantaneous link achievable rate}
 \end{align}
-\currentrev{When $k_{m,v}^{[x]}(i)=0$, no data are transmitted on the link, and thus $R_{m,v}^{[x]}(i)=0$.}
+\rev{When $k_{m,v}^{[x]}(i)=0$, no data are transmitted on the link, and thus $R_{m,v}^{[x]}(i)=0$.}
 Considering the beam-searching overhead, the instantaneous receive rate of vehicle–$v$ is given by
 \begin{equation}
     r_{v}^{[x]}(i) = \sum_{m=0}^M \bigl(1-\eta_{m,v}^{[x]}(i) \bigl)R_{m,v}^{[x]}(i),
@@ -404,7 +404,7 @@ where $\eta_{m,v}^{[x]}(i) \in [0,1)$ represents the throughput loss factor resu
 \begin{align}
 \eta_{m,v}^{[x]}(i) = \eta N_{m,v}^{[x]}(i),
 \end{align}
-with $N_{m,v}^{[x]}(i)$ denoting the number of beam-search attempts conducted by BS–$m$ and vehicle–$v$ in the $i$-th slot of frame-$x$, and $\eta$ \currentdel{representing the ratio of OFDM symbols consumed by once beam search to the total number of OFDM symbols per slot}\currentrev{denoting the fraction of OFDM symbols in a slot required to probe one beam pair.}.
+with $N_{m,v}^{[x]}(i)$ denoting the number of beam-search attempts conducted by BS–$m$ and vehicle–$v$ in the $i$-th slot of frame-$x$, and $\eta$ \currentdel{representing the ratio of OFDM symbols consumed by once beam search to the total number of OFDM symbols per slot}\rev{denoting the fraction of OFDM symbols in a slot required to probe one beam pair.}.
 Besides, the frame-averaged receive rate of vehicle-$v$ is 
 \begin{equation}
     \bar{r}_v^{[x]} \triangleq  \frac{1}{N_{\rm HO}}\sum_{ i \in \mathcal{N}_{\rm HO}}r_{v}^{[x]}(i),
@@ -558,14 +558,14 @@ Each head comprises $N_{\rm H}$ stacked vector ResBlock units~\cite{He2016} with
 
 \subsubsection{Output Prediction}
 
-\currentdel{Although the beam-pair and channel-gain prediction share the same NN architecture, they are implemented as distinct models with independently trained weights:}\currentrev{Beam-pair and channel-gain prediction are implemented using independently trained NN models with a common backbone architecture and task-specific output layers:}
+\currentdel{Although the beam-pair and channel-gain prediction share the same NN architecture, they are implemented as distinct models with independently trained weights:}\rev{Beam-pair and channel-gain prediction are implemented using independently trained NN models with a common backbone architecture and task-specific output layers:}
 \begin{enumerate}[label=\arabic*.]
-    \item \textbf{Beam Prediction Model}: \currentdel{The optimal beam-pair}\currentrev{Beam-pair} prediction is formulated as a multi-class classification task. The final layer of each output head employs a softmax activation function to generate a predicted probability distribution $\Tilde{\mathcal{P}}_{m,v}^{[x+1]}$ over the $M_{\rm T}M_{\rm R}$ \currentdel{beam-pairs}\currentrev{beam pairs}. 
-    The model is trained with a cross-entropy loss, using a one-hot label whose non-zero entry indicates the index of the optimal \currentdel{beam-pair}\currentrev{beam pair} that
-    maximizes the \currentrev{frame-averaged }desired-link gain in \currentdel{frame-}\currentrev{frame~}$(x\!+\!1)$.
+    \item \textbf{Beam Prediction Model}: \currentdel{The optimal beam-pair}\rev{Beam-pair} prediction is formulated as a multi-class classification task. The final layer of each output head employs a softmax activation function to generate a predicted probability distribution $\Tilde{\mathcal{P}}_{m,v}^{[x+1]}$ over the $M_{\rm T}M_{\rm R}$ \currentdel{beam-pairs}\rev{beam pairs}.
+    The model is trained with a cross-entropy loss, using a one-hot label whose non-zero entry indicates the index of the optimal \currentdel{beam-pair}\rev{beam pair} that
+    maximizes the \rev{frame-averaged }desired-link gain in \currentdel{frame-}\rev{frame~}$(x\!+\!1)$.
     
-    \item \textbf{Gain Prediction Models}: \currentdel{The channel-gain prediction is regarded as a regression task. For each micro BS–vehicle pair-$(m,v)$, we train two separate NN models with identical architecture but independent weights: one for the optimal desired-link gain and one for the interference-link gain.}\currentrev{Channel-gain prediction is formulated as a regression task. We train two separate NN models with the same architecture but independent weights, one for the optimal desired-link gain and the other for the beam-averaged interfering-link gain. Each model has one output head per micro BS.}
-    In the desired-link \currentrev{gain }model, each head outputs a scalar $\Tilde{G}_{m,v}^{[x+1]}$ to approximate the \currentdel{frame-averaged optimal}\currentrev{maximum frame-averaged} desired-link gain
+    \item \textbf{Gain Prediction Models}: \currentdel{The channel-gain prediction is regarded as a regression task. For each micro BS–vehicle pair-$(m,v)$, we train two separate NN models with identical architecture but independent weights: one for the optimal desired-link gain and one for the interference-link gain.}\rev{Channel-gain prediction is formulated as a regression task. We train two separate NN models with the same architecture but independent weights, one for the optimal desired-link gain and the other for the beam-averaged interfering-link gain. Each model has one output head per micro BS.}
+    In the desired-link \rev{gain }model, each head outputs a scalar $\Tilde{G}_{m,v}^{[x+1]}$ to approximate the \currentdel{frame-averaged optimal}\rev{maximum frame-averaged} desired-link gain
     \begin{equation}
         G_{{\rm opt},m,v}^{[x+1]}
         \triangleq
@@ -573,20 +573,18 @@ Each head comprises $N_{\rm H}$ stacked vector ResBlock units~\cite{He2016} with
               {\bm{w}_{\rm R}}_{m,v}^{[x+1]}} G_{m,v}^{[x+1]},
     \end{equation}
     where $G_{m,v}^{[x+1]}$ is obtained by averaging the instantaneous desired-link gains in Eq. \eqref{eq:mimo_instant_gain} over all slots in frame~$(x\!+\!1)$.
-    \currentdel{The interference-link model is similarly defined: its final layer outputs a scalar $\Tilde{G}_{{\rm I},m,v}^{[x+1]}$ with label $G_{{\rm I},m,v}^{[x+1]}$, given by the frame-average of the instantaneous interference-link gains in Eq. \mbox{\eqref{eq:mimo_instant_gain_interference}}.}\currentrev{The interfering-link gain in~\eqref{eq:mimo_instant_gain_interference} depends on the receive beam of the desired link and the transmit beam used by the interfering BS. To obtain a prediction target independent of these beam selections, we adopt the beam-averaged surrogate}
-    {\color{red}
+    \currentdel{The interference-link model is similarly defined: its final layer outputs a scalar $\Tilde{G}_{{\rm I},m,v}^{[x+1]}$ with label $G_{{\rm I},m,v}^{[x+1]}$, given by the frame-average of the instantaneous interference-link gains in Eq. \mbox{\eqref{eq:mimo_instant_gain_interference}}.}\rev{The interfering-link gain in~\eqref{eq:mimo_instant_gain_interference} depends on the receive beam of the desired link and the transmit beam used by the interfering BS. To obtain a prediction target independent of these beam selections, we adopt the beam-averaged surrogate}
+    {\color{revisioncolor}
     \begin{equation}
         \label{eq:mimo_average_gain_interference}
         \tilde{g}_{{\rm I},m',v}^{[x]}(i)
         \triangleq \frac{1}{M_{\rm T}M_{\rm R}}
         \bigl\|\boldsymbol H_{m',v}^{[x]}(i)\bigr\|_F^2,
     \end{equation}
-    }\currentrev{which equals the effective gain uniformly averaged over all beam pairs in the transmit and receive DFT codebooks. Each head of the interfering-link gain model outputs $\Tilde{G}_{{\rm I},m',v}^{[x+1]}$, with training label $G_{{\rm I},m',v}^{[x+1]}$ defined as the frame average of $\tilde{g}_{{\rm I},m',v}^{[x+1]}(i)$.}
-    % Implementation alignment pending: the existing interfering-gain checkpoints
-    % use max-entry labels from experiment/prepare_stateful_trajectories.py:40,
-    % not the surrogate in eq:mimo_average_gain_interference. Rebuild those labels
-    % and retrain this predictor before treating this draft definition as implemented.
-    Both models are trained using a mean \currentdel{square}\currentrev{squared} error (MSE) loss function, with predictions and labels represented in normalized dB.
+    }\rev{which equals the effective gain uniformly averaged over all beam pairs in the transmit and receive DFT codebooks. Each head of the interfering-link gain model outputs $\Tilde{G}_{{\rm I},m',v}^{[x+1]}$, with training label $G_{{\rm I},m',v}^{[x+1]}$ defined as the frame average of $\tilde{g}_{{\rm I},m',v}^{[x+1]}(i)$.}
+    % Beam-average labels and the retrained predictor are verified in
+    % experiment/revision_fig4_update_20260922_report.md.
+    Both models are trained using a mean \currentdel{square}\rev{squared} error (MSE) loss function, with predictions and labels represented in normalized dB.
 \end{enumerate}
 
 \currentdel{The predictions $\bigl\{\Tilde{\mathcal{P}}_{m,v}^{[x+1]}, \Tilde{G}_{m,v}^{[x+1]}, \Tilde{G}_{{\rm I},m,v}^{[x+1]}\bigr\}_{m=1}^M$ reported by each vehicle-$v$ to the macro BS serve as key inputs to the subsequent PHO and BF stages.}For the macro BS ($m=0$), whose low-frequency link does not involve beam alignment or inter-cell interference, only the frame-averaged desired-link gain $\Tilde{G}_{0,v}^{[x+1]}$ is required. Owing to the slow variation of the macro-channel, this gain is approximated by the channel gain estimated from control-plane measurements in the current frame, without NN-based prediction.
@@ -672,7 +670,7 @@ For the macro BS ($m=0$), whose low-frequency link is free of inter-cell interfe
 \end{equation}
 where $\Tilde{G}_{0,v}^{[x+1]}$ is estimated from control-plane measurements in the current frame.
 
-For each micro BS ($m>0$), the lower bound in Theorem~\ref{theorem:1} is extended to account for inter-cell interference and beam-alignment overhead, while enhancing robustness against occasional large NN prediction errors. \currentdel{Given the NN-predicted frame-averaged gains}\currentrev{Given the NN predictions of the frame-averaged desired-link gains and interfering-link surrogates} for frame-$(x\!+\!1)$, each gain is smoothed by weighted averaging with the corresponding gain measured in frame-$x$ (when available); if no measurement exists, the NN prediction is used directly. With a slight abuse of notation, we still denote these robustness-enhanced gain estimates by $\Tilde{G}_{m,v}^{[x+1]}$ and $\Tilde{G}_{{\rm I},m',v}^{[x+1]}$. The effective SINR for vehicle-$v$ served by BS-$m$ in frame-$(x\!+\!1)$ is then approximated as
+For each micro BS ($m>0$), the lower bound in Theorem~\ref{theorem:1} is extended to account for inter-cell interference and beam-alignment overhead, while enhancing robustness against occasional large NN prediction errors. \currentdel{Given the NN-predicted frame-averaged gains}\rev{Given the NN predictions of the frame-averaged desired-link gains and interfering-link gain surrogates} for frame-$(x\!+\!1)$, each gain is smoothed by weighted averaging with the corresponding gain measured in frame-$x$ (when available); if no measurement exists, the NN prediction is used directly. With a slight abuse of notation, we still denote these robustness-enhanced gain estimates by $\Tilde{G}_{m,v}^{[x+1]}$ and $\Tilde{G}_{{\rm I},m',v}^{[x+1]}$. The effective SINR for vehicle-$v$ served by BS-$m$ in frame-$(x\!+\!1)$ is then approximated as
 \begin{equation}
 \label{eq:eff_SINR_hat}
     \widetilde{\mathrm{SINR}}_{m,v}^{[x+1]}
@@ -719,8 +717,8 @@ where $\Tilde{k}_{m'}^{[x+1]}$ denotes the estimated frame-averaged RB usage of 
                    to solve \textbf{P2} and obtain a PHO schedule
                    $\hat{u}_{m,v}^{[x+1]}$;
 
-            \STATE Compute the \currentdel{implied}\currentrev{estimated} per-BS RB usage
-            \currentdel{$\hat{k}_{m}^{[x+1]} = \sum_{v \in \mathcal{V}^{[x]}}\Tilde{k}_{m,v}^{[x+1]} \hat{u}_{m,v}^{[x+1]}$}\currentrev{by \\ $\hat{k}_{m}^{[x+1]} = \min\!\left\{K_m,\sum_{v \in \mathcal{V}^{[x]}}\Tilde{k}_{m,v}^{[x+1]} \hat{u}_{m,v}^{[x+1]}\right\}$} for all $m$;
+            \STATE Compute the \currentdel{implied}\rev{estimated} per-BS RB usage
+            \currentdel{$\hat{k}_{m}^{[x+1]} = \sum_{v \in \mathcal{V}^{[x]}}\Tilde{k}_{m,v}^{[x+1]} \hat{u}_{m,v}^{[x+1]}$}\rev{by \\ $\hat{k}_{m}^{[x+1]} = \min\!\left\{K_m,\sum_{v \in \mathcal{V}^{[x]}}\Tilde{k}_{m,v}^{[x+1]} \hat{u}_{m,v}^{[x+1]}\right\}$} for all $m$;
 
             \ifshowdeletions
                 \STATE \currentdel{\textbf{if} $\max_m \bigl|\hat{k}_{m}^{[x+1]} - \Tilde{k}_{m}^{[x+1]}\bigr| \leq \epsilon$ \textbf{then}}
@@ -766,7 +764,7 @@ where
 \end{equation}
 \rev{The factor $c_{m,v}^{[x+1]}$ accounts for the influence of HO interruption on the RB-capacity constraint. A vehicle switching BS receives no traffic data during the first $L_{\rm HO}$ slots of the next frame. It therefore requires more RBs per slot during the remaining $(N_{\rm HO}-L_{\rm HO})$ slots to serve the data accumulated during the HO interruption together with new traffic arrivals.}
 
-Since \textbf{P2} is NP-hard, we apply the polynomial-time approximation algorithm in~\cite{shmoys1993approximation}, which applies a min-cost-matching-based rounding to the continuous relaxation solution of GAP, to obtain a near-optimal solution $\hat{u}_{m,v}^{[x+1]}$; if the continuous relaxation of \textbf{P2} is infeasible, we progressively relax \eqref{prob2:subcarrier cons} via the $\zeta$-scaling procedure in Alg.~\ref{alg:GAP-HO} until feasibility is reached. Denoting $V\triangleq|\mathcal{V}^{[x]}|$, the computational complexity of this approximation algorithm is $O\big((M\!+\!V)V\log V\big)$. Moreover, as proved in~\cite{shmoys1993approximation}, if \textbf{P2} is feasible and the optimal objective value is $P^{\star}$, $\hat{u}_{m,v}^{[x+1]}$ satisfies an objective value no larger than $P^{\star}$, while the RB-capacity constraints may be violated by at most a factor of two, i.e., $\sum_{v\in\mathcal{V}^{[x]}}\rev{c_{m,v}^{[x+1]}}\Tilde{k}_{m,v}^{[x+1]}\hat{u}_{m,v}^{[x+1]}\le 2K_m$. We then update \currentdel{$\Tilde{k}_{m}^{[x+1]}=\sum_{v\in\mathcal{V}^{[x]}}\Tilde{k}_{m,v}^{[x+1]}\hat{u}_{m,v}^{[x+1]}$}\currentrev{$\Tilde{k}_{m}^{[x+1]}=\min\!\left\{K_m,\sum_{v\in\mathcal{V}^{[x]}}\Tilde{k}_{m,v}^{[x+1]}\hat{u}_{m,v}^{[x+1]}\right\}$} and\currentdel{ iterate until $\{\Tilde{k}_{m}^{[x+1]}\}$ converges or the maximum iteration number $N_{\rm iter}$ (set to $3$ in this paper) is reached}\rev{ continue the fixed-point iteration until $N_{\rm iter}$ rounds are completed}. %\currentrev{The cap $K_m$ keeps the estimated RB usage within the RB capacity when computing interference.}
+Since \textbf{P2} is NP-hard, we apply the polynomial-time approximation algorithm in~\cite{shmoys1993approximation}, which applies a min-cost-matching-based rounding to the continuous relaxation solution of GAP, to obtain a near-optimal solution $\hat{u}_{m,v}^{[x+1]}$; if the continuous relaxation of \textbf{P2} is infeasible, we progressively relax \eqref{prob2:subcarrier cons} via the $\zeta$-scaling procedure in Alg.~\ref{alg:GAP-HO} until feasibility is reached. Denoting $V\triangleq|\mathcal{V}^{[x]}|$, the computational complexity of this approximation algorithm is $O\big((M\!+\!V)V\log V\big)$. Moreover, as proved in~\cite{shmoys1993approximation}, if \textbf{P2} is feasible and the optimal objective value is $P^{\star}$, $\hat{u}_{m,v}^{[x+1]}$ satisfies an objective value no larger than $P^{\star}$, while the RB-capacity constraints may be violated by at most a factor of two, i.e., $\sum_{v\in\mathcal{V}^{[x]}}\rev{c_{m,v}^{[x+1]}}\Tilde{k}_{m,v}^{[x+1]}\hat{u}_{m,v}^{[x+1]}\le 2K_m$. We then update \currentdel{$\Tilde{k}_{m}^{[x+1]}=\sum_{v\in\mathcal{V}^{[x]}}\Tilde{k}_{m,v}^{[x+1]}\hat{u}_{m,v}^{[x+1]}$}\rev{$\Tilde{k}_{m}^{[x+1]}=\min\!\left\{K_m,\sum_{v\in\mathcal{V}^{[x]}}\Tilde{k}_{m,v}^{[x+1]}\hat{u}_{m,v}^{[x+1]}\right\}$} and\currentdel{ iterate until $\{\Tilde{k}_{m}^{[x+1]}\}$ converges or the maximum iteration number $N_{\rm iter}$ (set to $3$ in this paper) is reached}\rev{ continue the fixed-point iteration until $N_{\rm iter}$ rounds are completed}. 
 Finally, to strictly satisfy \eqref{prob2:subcarrier cons}, a greedy feasibility-repair reassignment procedure offloads some vehicles from overloaded BSs (if exist) to underloaded BSs with minimum power increase; in the worst case, this reassignment incurs $O(MV^2)$ complexity. Therefore, the computational complexity of GAP-HO is
 $O\!\left(N_{\rm iter}(M\!+\!V)V\log V + MV^2\right)$.
 % where the $\zeta$-scaling contributes at most a small constant factor
@@ -829,7 +827,7 @@ For slot-level RA, we adopt an opportunistic tiered-rounding resource allocation
     \renewcommand{\algorithmicensure}{\textbf{Output:}}
     \begin{algorithmic}[1]
         \REQUIRE
-        $u_{m,v}^{[x]}$, \rev{$s_v^{[x]}(i)$, }$g_{m,v}^{[x]}(i)$, \currentdel{$g_{{\rm I},m',v}^{[x]}(i)$}\currentrev{$\Tilde{G}_{{\rm I},m',v}^{[x]}$}, $\eta_{m,v}^{[x]}(i)$,
+        $u_{m,v}^{[x]}$, \rev{$s_v^{[x]}(i)$, }$g_{m,v}^{[x]}(i)$, \currentdel{$g_{{\rm I},m',v}^{[x]}(i)$}\rev{$\Tilde{G}_{{\rm I},m',v}^{[x]}$}, $\eta_{m,v}^{[x]}(i)$,
         $\Tilde{k}_{m'}^{[x]}$, $q_v^{[x]}(i)$, $K_m$, $B_m$, $\Delta t$,
         $p_m$, $F_m$, $N_0$, $\lambda_v$, \currentdel{$\tau_{\rm th}$}\rev{$\tau_v^{\rm th}$};
         \ENSURE
@@ -852,7 +850,7 @@ For slot-level RA, we adopt an opportunistic tiered-rounding resource allocation
     \end{algorithmic}
 \end{algorithm}
 
-\currentdel{Since the exact inter-cell interference in slot-$i$ is unknown, BS-$m$ approximates the SINR by leveraging the estimated frame-averaged RB usages $\{\Tilde{k}_{m'}^{[x]}\}$ obtained from GAP-HO:}\currentrev{BS-$m$ estimates the slot-level SINR using the measured desired-link gain, the predicted frame-averaged interfering-link gain, and the estimated RB usages obtained from GAP-HO:}
+\currentdel{Since the exact inter-cell interference in slot-$i$ is unknown, BS-$m$ approximates the SINR by leveraging the estimated frame-averaged RB usages $\{\Tilde{k}_{m'}^{[x]}\}$ obtained from GAP-HO:}\rev{BS-$m$ estimates the slot-level SINR using the measured desired-link gain, the predicted frame-averaged interfering-link gain, and the estimated RB usages obtained from GAP-HO:}
 \begin{equation}
 \label{eq:OTR-RA_SINR_hat}
     \widetilde{\mathrm{SINR}}_{m,v}^{[x]}(i)
@@ -860,9 +858,9 @@ For slot-level RA, we adopt an opportunistic tiered-rounding resource allocation
     \frac{p_m g_{m,v}^{[x]}(i)}
          {F_m N_0 B_m
           + \sum\limits_{m'\neq 0,m}
-            \frac{\Tilde{k}_{m'}^{[x]}}{K_\mu}\, p_{m'} \currentdel{\ensuremath{g_{{\rm I},m',v}^{[x]}(i)}}\currentrev{\Tilde{G}_{{\rm I},m',v}^{[x]}}}.
+            \frac{\Tilde{k}_{m'}^{[x]}}{K_\mu}\, p_{m'} \currentdel{\ensuremath{g_{{\rm I},m',v}^{[x]}(i)}}\rev{\Tilde{G}_{{\rm I},m',v}^{[x]}}}.
 \end{equation}
-\currentrev{Here, $\Tilde{G}_{{\rm I},m',v}^{[x]}$ is predicted in frame~$(x-1)$ and used throughout frame-$x$.}
+\rev{Here, $\Tilde{G}_{{\rm I},m',v}^{[x]}$ is predicted in frame~$(x-1)$ and used throughout frame-$x$.}
 The corresponding RB efficiency is
 \begin{equation}
     \label{eq:OTR-RA_RBe}
@@ -955,7 +953,7 @@ The proposed MEET-COBRA framework integrates the above modules into a unified tw
 % and summarized in Alg.~\ref{alg:MEET-COBRA}. 
 Frame-level PHO decisions are computed centrally at the macro BS, while slot-level BF and RA are executed locally at each BS. 
 
-At the beginning of frame-$x$, each vehicle performs local NN inference based on its historical CSI measurements to generate next-frame predictions $\{\Tilde{\mathcal{P}}_{m,v}^{[x+1]}, \Tilde{G}_{m,v}^{[x+1]}, \Tilde{G}_{{\rm I},m,v}^{[x+1]}\}$\currentdel{, which are reported to the macro BS through the control-plane uplink.}\rev{. Each vehicle reports only the top-$M_{\rm P}$ beam-pair indices in descending order of predicted probability and the two gain predictions for each micro BS to the macro BS through the control-plane uplink.} Using these predictions, the macro BS executes GAP-HO to compute the PHO decisions $u_{m,v}^{[x+1]}$ for the next frame. \currentrev{The macro BS also forwards the interfering-link gain predictions and estimated RB usages required by OTR-RA to the corresponding serving BSs before frame-$(x+1)$ begins.}
+At the beginning of frame-$x$, each vehicle performs local NN inference based on its historical CSI measurements to generate next-frame predictions $\{\Tilde{\mathcal{P}}_{m,v}^{[x+1]}, \Tilde{G}_{m,v}^{[x+1]}, \Tilde{G}_{{\rm I},m,v}^{[x+1]}\}$\currentdel{, which are reported to the macro BS through the control-plane uplink.}\rev{. Each vehicle reports only the top-$M_{\rm P}$ beam-pair indices in descending order of predicted probability and the two gain predictions for each micro BS to the macro BS through the control-plane uplink.} Using these predictions, the macro BS executes GAP-HO to compute the PHO decisions $u_{m,v}^{[x+1]}$ for the next frame. \rev{The macro BS also forwards the interfering-link gain predictions and estimated RB usages required by OTR-RA to the corresponding serving BSs before frame-$(x+1)$ begins.}
 
 Within each slot-$i$ of frame-$x$, each micro BS-$m$ first applies PET-BF to probe the predicted top-$M_{\rm P}$ beam-pairs with early termination, thereby obtaining BF vectors $\{{\bm{w}_{\rm T}}_{m,v}^{[x]}(i), {\bm{w}_{\rm R}}_{m,v}^{[x]}(i)\}$ and instantaneous link gains $g_{m,v}^{[x]}(i)$ with limited beam-training overhead $\eta_{m,v}^{[x]}(i)$. 
 After that, each BS applies OTR-RA to prioritize users by their RB efficiency $\Gamma_{m,v}^{[x]}(i)$ and perform queue-aware tiered-rounding to obtain integer RB allocations $k_{m,v}^{[x]}(i)$ under the RB-capacity constraints.
@@ -1029,30 +1027,20 @@ We first describe the simulation setup and parameter configuration, and then pre
 
 
 We consider a $1000~\text{m} \times 1000~\text{m}$ urban HetNet scenario shown in Fig. \ref{fig:simulation scenario}, where one macro BS is deployed at the center $(0,0)$ and four micro BSs are located at $(\pm 300,\pm 300)$~m. The road topology consists of four intersections centered at $(\pm 250,\pm 250)$~m, and each road segment is bidirectional with three lanes per direction. Each micro BS employs a ULA oriented toward the scenario center. All antennas are vertically polarized. \currentdel{Realistic vehicular mobility trajectories are first generated using the SUMO traffic simulator; based on these trajectories, Sionna RT simulator is used to obtain the time-varying MIMO channel matrices between each vehicle and each micro BS, while the large-scale channel gains between vehicles and the macro BS are generated according to the 3GPP TR~38.901 urban macro model~\mbox{\cite{3GPP-TR-38.901}}. Unless otherwise stated, the main simulation parameters are summarized in Table~\mbox{\ref{tab:sim-params}}.}\rev{SUMO generates the vehicle trajectories, which are used by Sionna RT to obtain the time-varying MIMO channel matrices between vehicles and micro BSs. The large-scale channel gains between vehicles and the macro BS are generated using the 3GPP TR~38.901 urban macro model~\cite{3GPP-TR-38.901}.}
-% R2-C1: This specifies the agreed evaluation protocol. Before submission,
-% rerun all schemes and replace Figs. 5--8 and their numerical discussion using
-% directional interference and explicit RB indices; do not mix evaluation models.
-% The numerical range below comes from the completed preliminary comparisons.
-% During the full rerun, collect matched interference and service statistics
-% at every load in {1,3,...,35} Mbps and update this range and the R2-C1 response.
-\currentrev{Micro-BS interference is computed per RB from the channel matrices and actual transmit and receive beams. Given the allocated RB counts, each micro BS independently assigns distinct RB indices uniformly at random. Service rates are summed over RBs, accounting for beam-search overhead and HO interruption. Under identical scheduling decisions, the average gain in~\eqref{eq:mimo_average_gain_interference} combined with the expected RB overlap yields $7.7\%$--$19.7\%$ less aggregate service capacity, indicating an empirically conservative estimate.}
 
-\rev{We sweep the traffic arrival rate $\lambda_v=\lambda$ over $\{1,3,\ldots,35\}$~Mbps and set $\tau_v^{\rm th}=20$~ms for all vehicles.}
+\rev{For the system-level performance comparisons in Section~V-D, we vary the traffic arrival rate $\lambda_v=\lambda$ over $\{1,3,\ldots,35\}$~Mbps and set $\tau_v^{\rm th}=20$~ms for all vehicles.}
+\rev{For all schemes, receive rates are evaluated using actual RB overlaps and the selected transmit and receive beams.}
 \rev{We set $N_{\rm iter}=2$ to balance performance and computational cost, and $\zeta=1.1$ for 10\% increments in the RB capacity bounds when the continuous relaxation of \textbf{P2} is infeasible. We use $M_{\rm P}=5$ to balance coverage of the optimal beam pair against beam search overhead, which occupies at most $\eta M_{\rm P}=8.93\%$ of each slot.}
 \rev{Unless otherwise stated, the simulations use the parameter values listed in Table~\ref{tab:sim-params}.}
 
 \subsection{Performance of ML-Based Prediction}
 
 We evaluate the NN models in Section~\ref{subsection: ML pred} for beam-pair and gain prediction.
-% Before submission: the existing 3.68/2.35 dB interfering-gain MAEs and Fig. 4(b)
-% use max-entry labels, not the uniform beam average in (33). Rebuild the labels,
-% retrain the interfering-gain predictor, update Fig. 4(b), and refresh prediction
-% caches before the full system rerun. Only then describe the corresponding
-% results here as beam-averaged interfering-link gain prediction and its MAE.
-% Evidence: experiment/results/stateful_tbptt_unified_split_20260913/
-% stage2_stateful_tbptt/interfering_gain/metadata.json and the dataset builder.
+% Fig. 4 now uses the retrained beam-average interfering-gain predictor:
+% experiment/results/revision_directional_20260922/fig4_summary.json.
+% The beam and desired-gain histories remain unchanged.
 We set $N_{\rm C}=128$ for the LSTM unit and the vector ResBlock, with $N_{\rm H}=4$ vector ResBlocks per output head.
-\currentdel{The dataset is built from $6000$ frames of Sionna RT–generated channel traces, with about $136$ active vehicles per frame on average. To avoid information leakage, the data samples used for training and validation are taken from non-overlapping time intervals. Each sample consists of the historical CSI of a vehicle over $1\text{-}10$ consecutive frames, together with labels of the optimal beam-pair indices and the corresponding desired-link and interference-link gains for the next frame. The samples are randomly split into training (70\%) and validation (30\%) sets.}\rev{The dataset is built from Sionna RT–generated channel traces spanning $6000$ frames and contains $646{,}747$ labeled samples from $706$ vehicles. Each sample consists of the current-frame CSI of a vehicle, together with labels of the optimal beam-pair indices and the desired-link and interfering-link gains for the next frame. The dataset is randomly partitioned at the vehicle level, with 70\% of the vehicles in the training set and the remaining 30\% in the validation set.
+\currentdel{The dataset is built from $6000$ frames of Sionna RT–generated channel traces, with about $136$ active vehicles per frame on average. To avoid information leakage, the data samples used for training and validation are taken from non-overlapping time intervals. Each sample consists of the historical CSI of a vehicle over $1\text{-}10$ consecutive frames, together with labels of the optimal beam-pair indices and the corresponding desired-link and interference-link gains for the next frame. The samples are randomly split into training (70\%) and validation (30\%) sets.}\rev{The dataset is built from Sionna RT–generated channel traces spanning $6000$ frames and contains $646{,}747$ labeled samples from $706$ vehicles. Each sample consists of the current-frame CSI of a vehicle, together with labels of the optimal beam-pair indices and the desired-link and \rev{beam-averaged }interfering-link gains for the next frame. The dataset is randomly partitioned at the vehicle level, with 70\% of the vehicles in the training set and the remaining 30\% in the validation set.
 %This vehicle-level split is fixed for both training stages.
 }
 
@@ -1060,7 +1048,8 @@ We set $N_{\rm C}=128$ for the LSTM unit and the vector ResBlock, with $N_{\rm H
 In the second stage, the models are initialized from the best first-stage checkpoints for stateful fine-tuning. This stage uses an initial learning rate of $10^{-4}$ and truncated backpropagation through time~\cite{williams1990tbptt} with a truncation length of ten frames.
 Recurrent states $\bm{h}_v$ and $\bm{c}_v$ are carried across frames and reset only at the start of a new trajectory. 
 Both training and validation use finite input windows in the first stage and process samples in time order along each vehicle trajectory in the second. In both stages, the beam checkpoint is selected by the highest top-1 validation accuracy and each gain checkpoint by the lowest validation MAE. The selected second-stage checkpoints are used in all subsequent evaluations.}
-% Revision TODO: Regenerate Figs. 5--8 using these fixed Stage-II checkpoints with stateful inference before submission; see experiment/unified_vehicle_split_training_report.md.
+% Revision TODO: Regenerate Figs. 5--8 with stateful inference using the selected
+% model bundle in experiment/results/revision_directional_20260922/selected_models.
 
 
 \begin{figure}[htbp]
@@ -1081,7 +1070,7 @@ Both training and validation use finite input windows in the first stage and pro
 Fig.~\ref{fig:nn-train} illustrates the training and validation performance of the beam and gain prediction models.
 \currentdel{For the beam prediction model, the top-1 accuracy on the validation set converges to about $89.7\%$, while the top-3 accuracy reaches approximately $98.9\%$, with a small gap between the training and validation curves, indicating good generalization.}\rev{Stateful fine-tuning increases the best top-1 validation accuracy of beam prediction from $86.68\%$ to $89.16\%$ and achieves a best top-3 validation accuracy of $98.65\%$.}
 \currentdel{Besides, we also evaluate the top-$M_{\rm P}$ reliability of the beam prediction, which exceeds $99\%$ for $M_{\rm P} \geq 4$ and $99.9\%$ for $M_{\rm P} \geq 18$, implying that the optimal beam-pair is almost always contained in a short candidate list.}\rev{For the selected beam checkpoint, the validation top-$M_{\rm P}$ accuracy exceeds $99\%$ for $M_{\rm P} \geq 4$ and $99.9\%$ for $M_{\rm P} \geq 17$, indicating that a short candidate list contains the optimal beam pair with high probability.}
-\currentdel{For the gain prediction models, the validation mean absolute error (MAE) stabilizes around $4.1$~dB for the optimal desired-link gain and $3.2$~dB for the interference-link gain, and the training/validation curves nearly overlap.}\rev{Stateful fine-tuning also reduces the best validation MAEs of desired-link and interfering-link gain prediction from $4.79$ and $3.68$~dB to $3.11$ and $2.35$~dB, respectively.}
+\currentdel{For the gain prediction models, the validation mean absolute error (MAE) stabilizes around $4.1$~dB for the optimal desired-link gain and $3.2$~dB for the interference-link gain, and the training/validation curves nearly overlap.}\rev{Stateful fine-tuning also reduces the best validation MAEs of desired-link and \rev{beam-averaged }interfering-link gain prediction from $4.79$ and \rev{$3.85$}~dB to $3.11$ and \rev{$2.51$}~dB, respectively.}
 \currentdel{These results confirm that the NN models provide sufficiently accurate beam and gain predictions to support MEET-COBRA.}\rev{These results show improved beam and gain prediction after stateful fine-tuning. The impact of the prediction errors on MEET-COBRA is assessed in the subsequent system-level evaluation.}
 
 \begin{table}[tbp]
@@ -1105,7 +1094,7 @@ Fig.~\ref{fig:nn-train} illustrates the training and validation performance of t
 \end{table}
 
 \rev{Table~\ref{tab:nn-overhead} summarizes the NN parameter counts and matrix FLOPs for single-vehicle stateful inference using the current-frame CSI and recurrent states. The three models require 8.51~MB of 32-bit floating-point (FP32) parameter storage. With FP32 inference on an AMD EPYC 
-7742 CPU using one thread, their combined inference latency has a median of 5.33 ms and a 95th percentile of 5.74 ms.}
+7742 CPU using one thread, their combined inference latency has a median of \rev{5.38} ms and a 95th percentile of \rev{5.72} ms.}
 
 \rev{With $M=4$, $M_{\rm P}=5$, and $M_{\rm T}M_{\rm R}=256$, each vehicle reports, for each micro-BS link, $M_{\rm P}$ beam-pair indices in descending order of predicted probability, using 8 bits per index, together with one FP32 desired-link gain and one FP32 interfering-link gain. The resulting payload is $M(8M_{\rm P}+2\times32)=416$ bits per vehicle per frame (4.16~kbps). At the same reporting interval and 32-bit precision per real CSI component, this reduces the uplink payload by factors of 157.5 and 9.85 relative to full MIMO-CSI reporting and centralized inference using current-frame superposed-pilot observations, respectively.}
 
@@ -1124,98 +1113,115 @@ To assess the performance of MEET-COBRA, we compare it with the following benchm
 \textbf{1) Oracle-MC:} MEET-COBRA with perfect beam and gain knowledge, where all ML predictions are replaced by their ground-truth values from the simulator. It quantifies the performance loss due to prediction errors.
 
 %\textbf{2) Oracle-CR-LB:} Assuming perfect CSI and beam knowledge, this benchmark solves the continuous relaxation of \textbf{P2} by relaxing the binary association variables $u_{m,v}^{[x+1]} \in \{0,1\}$ to continuous variables in $[0,1]$. The optimal objective value of the relaxed problem provides a theoretical lower bound on the minimum system transmit power required to satisfy the latency constraint. If the relaxed problem is infeasible, the system transmit power is set to the maximum value corresponding to the full RB utilization of all BSs. As the relaxed solution is generally not implementable, Oracle-CR-LB is used only as a power lower bound and no meaningful latency constraint violation probability is reported for this scheme.
-\textbf{2) Oracle-CR-LB:} A non-implementable power lower bound obtained by solving the continuous relaxation of \textbf{P2} (i.e., relaxing $u^{[x+1]}_{m,v}\in\{0,1\}$ to $[0,1]$) with perfect beam and gain knowledge. If the relaxed problem is infeasible, the full-load power ceiling is reported. No latency metric is reported for this unrealistic scheme.
+\textbf{2) Oracle-CR-LB:} \currentdel{A non-implementable power lower bound obtained by solving the continuous relaxation of \textbf{P2} (i.e., relaxing $u^{[x+1]}_{m,v}\in\{0,1\}$ to $[0,1]$) with perfect beam and gain knowledge.}\currentrev{A power reference obtained by relaxing $u^{[x+1]}_{m,v}\in\{0,1\}$ to $[0,1]$ in the final \textbf{P2} instance of each Oracle-MC frame. It bounds that fixed assignment problem, not the realized power under directional interference and evolving queues.} If the relaxed problem is infeasible, the full-load power ceiling is reported. No latency metric is reported for this \currentdel{unrealistic scheme}\currentrev{reference}.
 
 %\textbf{3) Reactive-OBRA:} This scheme corresponds to a reactive HetNet baseline without ML-based prediction or proactive coordination among HO, BF, and RA. In this scheme, HO follows a load-aware and channel-quality-driven rule in HetNets~\cite{Alexandris2016LoadAwareHO}: each vehicle associates with the micro BS offering the largest received signal strength (RSS), and falls back to the macro BS when that micro BS is overloaded. BF follows a low-complexity, random opportunistic search baseline inspired by~\cite{Aykin2020}: whenever a vehicle hands over to a new micro BS, the BS randomly probes $M_{\rm P}$ beam-pairs and selects the one with the highest measured gain; in subsequent slots, it keeps probing random candidates and updates the serving beam-pair only if a better one is found. For RA, each BS assumes all interfering micro BSs operate at full load when estimating RB efficiency, and obtains integer RB allocations via stochastic rounding.
-\textbf{3) Reactive-OBRA:} A reactive HetNet baseline without ML prediction or proactive coordination. HO is received signal strength (RSS)-based. When the serving BS is overloaded, users are offloaded to the nearest available BS~\cite{Alexandris2016LoadAwareHO}. BF uses a random opportunistic search inspired by~\cite{Aykin2020}: after HO it probes $M_{\rm P}$ beam-pairs and keeps randomly probing thereafter, updating the serving beam only when a better one is found. RA estimates RB efficiency assuming full-load interfering micro BSs and applies stochastic rounding for integer RB allocation.
+\textbf{3) Reactive-OBRA:} A reactive HetNet baseline without ML prediction or proactive coordination. \currentdel{HO is received signal strength (RSS)-based. When the serving BS is overloaded, users are offloaded to the nearest available BS~\mbox{\cite{Alexandris2016LoadAwareHO}}.}\currentrev{Using current channel gains, it assigns vehicles sequentially to the BS with the lowest estimated transmit power cost among those with sufficient remaining RB capacity, falling back to the macro BS if none is available.} BF uses a random opportunistic search inspired by~\cite{Aykin2020}: after HO it probes $M_{\rm P}$ beam-pairs and keeps randomly probing thereafter, updating the serving beam only when a better one is found. RA estimates RB efficiency assuming full-load interfering micro BSs and applies stochastic rounding for integer RB allocation.
 
 
 %\textbf{4) Ablation variants of MEET-COBRA:} We also consider three ablation schemes, denoted {w/o GAP-HO}, {w/o PET-BF}, and {w/o OTR-RA}. In each scheme, one of the HO, BF, or RA modules in MEET-COBRA is replaced by its counterpart in Reactive-OBRA, while the other two modules remain unchanged. These variants isolate the individual contributions of GAP-HO, PET-BF, and OTR-RA to the overall performance of MEET-COBRA.
 \textbf{4) Ablations:} \emph{w/o GAP-HO}, \emph{w/o PET-BF}, and \emph{w/o OTR-RA}, where the corresponding module in MEET-COBRA is replaced by its Reactive-OBRA counterpart, while keeping the other two modules unchanged.
 
-\currentrev{\textbf{5) O-MAPPO-adapted:} A learning-based joint HO and BF baseline adapted from~\cite{wang2024joint}. Each vehicle uses a shared policy trained by multi-agent proximal policy optimization to decide whether to trigger HO based on link quality, queue length, and BS load information. A joint optimizer then assigns the triggered vehicles to target BSs and selects their beam pairs using estimated RB demands and BS capacities. Our implementation uses exhaustive DFT beam search when switching to a micro BS, local beam tracking otherwise, and OTR-RA for slot-level RA.}
+\currentrev{\textbf{5) O-MAPPO-adapted:} A reinforcement learning-based adaptation of~\cite{wang2024joint}, retaining learned HO triggering followed by target BS optimization. A shared policy trained using multi-agent proximal policy optimization decides whether to trigger HO every 10~m of vehicle movement. For vehicles with active triggers, we adapt a mixed-integer optimizer to incorporate RB demands, BS loads, transmit power costs, and penalties for estimated demand above BS capacity. Decisions use current-frame ground-truth CSI rather than predictions and take effect in the next frame; additional CSI acquisition costs are not charged. At execution, BF selects the strongest DFT pair upon HO to a micro BS, or searches the current pair and adjacent transmit and receive beam indices ($3\times3$ pairs) when the decision is to retain the serving BS. Beam gains are computed directly from ground-truth CSI, with equivalent probing overhead charged. The 256-pair sweep overhead is spread over five slots after HO interruption.}
 
-\currentrev{\textbf{6) MTS-GS-HBF-adapted:} An optimization-based joint HO and BF baseline adapted from~\cite{heydarian2025multitimescale}. It periodically updates BS-vehicle associations through Gale--Shapley matching. Vehicles rank candidate BSs by link rate, load, and energy cost, while BSs prioritize vehicles according to queue urgency and estimated RB demand. The matching accounts for per-BS RB capacities. To fit our system model, the original hybrid BF is replaced by periodic DFT beam-pair search and local tracking between searches, and slot-level RA uses OTR-RA.}
+\currentrev{\textbf{6) MTS-GS-HBF-adapted:} An optimization-based adaptation of~\cite{heydarian2025multitimescale}, retaining Gale--Shapley association matching and separate timescales for association and BF. It uses the same prediction reports as MEET-COBRA. To preserve the timescale separation, we set the association and BF update periods to five frames and one frame, respectively. We adapt the matching preferences using queue-dependent weighted scores for predicted rate, BS load, energy and HO costs, and queue urgency, with admission based on RB demands and capacities. Energy cost enters these preferences rather than an explicit system power objective as in GAP-HO. The original hybrid BF is replaced by probing the $M_{\rm P}$ reported DFT beam pairs on each serving micro-BS link and retaining the strongest measured pair for the frame, unlike PET-BF's slot-level search.}
+
+\currentrev{Both adapted baselines use OTR-RA for slot-level RA under the physical BS RB capacity limits. Their service rates account for the respective beam-search overheads and the same HO interruption model as MEET-COBRA.}
 
 \subsection{Performance Comparison}
 
-This subsection compares MEET-COBRA with all benchmark schemes under the same mobility traces and traffic statistics. For each simulation setting, we run the system for a $30$~s horizon (i.e., $300$ frames) and report metrics time-averaged over this horizon.
+% Submitted text is retained only as deletion markup, not as an intermediate draft.
+\ifshowdeletions
+\currentdel{This subsection compares MEET-COBRA with all benchmark schemes under the same mobility traces and traffic statistics. For each simulation setting, we run the system for a $30$~s horizon (i.e., $300$ frames) and report metrics time-averaged over this horizon.}
+
+\currentdel{Fig.~\mbox{\ref{fig:power_comparison_curves}} and Fig.~\mbox{\ref{fig:violation_prob_comparison_curves}} compares the average system transmit power $\bar{P}$ and the latency constraint violation probability $U$ under different data arrival rates $\lambda$ (with $M_{\rm P}=5$ and other parameters in Table~\mbox{\ref{tab:sim-params}}).
+To facilitate interpretation, we partition the network load into three regimes using $\lambda=20$ and $30$~Mbps as coarse thresholds, and summarize the key observations as follows:}
+
+\currentdel{\emph{Light-load regime ($\lambda<20$~Mbps):}
+    $\bar{P}$ increases approximately linearly with $\lambda$ and latency violations are negligible.
+    For instance, at $\lambda=19$~Mbps, MEET-COBRA achieves $\bar{P}=44.38$~W with $U=0.34\%$, approaching Oracle-MC ($40.86$~W), which indicates only a marginal performance loss due to NN prediction errors.
+    Moreover, Oracle-MC nearly coincides with Oracle-CR-LB in this regime, suggesting that, when perfect CSI/beam knowledge eliminates the prediction errors, the resulting performance is close to the theoretical power lower bound; this shows the near-optimality of the proposed MEET-COBRA framework under light loads.}
+
+\currentdel{\emph{Medium-load regime ($20\le\lambda<30$~Mbps):}
+    RB-capacity constraints become active for some micro BSs and load imbalance emerges. GAP-HO performs global BS-vehicle association optimization, thereby balancing per-BS RB usage and maintaining low $\bar{P}$ and $U$. For example, at $\lambda=27$~Mbps, MEET-COBRA achieves $(\bar{P},U)=(125.82~\text{W},0.68\%)$, whereas Reactive-OBRA already reaches the RB-capacity-imposed power ceiling (about $185.4$~W) and suffers a much higher $U=29.47\%$.
+    Moreover, Fig.~\mbox{\ref{fig:violation_prob_comparison_curves}} exhibits a non-monotonic behavior of $U$ in this regime, where several curves (especially MEET-COBRA, w/o OTR-RA, and w/o PET-BF) temporarily flatten or slightly decrease before rising again. This mainly stems from GAP-HO offloading vehicles from some RB-limited micro BSs to the macro BS, thereby reducing network congestion and inter-cell interference.}
+
+\currentdel{\emph{Heavy-load regime ($\lambda\ge 30$~Mbps):}
+    The network approaches full RB utilization and $\bar{P}$ saturates around the power ceiling, while $U$ increases rapidly as the offered load exceeds the service capability.  At $\lambda=33$~Mbps, MEET-COBRA reaches $\bar{P}=185.4$~W with $U=26.08\%$, whereas Reactive-OBRA exhibits a substantially higher violation probability ($U=50.86\%$).}
+
+\currentdel{The ablation results further reveal the distinct roles of GAP-HO, PET-BF, and OTR-RA across different network load states.
+Under light loads, {w/o GAP-HO} almost overlaps with MEET-COBRA, suggesting that the near-optimal association is essentially to connect each vehicle to its best micro BS when the RB budgets of micro BSs are sufficient.
+As the load increases, the performance loss of {w/o GAP-HO} grows rapidly and eventually becomes the most dominant among all ablation schemes, showing that global association optimization is crucial for load balancing once RB-capacity constraints become active.
+Moreover, among the three ablation schemes, {w/o OTR-RA} causes the largest power increase for $\lambda<10$~Mbps, since conservative interference estimation (assuming full RB utilization for all interfering BSs) and stochastic rounding for RB allocation can lead to substantial resource wastage when the network is lightly loaded, whereas OTR-RA mitigates such wastage via more accurate interference estimation and queue-aware tiered-rounding.
+Besides, {w/o PET-BF} degrades network performance across all load regimes, since both BF gain and beam-training overhead continuously impact link efficiency. PET-BF uses NN predictions with early termination to improve the BF gain while reducing training overhead, yielding consistent improvements irrespective of the traffic load.}
+
+\currentdel{Fig.~\mbox{\ref{fig:latency_90th_99th_comparison_curves}} reports the 90th/99th-percentile user latency, denoted by $L_{90}$/$L_{99}$,
+and Fig.~\mbox{\ref{fig:BS0_assoc_ratio_comparison_curves}} reports the macro-BS association ratio $\rho_{0}$ (in \%), i.e., the percentage of vehicles associated with BS-0.}
+
+\currentdel{Under light loads, all schemes exhibit small $L_{90}$/$L_{99}$ and almost zero $\rho_{0}$ (e.g., MEET-COBRA achieves $\rho_{0}=0.03\%$ at $\lambda=19$~Mbps),
+which is consistent with the observation that the RB budgets of each BS are sufficient and most vehicles can be served by favorable micro-BS links.}
+
+\currentdel{As the load increases, the tail-latency behavior starts to differentiate and aligns well with the violation probability trends in Fig.~\mbox{\ref{fig:violation_prob_comparison_curves}}.
+A salient metric is the first $\lambda$ at which $L_{99}$ exceeds the latency threshold $\tau_{\rm th}=20$~ms:
+it occurs at $\lambda=29$~Mbps for MEET-COBRA,
+whereas it happens much earlier for Reactive-OBRA ($\lambda=15$~Mbps), {w/o OTR-RA} ($\lambda=17$~Mbps), {w/o GAP-HO} ($\lambda=21$~Mbps), and {w/o PET-BF} ($\lambda=23$~Mbps).
+This confirms that MEET-COBRA significantly delays the onset of tail latency degradation.}
+
+\currentdel{Fig.~\mbox{\ref{fig:BS0_assoc_ratio_comparison_curves}} provides interpretable evidence on how each scheme redistributes load. At $\lambda=29$~Mbps, MEET-COBRA maintains a moderate macro-BS association ratio $\rho_{0}=16.50\%$ with only a mild tail-latency exceedance ($L_{99}=26.76$~ms, $U=1.14\%$). By contrast, Reactive-OBRA exhibits a much higher $\rho_{0}=35.18\%$ with a tail-latency collapse ($L_{99}=1.55\times 10^{4}$~ms, $U=37.46\%$), while w/o GAP-HO increases $\rho_{0}$ to $25.75\%$ and enlarges $L_{99}$ to $4.91\times 10^{3}$~ms with $U=18.54\%$.
+Moreover, the mild non-monotonicity of $L_{99}$ in the medium-load regime in Fig.~\mbox{\ref{fig:latency_90th_99th_comparison_curves}} is similar to that of $U$ in Fig.~\mbox{\ref{fig:violation_prob_comparison_curves}}, which coincides with the initial rise of $\rho_0$ in Fig.~\mbox{\ref{fig:BS0_assoc_ratio_comparison_curves}}.
+These results demonstrate that the globally optimized PHO of GAP-HO effectively balances network load under RB-capacity constraints, thereby delaying congestion build-up and mitigating extreme-tail latency.}
+
+\currentdel{Finally, the joint use of Fig.~\mbox{\ref{fig:latency_90th_99th_comparison_curves}} and Fig.~\mbox{\ref{fig:BS0_assoc_ratio_comparison_curves}} helps disentangle the roles of PET-BF and OTR-RA {beyond} association decisions.
+At $\lambda=29$~Mbps, {w/o PET-BF} and {w/o OTR-RA} have $\rho_{0}$ comparable to MEET-COBRA (18.88\% and 18.16\% versus 16.50\%), yet their tail latency is much worse ($L_{99}=5.71\times 10^{2}$~ms and $2.64\times 10^{2}$~ms, respectively).
+Notably, {w/o PET-BF} also enlarges $L_{90}$ to 35.96~ms, indicating a latency performance degradation due to inefficient beam search without prediction-assisted candidate reduction and early termination,
+whereas {w/o OTR-RA} keeps $L_{90}$ close to MEET-COBRA (2.14~ms versus 2.19~ms) but significantly enlarges $L_{99}$, suggesting that queue-aware tiered rounding mainly protects urgent users and mitigates extreme-tail violations.}
+\fi
+
+\currentrev{We compare all schemes over the same $30$~s mobility trace using three random seeds, with traffic realizations paired across schemes. The first two PHO frames are excluded from the statistics. Curves show the mean of the three runs, and shaded bands span their minimum and maximum values. Within each run, $L_{90}$ and $L_{99}$ are the 90th and 99th percentiles of the queueing-delay proxy $q_v(n)/\lambda_v$ over vehicle-slot samples.}
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.95\columnwidth]{figures/power_comparison_curves.pdf}
-    \caption{Average system transmit power $\bar{P}$ versus the data arrival rate $\lambda$, where $\lambda$ is swept over $\{1,3,\ldots,35\}$~Mbps with $M_{\rm P}=5$ and other parameters given in Table~\ref{tab:sim-params}.}
+    \includegraphics[width=\columnwidth]{figures/power_comparison_curves_revision1.pdf}
+    \caption{\currentdel{Average system transmit power $\bar{P}$ versus the data arrival rate $\lambda$, where $\lambda$ is swept over $\{1,3,\ldots,35\}$~Mbps with $M_{\rm P}=5$ and other parameters given in Table~\mbox{\ref{tab:sim-params}}.}\currentrev{Average system transmit power versus arrival rate. Oracle-CR-LB is a conditional \textbf{P2} reference; crosses mark loads with infeasible instances replaced by the power ceiling.}}
     \label{fig:power_comparison_curves}
 \end{figure}
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.95\columnwidth]{figures/violation_prob_comparison_curves.pdf}
-    \caption{Latency constraint violation probability $U$ versus the data arrival rate $\lambda$, where $\lambda$ is swept over $\{1,3,\ldots,35\}$~Mbps with $M_{\rm P}=5$ and other parameters given in Table~\ref{tab:sim-params}.}
+    \includegraphics[width=\columnwidth]{figures/violation_prob_comparison_curves_revision1.pdf}
+    \caption{\currentdel{Latency constraint violation probability $U$ versus the data arrival rate $\lambda$, where $\lambda$ is swept over $\{1,3,\ldots,35\}$~Mbps with $M_{\rm P}=5$ and other parameters given in Table~\mbox{\ref{tab:sim-params}}.}\currentrev{Latency constraint violation probability versus arrival rate. The vertical scale is linear below $0.01\%$ and logarithmic above it, preserving zero observed violations.}}
     \label{fig:violation_prob_comparison_curves}
 \end{figure}
 
-Fig.~\ref{fig:power_comparison_curves} and Fig.~\ref{fig:violation_prob_comparison_curves} compares the average system transmit power $\bar{P}$ and the latency constraint violation probability $U$ under different data arrival rates $\lambda$ (with $M_{\rm P}=5$ and other parameters in Table~\ref{tab:sim-params}).
-To facilitate interpretation, we partition the network load into three regimes using $\lambda=20$ and $30$~Mbps as coarse thresholds, and summarize the key observations as follows:
-\begin{enumerate}
-    \item \emph{Light-load regime ($\lambda<20$~Mbps):} 
-    $\bar{P}$ increases approximately linearly with $\lambda$ and latency violations are negligible. 
-    For instance, at $\lambda=19$~Mbps, MEET-COBRA achieves $\bar{P}=44.38$~W with $U=0.34\%$, approaching Oracle-MC ($40.86$~W), which indicates only a marginal performance loss due to NN prediction errors. 
-    Moreover, Oracle-MC nearly coincides with Oracle-CR-LB in this regime, suggesting that, when perfect CSI/beam knowledge eliminates the prediction errors, the resulting performance is close to the theoretical power lower bound; this shows the near-optimality of the proposed MEET-COBRA framework under light loads.    
+\currentrev{Figs.~\ref{fig:power_comparison_curves} and~\ref{fig:violation_prob_comparison_curves} show the power and latency performance across traffic loads. At $\lambda=19$~Mbps, MEET-COBRA uses $33.80$~W with $U=0.24\%$, compared with $30.71$~W and $0.013\%$ for Oracle-MC. These differences quantify the performance loss due to prediction errors at this load. At $27$~Mbps, MEET-COBRA uses $95.03$~W with $U=0.16\%$, whereas Reactive-OBRA uses $185.39$~W with $U=9.84\%$. This corresponds to a $48.7\%$ reduction in transmit power. At the highest evaluated load of $35$~Mbps, MEET-COBRA still achieves a lower violation probability of $1.15\%$, compared with $34.46\%$ for Reactive-OBRA, although its power rises to $175.80$~W.}
 
-    \item \emph{Medium-load regime ($20\le\lambda<30$~Mbps):} 
-    RB-capacity constraints become active for some micro BSs and load imbalance emerges. GAP-HO performs global BS-vehicle association optimization, thereby balancing per-BS RB usage and maintaining low $\bar{P}$ and $U$. For example, at $\lambda=27$~Mbps, MEET-COBRA achieves $(\bar{P},U)=(125.82~\text{W},0.68\%)$, whereas Reactive-OBRA already reaches the RB-capacity-imposed power ceiling (about $185.4$~W) and suffers a much higher $U=29.47\%$.
-    Moreover, Fig.~\ref{fig:violation_prob_comparison_curves} exhibits a non-monotonic behavior of $U$ in this regime, where several curves (especially MEET-COBRA, w/o OTR-RA, and w/o PET-BF) temporarily flatten or slightly decrease before rising again. This mainly stems from GAP-HO offloading vehicles from some RB-limited micro BSs to the macro BS, thereby reducing network congestion and inter-cell interference.
+\currentrev{The two added baselines reveal different power and latency tradeoffs. At $27$~Mbps, O-MAPPO-adapted uses $139.46$~W with $U=7.95\%$, despite access to true channel information for its decisions. MEET-COBRA reduces its power by $31.9\%$ while achieving fewer violations. MTS-GS-HBF-adapted, which uses the same prediction reports as MEET-COBRA, is more competitive. At $23$~Mbps, it uses $56.62$~W with $U=0.30\%$, compared with $46.17$~W and $0.24\%$ for MEET-COBRA. However, at $29$~Mbps, MTS-GS-HBF-adapted uses less power ($109.01$ versus $127.75$~W), but has a higher violation probability ($0.60\%$ versus $0.19\%$). MEET-COBRA thus does not uniformly minimize both metrics relative to this baseline. Its advantage at higher loads is maintaining fewer latency violations.}
 
-    \item \emph{Heavy-load regime ($\lambda\ge 30$~Mbps):} 
-    The network approaches full RB utilization and $\bar{P}$ saturates around the power ceiling, while $U$ increases rapidly as the offered load exceeds the service capability.  At $\lambda=33$~Mbps, MEET-COBRA reaches $\bar{P}=185.4$~W with $U=26.08\%$, whereas Reactive-OBRA exhibits a substantially higher violation probability ($U=50.86\%$).
-\end{enumerate}
+\currentrev{The ablations identify the roles of the three optimization modules. Under light loads, removing GAP-HO has little effect on power, whereas removing OTR-RA produces the largest power increase among the ablations. At $7$~Mbps, w/o OTR-RA uses $21.92$~W, compared with $13.95$~W for MEET-COBRA, reflecting the resource cost of conservative interference estimates and stochastic rounding. As the load increases, global association coordination becomes more important. At $27$~Mbps, w/o GAP-HO requires $179.27$~W with $U=5.67\%$. The roles of PET-BF and OTR-RA are also apparent at $33$~Mbps, where their removal increases $U$ from $0.52\%$ to $1.17\%$ and $4.40\%$, respectively.}
 
-The ablation results further reveal the distinct roles of GAP-HO, PET-BF, and OTR-RA across different network load states.
-Under light loads, {w/o GAP-HO} almost overlaps with MEET-COBRA, suggesting that the near-optimal association is essentially to connect each vehicle to its best micro BS when the RB budgets of micro BSs are sufficient. 
-As the load increases, the performance loss of {w/o GAP-HO} grows rapidly and eventually becomes the most dominant among all ablation schemes, showing that global association optimization is crucial for load balancing once RB-capacity constraints become active.
-Moreover, among the three ablation schemes, {w/o OTR-RA} causes the largest power increase for $\lambda<10$~Mbps, since conservative interference estimation (assuming full RB utilization for all interfering BSs) and stochastic rounding for RB allocation can lead to substantial resource wastage when the network is lightly loaded, whereas OTR-RA mitigates such wastage via more accurate interference estimation and queue-aware tiered-rounding.
-Besides, {w/o PET-BF} degrades network performance across all load regimes, since both BF gain and beam-training overhead continuously impact link efficiency. PET-BF uses NN predictions with early termination to improve the BF gain while reducing training overhead, yielding consistent improvements irrespective of the traffic load.
-
-
-% R2-C2 follow-up: reconcile the legacy percentile postprocessing with q_v/lambda_v
-% before revising Fig. 7, its labels, or the numerical discussion below.
-% The historical notebook uses a saved common denominator and adds one slot.
-\begin{figure}[t]
+\begin{figure*}[t]
     \centering
-    \includegraphics[width=0.95\columnwidth]{figures/latency_90th_99th_comparison_curves.pdf}
-    \caption{The 90th- and 99th-percentile user latency versus the data arrival rate $\lambda$, where the horizontal dashed line denotes the latency threshold \currentdel{$\tau_{\rm th}=20$}\rev{$\tau_v^{\rm th}=20$}~ms.}
+    \subfloat[\currentrev{90th percentile.}]{%
+        \includegraphics[width=0.49\textwidth]{figures/latency_90th_comparison_curves_revision1.pdf}%
+        \label{fig:latency_90th_comparison_curves}}
+    \hfill
+    \subfloat[\currentrev{99th percentile.}]{%
+        \includegraphics[width=0.49\textwidth]{figures/latency_99th_comparison_curves_revision1.pdf}%
+        \label{fig:latency_99th_comparison_curves}}
+    \caption{\currentdel{The 90th- and 99th-percentile user latency versus the data arrival rate $\lambda$, where the horizontal dashed line denotes the latency threshold $\tau_{\rm th}=20$~ms.}\currentrev{Percentiles of the queueing-delay proxy versus arrival rate, shown separately for $L_{90}$ and $L_{99}$. Dashed horizontal lines denote the common latency threshold $\tau_v^{\rm th}=20$~ms.}}
     \label{fig:latency_90th_99th_comparison_curves}
-\end{figure}
+\end{figure*}
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.95\columnwidth]{figures/BS0_assoc_ratio_comparison_curves.pdf}
+    \includegraphics[width=\columnwidth]{figures/BS0_assoc_ratio_comparison_curves_revision1.pdf}
     \caption{Percentage of vehicles associated with the macro BS (BS-0) versus the data arrival rate $\lambda$.}
     \label{fig:BS0_assoc_ratio_comparison_curves}
 \end{figure}
 
-%To further interpret the QoS behavior, 
-Fig.~\ref{fig:latency_90th_99th_comparison_curves} reports the \currentdel{90th/99th-percentile user latency}\rev{90th- and 99th-percentile user latencies}, denoted by \currentdel{$L_{90}$/$L_{99}$}\rev{$L_{90}$ and $L_{99}$}, 
-and Fig.~\ref{fig:BS0_assoc_ratio_comparison_curves} reports the macro-BS association ratio $\rho_{0}$ (in \%), i.e., the percentage of vehicles associated with BS-0.
-%
-Under light loads, all schemes exhibit small \currentdel{$L_{90}$/$L_{99}$}\rev{$L_{90}$ and $L_{99}$} and almost zero $\rho_{0}$ (e.g., MEET-COBRA achieves $\rho_{0}=0.03\%$ at $\lambda=19$~Mbps), 
-which is consistent with the observation that the RB budgets of each BS are sufficient and most vehicles can be served by favorable micro-BS links.
+\currentrev{Fig.~\ref{fig:latency_90th_99th_comparison_curves} separates the two latency percentiles to make the tail behavior visible. The mean $L_{99}$ first exceeds $20$~ms at $35$~Mbps for MEET-COBRA, compared with $19$~Mbps for Reactive-OBRA, $21$~Mbps for O-MAPPO-adapted, $25$~Mbps for w/o GAP-HO, and $33$~Mbps for MTS-GS-HBF-adapted and the other two ablations. Oracle-MC remains below this threshold throughout the evaluated range. At $33$~Mbps, MEET-COBRA and MTS-GS-HBF-adapted have similar $L_{90}$ values ($1.24$ and $1.27$~ms), but their $L_{99}$ values differ substantially ($5.00$ and $33.54$~ms). The 90th percentile alone therefore does not reveal the deterioration in the extreme tail.}
 
-As the load increases, the tail-latency behavior starts to differentiate and aligns well with the violation probability trends in Fig.~\ref{fig:violation_prob_comparison_curves}.
-A salient metric is the first $\lambda$ at which $L_{99}$ exceeds the latency threshold \currentdel{$\tau_{\rm th}=20$}\rev{$\tau_v^{\rm th}=20$}~ms\currentdel{:}\rev{.}\currentdel{\space it}\rev{\space It} occurs at $\lambda=29$~Mbps for MEET-COBRA, 
-whereas it happens much earlier for Reactive-OBRA ($\lambda=15$~Mbps), {w/o OTR-RA} ($\lambda=17$~Mbps), {w/o GAP-HO} ($\lambda=21$~Mbps), and {w/o PET-BF} ($\lambda=23$~Mbps).
-This confirms that MEET-COBRA significantly delays the onset of tail latency degradation.
-
-Fig.~\ref{fig:BS0_assoc_ratio_comparison_curves} provides interpretable evidence on how each scheme redistributes load. At $\lambda=29$~Mbps, MEET-COBRA maintains a moderate macro-BS association ratio $\rho_{0}=16.50\%$ with only a mild tail-latency exceedance ($L_{99}=26.76$~ms, $U=1.14\%$). By contrast, Reactive-OBRA exhibits a much higher $\rho_{0}=35.18\%$ with a tail-latency collapse ($L_{99}=1.55\times 10^{4}$~ms, $U=37.46\%$), while w/o GAP-HO increases $\rho_{0}$ to $25.75\%$ and enlarges $L_{99}$ to $4.91\times 10^{3}$~ms with $U=18.54\%$. 
-Moreover, the mild non-monotonicity of $L_{99}$ in the medium-load regime in Fig.~\ref{fig:latency_90th_99th_comparison_curves} is similar to that of $U$ in Fig.~\ref{fig:violation_prob_comparison_curves}, which coincides with the initial rise of $\rho_0$ in Fig.~\ref{fig:BS0_assoc_ratio_comparison_curves}. 
-These results demonstrate that the globally optimized PHO of GAP-HO effectively balances network load under RB-capacity constraints, thereby delaying congestion build-up and mitigating extreme-tail latency.
-
-
-Finally, the joint use of Fig.~\ref{fig:latency_90th_99th_comparison_curves} and Fig.~\ref{fig:BS0_assoc_ratio_comparison_curves} helps disentangle the roles of PET-BF and OTR-RA {beyond} association decisions.
-At $\lambda=29$~Mbps, {w/o PET-BF} and {w/o OTR-RA} have $\rho_{0}$ comparable to MEET-COBRA (18.88\% and 18.16\% versus 16.50\%), yet their tail latency is much worse ($L_{99}=5.71\times 10^{2}$~ms and $2.64\times 10^{2}$~ms, respectively).
-Notably, {w/o PET-BF} also enlarges $L_{90}$ to 35.96~ms, indicating a latency performance degradation due to inefficient beam search without prediction-assisted candidate reduction and early termination,
-whereas {w/o OTR-RA} keeps $L_{90}$ close to MEET-COBRA (2.14~ms versus 2.19~ms) but significantly enlarges $L_{99}$, suggesting that queue-aware tiered rounding mainly protects urgent users and mitigates extreme-tail violations.
+\currentrev{The macro-BS association ratios in Fig.~\ref{fig:BS0_assoc_ratio_comparison_curves} help interpret these results. At $29$~Mbps, MEET-COBRA associates $13.61\%$ of vehicles with the macro BS, compared with $27.13\%$ for Reactive-OBRA and $27.91\%$ for w/o GAP-HO. Its $L_{99}$ is $1.54$~ms, whereas the latter two schemes exceed $10^4$~ms. MTS-GS-HBF-adapted uses the macro tier less at this load ($10.03\%$), alongside lower power and more violations than MEET-COBRA. Association alone does not explain all differences. At $33$~Mbps, w/o PET-BF and w/o OTR-RA have macro association ratios of $17.87\%$ and $17.02\%$, close to MEET-COBRA's $17.96\%$, but their $L_{99}$ values increase to $36.41$ and $365.26$~ms. These results support the complementary roles of association coordination, efficient beam search, and queue-aware RA.}
 
 
 \section{Conclusion}
@@ -1225,10 +1231,10 @@ By leveraging ML-based prediction of beam-pair candidates and channel gains, MEE
 
 Simulations driven by SUMO mobility traces and Sionna RT channel data validate the effectiveness of MEET-COBRA.
 \currentdel{The ML-driven proactive optimization mechanism delivers substantial gains: the}\rev{The} predicted beam-pair and channel gain information enables efficient global PHO optimization, reduces beam-search overhead, and mitigates RB wastage and latency constraint violations caused by suboptimal BF and RA decisions, thereby addressing the computational challenges of the two-timescale SINLP in practical deployments. 
-Notably, MEET-COBRA effectively balances system transmit power and \currentdel{latency reliability}\rev{latency performance}\currentdel{: at}\rev{. At} an illustrative medium-to-high load operating point ($\lambda=27$~Mbps), it reduces the average system transmit power by approximately 32\% compared with the Reactive-OBRA baseline, while decreasing the latency constraint violation probability from 29.47\% to 0.68\%. 
+Notably, MEET-COBRA effectively balances system transmit power and \currentdel{latency reliability}\rev{latency performance}\currentdel{: at}\rev{. At} an illustrative medium-to-high load operating point ($\lambda=27$~Mbps), it reduces the average system transmit power by approximately \currentdel{32\%}\currentrev{49\%} compared with the Reactive-OBRA baseline, while decreasing the latency constraint violation probability from \currentdel{29.47\% to 0.68\%}\currentrev{9.84\% to 0.16\%}. \currentrev{Compared with the two added joint HO and BF baselines, MEET-COBRA maintains fewer latency violations at higher loads, although MTS-GS-HBF-adapted can use less transmit power.}
 %It demonstrates that proactive coordination is essential for sustaining high-performance communication in demanding V2X environments.
 
-Potential future work includes extending MEET-COBRA to multi-macro BS deployments, incorporating more realistic HO latency and signaling overhead, and developing online adaptation mechanisms for the prediction models and algorithm hyper-parameters to enhance robustness under non-stationary traffic and radio environments.
+Potential future work includes extending MEET-COBRA to multi-macro BS deployments, \currentdel{incorporating more realistic HO latency and signaling overhead}\currentrev{modeling HO failure recovery and detailed signaling procedures}, and developing online adaptation mechanisms for the prediction models and algorithm hyper-parameters to enhance robustness under non-stationary traffic and radio environments.
 
 
 

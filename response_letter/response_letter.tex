@@ -4,6 +4,8 @@
 \usepackage[utf8]{inputenc}
 \usepackage{mathptmx}
 \usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{capt-of}
 \usepackage[a4paper,margin=1in]{geometry}
 \usepackage{xcolor}
 \usepackage{setspace}
@@ -14,6 +16,8 @@
 \definecolor{responseblue}{RGB}{0,70,140}
 \definecolor{changeblue}{RGB}{0,90,170}
 \definecolor{commentgray}{RGB}{70,70,70}
+\renewcommand{\thefigure}{R\arabic{figure}}
+\renewcommand{\figurename}{Fig.}
 
 % Use red for the current comment; change its argument to blue after approval.
 \newenvironment{reviewedit}[1]
@@ -282,8 +286,6 @@ index, its corresponding desired-link gain, and the \textcolor{blue}{interfering
 The opening sentence of Section IV-A now identifies the prediction targets as
 \emph{best beam-pair indices, their corresponding desired-link gains}, and
 \textcolor{blue}{interfering-link} gains.
-\textcolor{red}{The beam and gain prediction descriptions in Section IV-A
-now explicitly define optimality in terms of the frame-averaged desired-link gain.}
 \end{manuscriptchanges}
 \revisionlocation{Page 6, Fig.~1 caption; Page \textcolor{blue}{6}, opening sentence of Section IV-A;
 \textcolor{red}{Page 7, Section IV-A, Output Prediction}.}
@@ -335,18 +337,17 @@ The parameter $N_{\rm iter}$ specifies the number of GAP-HO iterations in
 each PHO frame. The first round estimates interference assuming full RB
 utilization at all micro BSs, and the second uses the resulting BS loads
 to update the RB demand estimates and BS-vehicle associations.
-After incorporating HO interruption into the system model, we
-conducted an additional parameter study with $\tau_{\rm HO}=10$~ms. In all
-configurations, the RB demand for a vehicle switching BS is increased in
-the RB-capacity constraints of \textbf{P2} to account for the interruption
-of data service during HO execution.
-Using Oracle channel information, we compared exactly two iterations with
-at most three or five iterations over 30~s at traffic arrival rates of
-21, 27, and 35~Mbps per vehicle. We used three random seeds and the same
-traffic realizations across configurations. The latter two configurations
-stopped early if the maximum absolute change in estimated BS load was at
-most $\epsilon=0.1$ RB. The table reports system transmit power $P$ (W) and violation
-probability $U$ (\%), averaged over the three seeds.
+{\color{blue}
+We evaluated the GAP-HO iteration settings. Oracle channel information
+was used to isolate the effect of iteration settings from NN prediction errors.
+All configurations retain the $10$~ms HO interruption, its RB-demand correction
+in the capacity constraints of \textbf{P2}, and the physical BS capacity limits
+on estimated RB usage.
+We compared exactly two iterations with at most three or five iterations at traffic arrival rates of 21, 27, and 35~Mbps per vehicle, using three paired traffic seeds.
+The latter two configurations stopped early when the maximum absolute change
+in estimated BS load was at most $\epsilon=0.1$ RB. Only the iteration settings
+differed between these configurations. The table reports the three-seed means of
+system transmit power $P$ (W) and violation probability $U$ (\%).
 \begin{center}
 \small
 \begin{tabular}{lccc}
@@ -354,15 +355,18 @@ probability $U$ (\%), averaged over the three seeds.
 Arrival rate & Fixed 2 rounds & Up to 3 rounds & Up to 5 rounds \\
 (Mbps) & $(P,\ U)$ & $(P,\ U)$ & $(P,\ U)$ \\
 \hline
-21 & $(46.514,\ 0.00632)$ & $(46.541,\ 0.00822)$ & $(46.545,\ 0.00991)$ \\
-27 & $(113.213,\ 0.00477)$ & $(113.343,\ 0.00707)$ & $(113.249,\ 0.00705)$ \\
-35 & $(185.731,\ 34.21714)$ & $(185.745,\ 34.39458)$ & $(185.746,\ 34.50597)$ \\
+21 & $(34.694,\ 0.03241)$ & $(34.666,\ 0.03234)$ & $(34.661,\ 0.03227)$ \\
+27 & $(65.996,\ 0.09058)$ & $(65.948,\ 0.09061)$ & $(65.951,\ 0.09055)$ \\
+35 & $(174.735,\ 0.81714)$ & $(174.737,\ 0.81235)$ & $(174.737,\ 0.81235)$ \\
 \hline
 \end{tabular}
 \end{center}
-At all three tested arrival rates, allowing more iterations increased the
-average number of GAP solves without reducing $P$ or $U$.
-We therefore use $N_{\rm iter}=2$ to balance performance and computational cost.
+Across these loads, the largest power reduction was below $0.10\%$, and the
+largest reduction in $U$ was $0.0048$ percentage points. The mean iteration
+counts increased from $2$ to $2.02$--$3.00$ with the three-round limit and
+$2.02$--$4.16$ with the five-round limit. These small performance changes
+relative to the additional iterations support retaining $N_{\rm iter}=2$
+as a practical balance between performance and computational cost.\par}
 Algorithm~1 now runs a fixed number of iterations, without the convergence
 test or its parameter $\epsilon$.
 
@@ -429,7 +433,7 @@ Using the selected second-stage checkpoints, we measured three rounds of
 stateful inference over 16 continuous vehicle trajectories on an AMD EPYC
 7742 CPU with one thread, PyTorch 2.6.0, FP32, and batch size one. Across
 14,166 timed vehicle-frame inferences after warmup, the combined latency has
-a median of 5.33~ms and a 95th percentile of 5.74~ms. Timing includes tensor
+a median of \textcolor{red}{5.38}~ms and a 95th percentile of \textcolor{red}{5.72}~ms. Timing includes tensor
 conversion, the three forward passes, state retention, top-5 index selection,
 and gain denormalization, but excludes CSI acquisition, preprocessing, and
 transmission.
@@ -445,7 +449,7 @@ the training and validation curves for both stages, with stars identifying
 the best validation value of each metric. Table~III (\emph{NN Parameter Counts
 and Inference FLOPs}) and the following discussion quantify NN computation:
 
-\emph{Table~III summarizes the NN parameter counts and matrix FLOPs for single-vehicle stateful inference using the current-frame CSI and recurrent states. The three models require 8.51~MB of 32-bit floating-point (FP32) parameter storage. With FP32 inference on an AMD EPYC 7742 CPU using one thread, their combined inference latency has a median of 5.33~ms and a 95th percentile of 5.74~ms.}
+\emph{Table~III summarizes the NN parameter counts and matrix FLOPs for single-vehicle stateful inference using the current-frame CSI and recurrent states. The three models require 8.51~MB of 32-bit floating-point (FP32) parameter storage. With FP32 inference on an AMD EPYC 7742 CPU using one thread, their combined inference latency has a median of \textcolor{red}{5.38}~ms and a 95th percentile of \textcolor{red}{5.72}~ms.}
 \end{manuscriptchanges}
 \revisionlocation{Page 6, Section IV-A, stateful inference;
 Pages 11--12, Section V-B, two-stage training, Fig.~4, Table~III, and the
@@ -484,18 +488,16 @@ the entire power and latency story, rests on this approximation, please quantify
 surrogates deviate from directional interference, for example against a beam-aware interference
 computation from Sionna RT, or justify why the bias is negligible at the reported loads.
 \end{quotedcomment}
-\begin{reviewedit}{red}
+\begin{reviewedit}{blue}
 \begin{authorresponse}
-We thank the Reviewer for raising this concern. For all revised system-level
-simulations, we will compute the service rates used to update the queues
-from explicit RB assignments and the actual transmit and receive beams.
-The beam-averaged gain predictions and expected RB overlaps will guide
-MEET-COBRA's online decisions, but will not be used to compute the realized
-service rates. We have clarified these two averaging operations and
-quantified their combined effect in a comparison with fixed decisions.
-Separately, closed-loop checks of the directional service calculation
-update the queues and allow subsequent RA and HO decisions to respond.
-The completed checks and the remaining full system rerun are distinguished below.
+We thank the Reviewer for raising this concern. All revised system-level
+simulation results in Figs.~5--8 have been recomputed using explicit RB assignments
+and the actual transmit and receive beams. The receive rates computed in this way
+are used to update the queues. The Frobenius-norm-based interfering-link gain predictions and the expected
+number of overlapping RBs guide MEET-COBRA's decisions, but are not used to compute the
+realized receive rates in simulations. We have also quantified the combined effect of
+these two averaging approximations on receive-rate estimates in
+Fig.~\ref{fig:response-interference-validation}.
 
 Section II-A defines the directional interfering-link gain
 $g_{{\rm I},m',v,v'}^{[x]}(i)$ in Eq.~(11), using the receive beam of
@@ -515,14 +517,14 @@ This identity does not assume random beam selection by PET-BF. The
 approximation is to use this uniform average to represent the gain under
 the beams selected for data transmission.
 
-For RB overlap, OTR-RA determines user priorities and RB counts, while
-Section II-B specifies how these counts are mapped to RB indices. Each
-micro BS assigns mutually disjoint RB sets uniformly at random,
+For RB overlap issues, OTR-RA determines user priorities and their allocated RB counts, while
+Section II-B specifies how these counts are mapped to RB indices. Specifically, each
+micro BS assigns mutually disjoint RB sets to its associated vehicles uniformly at random,
 independently of the other BSs. This mapping is compatible with
 deterministic allocation of RB counts. Let $\mathcal S_{m,v}$ denote the
 RBs assigned to vehicle-$v$ by BS-$m$ and $\mathcal S_{m'}$ those used by
 an interfering BS-$m'$, with sizes $k_{m,v}$ and $k_{m'}$, respectively.
-Suppressing the time indices, the conditional expected overlap is
+Suppressing the time indices, the conditional expected number of overlapping RBs is
 \[
 \mathbb E\!\left[|\mathcal S_{m,v}\cap\mathcal S_{m'}|
 \mid k_{m,v},k_{m'}\right]
@@ -541,77 +543,42 @@ and reused throughout frame-$x$, so instantaneous interfering-link gains
 are not required. Section IV-E specifies that the macro BS forwards these
 predictions and RB usage estimates to the serving BSs before the frame begins.
 
-\textbf{1) Fixed-decision comparison of approximation error.}
+\textbf{Fixed-decision comparison of approximation error.}
 
-We compare Eq.~(33) combined with the expected RB overlap against
-directional interference under identical BS-vehicle associations, beam
-pairs, RB counts, and Sionna RT channel realizations. The reference
-calculation uses the actual transmit and receive beams on each explicitly
-assigned RB and sums the resulting service over RBs. Both calculations
-account for beam-search overhead and HO interruption. This comparison
-isolates the combined averaging approximation from NN prediction error;
-it does not evaluate its effect on subsequent queues or decisions.
-Each run spans $30$~s, with the first two PHO frames excluded from the
-statistics. The tested mean arrival rates per vehicle span 1--35~Mbps:
+Along each revised MEET-COBRA run, we compare receive rates calculated using
+Eq.~(33) and the expected RB overlap with those obtained from directional
+per-RB evaluation under identical
+BS-vehicle associations, beam pairs, RB counts, and Sionna RT channels.
+The latter calculation uses the actual beams and explicitly assigned RBs.
+Both calculations account for beam-search overhead and HO interruption.
+Using the channel-derived beam average in the diagnostic isolates the
+combined averaging approximation from NN prediction error. The approximate
+receive rates are recorded for comparison only and do not alter the queues.
 
-\begin{center}
-\small
-\begin{tabular}{rccc}
-\hline
-\shortstack{Mean arrival rate\\(Mbps)} & Seeds &
-\shortstack{Mean interference\\ratio} &
-\shortstack{Service capacity\\underestimation (\%)} \\
-\hline
-1  & 1       & 1.8035 & 7.73 \\
-13 & 1, 2, 3 & 0.8682 & 19.24 \\
-23 & 1       & 0.9141 & 19.43 \\
-29 & 1, 2, 3 & 2.4332 & 19.74 \\
-35 & 1       & 4.6117 & 18.96 \\
-\hline
-\end{tabular}
-\end{center}
-
-The interference ratio is the approximate value divided by the directional
-reference, weighted by allocated RB counts. Service capacity is summed
-over served micro-BS links and slots, and its underestimation is measured
-relative to the directional reference. Entries are means of the per-seed
-statistics; the seeds share the propagation scenario and vehicle trajectories.
-Mean interference alone does not determine aggregate
-service capacity because the rate is nonlinear in interference. These
-results support an empirically conservative aggregate service estimate
-in the evaluated cases, but not a per-link interference bound.
-
-\textbf{2) Closed-loop service evaluation.}
-
-We also completed separate MEET-COBRA runs at 13 and 29~Mbps with three
-paired seeds, using the same duration and statistics window. These runs
-compare the average approximation with the directional calculation as the
-service evaluator. The selected evaluator supplies the service amount for
-every queue update, and the resulting queues feed into subsequent RA and
-HO decisions. Thus, the decisions evolve during each run instead of
-being held fixed as in the first comparison. The decision algorithms and
-their information sources are unchanged between the two evaluators.
+We evaluate all arrival rates $\{1,3,\ldots,35\}$~Mbps using three seeds, with each run lasting $30$~s.
+Figure~\ref{fig:response-interference-validation} shows the resulting
+receive-rate underestimation at each load.
 
 \begin{center}
-\small
-\begin{tabular}{rlrr}
-\hline
-\shortstack{Mean arrival rate\\(Mbps)} & Service evaluator &
-\shortstack{Mean power\\(W)} & $U$ (\%) \\
-\hline
-13 & Average approximation & 27.18 & 0.2274 \\
-13 & Directional, explicit RBs & 24.98 & 0.1836 \\
-29 & Average approximation & 148.28 & 0.1499 \\
-29 & Directional, explicit RBs & 144.76 & 0.0999 \\
-\hline
-\end{tabular}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=0.78\linewidth]{figures/r2c1_interference_validation.pdf}
+\captionof{figure}{Underestimation of the total receive rate of vehicles served
+by micro BSs when using beam-averaged gains and expected RB overlaps, relative
+to directional per-RB evaluation under identical decisions. Markers show means
+over three seeds.}
+\label{fig:response-interference-validation}
+\end{minipage}
 \end{center}
 
-These preliminary closed-loop results reflect the feedback from physical
-service to queues and decisions. They retain the decision configuration
-used in the validation experiment and do not assess the revised use of
-predicted interfering-link gains in OTR-RA. The full rerun of all compared
-schemes with the revised prediction inputs remains to be completed.
+For this comparison, we sum the receive rates over vehicles served by micro
+BSs and average over slots. The plotted percentages are means of the per-seed
+statistics in the same propagation scenario. Across the evaluated loads, the
+two averaging approximations underestimate this total receive rate by
+$6.5\%$--$19.5\%$ relative to directional per-RB evaluation under identical
+decisions. These results indicate that the approximations provide an
+empirically conservative estimate of the total receive rate under the
+considered experimental settings.
 \end{authorresponse}
 \begin{manuscriptchanges}
 Section II-A now defines the actual directional gain in Eq.~(11):
@@ -658,10 +625,12 @@ Section IV-E specifies how these estimates reach the serving BSs:
 
 \emph{The macro BS also forwards the interfering-link gain predictions and estimated RB usages required by OTR-RA to the corresponding serving BSs before frame-$(x+1)$ begins.}
 
-In Section V-A, the channel-generation
-description is followed by:
+Section V-A clarifies how receive rates are evaluated for all schemes:
 
-\emph{Micro-BS interference is computed per RB from the channel matrices and actual transmit and receive beams. Given the allocated RB counts, each micro BS independently assigns distinct RB indices uniformly at random. Service rates are summed over RBs, accounting for beam-search overhead and HO interruption. Under identical scheduling decisions, the average gain in Eq.~(33) combined with the expected RB overlap yields $7.7\%$--$19.7\%$ less aggregate service capacity, indicating an empirically conservative estimate.}
+\emph{For all schemes, receive rates are evaluated using actual RB overlaps and the selected transmit and receive beams.}
+
+Section V-D and Figs.~5--8 now report the updated system-level performance
+comparisons. The Abstract and Conclusion have been updated accordingly.
 \end{manuscriptchanges}
 \revisionlocation{Page 4, Section II-A, actual interfering-link gain and Eq.~(11);
 Page 4, Section II-B, expected RB overlap and Eqs.~(17)--(18);
@@ -669,27 +638,11 @@ Page 7, Section IV-A, average gain approximation in Eq.~(33);
 Pages 7--8, Section IV-B, predicted frame-averaged gain surrogates;
 Page 9, Section IV-D, OTR-RA SINR estimate and Algorithm 3;
 Page 10, Section IV-E, prediction forwarding to the serving BSs;
-Pages 10--11, Section V-A, explicit interference
-evaluation and quantitative comparison.}
+Pages 10--11, Section V-A, receive-rate evaluation.}
 
-% R2-C1 validation is available in experiment/interference_validation_report.md.
-% Before submission: rerun all schemes with the agreed explicit interference
-% protocol and update Figs. 5--8 and their numerical discussion. The paired
-% MEET-only validation above does not establish the final baseline rankings.
-% The paired tables above use aggregate/summary.json from that validation:
-% fixed schedules use groups[mode=legacy].replay.average_expected;
-% closed-loop results use groups[mode=average_expected/directional_explicit].metrics.
-% These are preliminary comparisons, not the full load grid. Collect matched
-% diagnostics at all loads {1,3,...,35} Mbps during the full rerun, then update
-% the tables, the opening/status statements, and the ranges in Section V-A.
-% NN label alignment is also pending: the existing Fig. 4 interfering-gain
-% checkpoints use max-entry labels, not Eq. (33). Rebuild the labels and retrain
-% the interfering-gain model before interpreting its MAE as surrogate prediction
-% error; update Fig. 4(b), prediction caches, and downstream system results.
-% OTR-RA input alignment is also pending: replace its channel-derived
-% infer_g_dict with the NN prediction targeting the current frame, generated
-% in the preceding frame. Keep actual directional gains in the physical
-% service-rate evaluator. Code and experiments were not changed in this edit.
+% Final evidence: experiment/results/revision_directional_20260922/grid.
+% All 432 results, raw metrics, paired traffic and diagnostics have been audited.
+% Figure provenance: experiment/results/revision_directional_20260922/paper_figures.
 \end{reviewedit}
 
 \commentheading{Queue proxy versus delay guarantee}
@@ -702,11 +655,7 @@ than actual packet latency, and the metric $U$ in Eq. (24) inherits this. Given 
 uRLLC framing in the introduction, please either justify this rigorously.
 \end{quotedcomment}
 \begin{reviewedit}{blue}
-% R2-C2 is not yet fully resolved. Before finalizing this response, reconcile
-% Fig. 7 and its discussion with the proxy definition. The historical notebook
-% divides all queue percentiles by the saved args.data_rate and adds args.slot_len.
-% The present text does not claim that the figure or its numerical results
-% have been corrected; changes to those results require a separate decision.
+% Fig. 7 now uses q_v/lambda_v directly, with no additional slot offset.
 \begin{authorresponse}
 We thank the Reviewer for pointing out this distinction. We agree that the
 original wording did not adequately distinguish the queue-based metric from
@@ -720,6 +669,8 @@ measured packet-delay tail probability.
 With the HO interruption model added in response to Comment 6, interrupted
 slots have zero data-service rate. The resulting backlog is included in the
 same queueing-delay proxy and violation metric, without changing their definitions.
+\textcolor{red}{Figure~7 and its caption now explicitly identify $L_{90}$ and $L_{99}$ as percentiles of
+the queueing-delay proxy.}
 
 We have also removed the explicit uRLLC framing from the Introduction.
 In the Conclusion, \emph{latency reliability} has been replaced with
@@ -742,11 +693,12 @@ The corresponding sentence in the Conclusion reads:
 {\emergencystretch=2em
 \emph{Notably, MEET-COBRA effectively balances system transmit power and latency performance.}\par}
 
-The explicit uRLLC framing in the Introduction has also been removed, as detailed
-in our response to Comment 7.
+The explicit uRLLC framing in the Introduction has also been removed.
+\textcolor{red}{Section V-D now states the percentile calculation, and Fig.~7 separates $L_{90}$ and $L_{99}$.}
 \end{manuscriptchanges}
 \revisionlocation{Page 1, opening paragraph of Section I;
 Page 5, Section II-C, interpretation of Eqs.~(24)--(25);
+\textcolor{red}{Pages 13--14, Section V-D and Fig.~7, percentile calculation and results;}
 Page 14, Section VI (Conclusion).}
 \end{reviewedit}
 
@@ -797,7 +749,83 @@ yet none appears as a baseline, and there is no conventional optimization compar
 32 percent gain over a deliberately weak baseline is not strong evidence of an advance.
 Please add at least one learning-based or optimization-based comparator.
 \end{quotedcomment}
-\blankreply
+\begin{reviewedit}{red}
+\begin{authorresponse}
+We thank the Reviewer for this suggestion. We have added two literature-based
+comparators that coordinate HO and BF, complementing the reactive baseline
+and the three module ablations.
+
+\textbf{O-MAPPO-adapted} follows the integration of reinforcement learning
+and target BS optimization in Wang et al. [22]. A shared MAPPO policy decides
+whether each vehicle should trigger HO; a mixed-integer optimizer then selects
+the target BSs using RB demands, BS loads, power costs, and overload penalties.
+For our codebook-based system, candidate micro-BS links are evaluated using
+their strongest DFT beam pairs, with exhaustive search upon HO and local
+tracking otherwise. This baseline derives its channel-dependent decision
+inputs from true channel matrices. The additional cost of obtaining that
+information is not charged, giving it an information advantage over MEET-COBRA.
+
+\textbf{MTS-GS-HBF-adapted} follows the multiple-timescale association and BF
+idea of Heydarian et al. [23]. We adapt its Gale--Shapley matching to our BS
+capacities, queue urgency, and transmit power costs, updating associations
+every five frames. The original hybrid BF is replaced by searching the five
+reported DFT candidates once per frame and retaining the strongest measured
+pair. This baseline uses the same causal prediction reports as MEET-COBRA.
+It therefore tests preference-based association matching and periodic BF
+against GAP-HO's system power objective and PET-BF's slot-level search.
+Both added baselines use OTR-RA; the physical evaluation accounts for their
+respective BF overheads and the same $10$~ms HO interruption.
+
+We evaluated all eight schemes at every arrival rate in
+$\{1,3,\ldots,35\}$~Mbps over $30$~s, using three paired traffic seeds and
+excluding the first two frames. Explicit RB assignments and directional
+interference determine service rates and queue evolution for every scheme.
+Figs.~5--8 contain the full results. Selected operating points are summarized below.
+
+\begin{center}
+\small
+\begin{tabular}{rlrr}
+\hline
+$\lambda$ (Mbps) & Scheme & Mean power (W) & $U$ (\%) \\
+\hline
+23 & MEET-COBRA & 46.17 & 0.241 \\
+23 & O-MAPPO-adapted & 105.54 & 3.597 \\
+23 & MTS-GS-HBF-adapted & 56.62 & 0.300 \\
+29 & MEET-COBRA & 127.75 & 0.194 \\
+29 & O-MAPPO-adapted & 156.85 & 11.817 \\
+29 & MTS-GS-HBF-adapted & 109.01 & 0.604 \\
+35 & MEET-COBRA & 175.80 & 1.150 \\
+35 & O-MAPPO-adapted & 183.08 & 31.454 \\
+35 & MTS-GS-HBF-adapted & 175.26 & 1.917 \\
+\hline
+\end{tabular}
+\end{center}
+
+These comparisons support conclusions beyond an improvement over Reactive-OBRA.
+MEET-COBRA achieves lower power and fewer violations than O-MAPPO-adapted at
+these loads. MTS-GS-HBF-adapted provides a closer comparison and exposes a
+tradeoff. At $29$~Mbps it uses less power, but its violation probability is
+about three times that of MEET-COBRA. We report this tradeoff explicitly
+rather than claiming that MEET-COBRA dominates both metrics at every load.
+The mean $L_{99}$ first exceeds $20$~ms at $35$~Mbps for MEET-COBRA, compared
+with $33$~Mbps for MTS-GS-HBF-adapted and $21$~Mbps for O-MAPPO-adapted.
+\end{authorresponse}
+\begin{manuscriptchanges}
+Section V-C adds the two comparators, explaining their source methods,
+adaptations, information inputs, and differences from MEET-COBRA.
+Section V-D and Figs.~5--8 now include both baselines, three-seed statistics,
+and their power and latency tradeoffs. Figure~7 presents $L_{90}$ and $L_{99}$
+separately. The updated discussion includes:
+
+\emph{However, at $29$~Mbps, MTS-GS-HBF-adapted uses less power ($109.01$ versus
+$127.75$~W), but has a higher violation probability ($0.60\%$ versus $0.19\%$).
+MEET-COBRA thus does not uniformly minimize both metrics relative to this
+baseline. Its advantage at higher loads is maintaining fewer latency violations.}
+\end{manuscriptchanges}
+\revisionlocation{Pages 12--13, Section V-C, benchmark descriptions;
+Pages 13--14, Section V-D and Figs.~5--8, full-load comparison and discussion;
+Pages 1 and 14, Abstract and Conclusion, updated performance summary.}
+\end{reviewedit}
 
 \commentheading{Inference, control-plane, and handover overhead}
 \begin{quotedcomment}
@@ -826,8 +854,8 @@ Online inference processes the current-frame CSI and retains recurrent
 states across frames, so its per-frame computational cost does not grow with
 trajectory length. With FP32 inference on an AMD EPYC 7742 CPU using one thread
 and batch size one, the three models have a combined inference latency of
-5.33~ms at the median and 5.74~ms at the 95th percentile, corresponding to
-5.33\% and 5.74\% of the 100~ms frame duration, respectively.
+\textcolor{red}{5.38}~ms at the median and \textcolor{red}{5.72}~ms at the 95th percentile, corresponding to
+\textcolor{red}{5.38}\% and \textcolor{red}{5.72}\% of the 100~ms frame duration, respectively.
 Timing includes tensor conversion, the three forward passes, state retention,
 top-5 index selection, and gain denormalization. To measure NN inference
 separately, the timed interval starts with preprocessed CSI and ends with
@@ -877,6 +905,8 @@ probability $U$.
 For tractable modeling and analysis, we assume successful HO execution and
 do not separately model HO failure recovery, retransmission delays, or other
 end-to-end latency components.
+\textcolor{red}{All system-level comparisons in Figs.~5--8 have now been
+rerun with this model, using $\tau_{\rm HO}=10$~ms for every scheme.}
 \end{authorresponse}
 \begin{manuscriptchanges}
 Section IV-A clarifies that recurrent states are retained across frames,
@@ -884,7 +914,7 @@ so online inference processes only the current CSI feature vector.
 Section V-B adds Table~III (\emph{NN Parameter Counts and Inference FLOPs})
 and reports the parameter storage and measured inference latency:
 
-\emph{Table~III summarizes the NN parameter counts and matrix FLOPs for single-vehicle stateful inference using the current-frame CSI and recurrent states. The three models require 8.51~MB of 32-bit floating-point (FP32) parameter storage. With FP32 inference on an AMD EPYC 7742 CPU using one thread, their combined inference latency has a median of 5.33~ms and a 95th percentile of 5.74~ms.}
+\emph{Table~III summarizes the NN parameter counts and matrix FLOPs for single-vehicle stateful inference using the current-frame CSI and recurrent states. The three models require 8.51~MB of 32-bit floating-point (FP32) parameter storage. With FP32 inference on an AMD EPYC 7742 CPU using one thread, their combined inference latency has a median of \textcolor{red}{5.38}~ms and a 95th percentile of \textcolor{red}{5.72}~ms.}
 
 Section IV-E specifies that only the ranked top-$M_{\rm P}$ beam-pair indices
 and two gain predictions per micro BS are uploaded. Section V-B quantifies
@@ -940,12 +970,10 @@ Page 6, Section IV-A, stateful inference;
 Page 8, Section IV-B, Eqs.~\textcolor{red}{(42)} and \textcolor{red}{(45)}, and Algorithm 1;
 Page 9, Section IV-D and Algorithm 3;
 Page 10, Section IV-E, prediction reporting;
-Page 12, Section V-B, Table~III, inference latency, and reporting budget.}
+\textcolor{red}{Pages 11--12}, Section V-B, Table~III, inference latency, and reporting budget;
+\textcolor{red}{Pages 13--14, Section V-D and Figs.~5--8, system results with HO interruption.}}
 
-% Internal pre-submission check: full system simulations with HO interruption
-% and the selected second-stage NN checkpoints are still pending. Update the
-% performance results and conclusions, including the former future-work
-% statement on HO latency, then recheck this response and its location references.
+% The full directional-service grid now includes the 10-ms HO interruption.
 \end{reviewedit}
 
 \commentheading{Traffic arrival process and heterogeneous QoS}
@@ -1007,7 +1035,7 @@ updated consistently.
 The traffic configuration added to Section V-A reads:
 
 {\emergencystretch=1em
-\emph{We sweep the \textcolor{blue}{traffic} arrival rate $\lambda_v=\lambda$ over $\{1,3,\ldots,35\}$~Mbps and set $\tau_v^{\rm th}=20$~ms for all vehicles.}\par}
+\textcolor{red}{\emph{For the system-level performance comparisons in Section~V-D, we vary the traffic arrival rate $\lambda_v=\lambda$ over $\{1,3,\ldots,35\}$~Mbps and set $\tau_v^{\rm th}=20$~ms for all vehicles.}}\par}
 
 The application-level motivation in the Introduction now reads:
 
@@ -1117,7 +1145,7 @@ reported in Table~III. They retain recurrent states across frames and process
 only the current-frame CSI, so per-frame computational complexity does not grow with
 trajectory length. Using FP32 arithmetic, a batch size of one, and a single
 thread on an AMD EPYC 7742 CPU, the three models have a combined inference
-latency with a median of 5.33~ms and a 95th percentile of 5.74~ms, compared
+latency with a median of \textcolor{red}{5.38}~ms and a 95th percentile of \textcolor{red}{5.72}~ms, compared
 with the 100~ms frame duration.
 
 For CSI acquisition, the pilot-superposition procedure in Section IV-A
@@ -1150,7 +1178,7 @@ Section IV-A describes pilot superposition and stateful inference. Table~III
 in Section V-B gives the parameter counts and matrix FLOPs of the three
 predictors, followed by:
 
-\emph{Table~III summarizes the NN parameter counts and matrix FLOPs for single-vehicle stateful inference using the current-frame CSI and recurrent states. The three models require 8.51~MB of 32-bit floating-point (FP32) parameter storage. With FP32 inference on an AMD EPYC 7742 CPU using one thread, their combined inference latency has a median of 5.33~ms and a 95th percentile of 5.74~ms.}
+\emph{Table~III summarizes the NN parameter counts and matrix FLOPs for single-vehicle stateful inference using the current-frame CSI and recurrent states. The three models require 8.51~MB of 32-bit floating-point (FP32) parameter storage. With FP32 inference on an AMD EPYC 7742 CPU using one thread, their combined inference latency has a median of \textcolor{red}{5.38}~ms and a 95th percentile of \textcolor{red}{5.72}~ms.}
 
 Section IV-E specifies that only the ranked candidate beam-pair indices and two gain
 predictions per micro BS are uploaded. Section V-B adds the reporting-budget
@@ -1161,7 +1189,7 @@ comparison:
 \revisionlocation{Page 6, Section IV-A, Input Layer and Shared Backbone;
 Page 10, Section IV-E, prediction reporting;
 Page 11, Table II, pilot and antenna configuration;
-Page 12, Section V-B, Table~III, inference latency, and reporting budget.}
+\textcolor{red}{Pages 11--12}, Section V-B, Table~III, inference latency, and reporting budget.}
 \end{reviewedit}
 
 \commentheading{Coordinated handover and beamforming baseline}
@@ -1173,7 +1201,67 @@ The per-module ablation study shown in the paper is a nice complement to this, s
 what each of the three proposed modules is individually contributing. It would also help to
 compare against a coordinated handover and beamforming baseline from existing literature.
 \end{quotedcomment}
-\blankreply
+\begin{reviewedit}{red}
+\begin{authorresponse}
+We thank the Reviewer for this suggestion. We have retained the module
+ablations and added two baselines from the literature that coordinate HO
+and BF, one based on reinforcement learning and the other on optimization.
+
+\textbf{O-MAPPO-adapted}, adapted from Wang et al. [22], uses a MAPPO policy
+to decide whether each vehicle should trigger HO. A mixed-integer optimizer
+then selects the target BSs using RB demands, BS loads, and transmit power
+costs. We adapt BF to our DFT codebooks, using exhaustive search upon HO to
+a micro BS and local tracking otherwise. Unlike GAP-HO, it optimizes
+associations only for vehicles whose HO triggers are active. Its decision
+inputs are derived from true channel matrices, without accounting for the
+additional CSI acquisition cost, giving it an information advantage over
+MEET-COBRA.
+
+\textbf{MTS-GS-HBF-adapted}, adapted from Heydarian et al. [23], uses
+Gale--Shapley matching to update BS-vehicle associations every five frames.
+We adapt the matching preferences and admission decisions to account for
+predicted rates, BS loads, transmit power costs, HO costs, queue urgency,
+and RB capacities. The original hybrid BF is replaced by probing the five
+reported DFT candidates once per frame and retaining the strongest measured
+pair. It uses the same prediction reports as MEET-COBRA, but coordinates
+association and BF through preference matching and periodic beam selection,
+rather than GAP-HO's system power objective and PET-BF's slot-level search.
+Both baselines use OTR-RA, with their respective beam-search overheads and
+the same $10$~ms HO interruption included in the evaluation.
+
+Figs.~5--8 now compare all eight schemes at arrival rates of
+$\{1,3,\ldots,35\}$~Mbps per vehicle, using three paired traffic seeds.
+The table illustrates the comparison at $33$~Mbps and reports three-seed means.
+
+\begin{center}
+\small
+\begin{tabular}{lrrr}
+\hline
+Scheme & Mean power (W) & $U$ (\%) & $L_{99}$ (ms) \\
+\hline
+MEET-COBRA & 172.81 & 0.524 & 5.00 \\
+O-MAPPO-adapted & 178.77 & 23.931 & 4570.90 \\
+MTS-GS-HBF-adapted & 160.99 & 1.080 & 33.54 \\
+\hline
+\end{tabular}
+\end{center}
+
+MEET-COBRA improves both power and latency performance over O-MAPPO-adapted
+at this load. MTS-GS-HBF-adapted uses less power, but has a higher latency
+constraint violation probability and a larger 99th-percentile queueing-delay
+proxy $L_{99}$. These comparisons complement the module ablations by
+evaluating MEET-COBRA against alternative HO and BF coordination methods
+and showing their power and latency tradeoffs.
+\end{authorresponse}
+\begin{manuscriptchanges}
+Section V-C introduces both baselines, explaining their core ideas,
+adaptations, and differences from MEET-COBRA. Section V-D and Figs.~5--8
+include their results across all evaluated loads and discuss the resulting
+power and latency tradeoffs.
+\end{manuscriptchanges}
+\revisionlocation{Pages 12--13, Section V-C, O-MAPPO-adapted and MTS-GS-HBF-adapted;
+Pages 13--14, Section V-D and Figs.~5--8, multi-seed performance comparisons.}
+\end{reviewedit}
 
 \commentheading{Vehicle-speed distribution and mobility sensitivity}
 \begin{quotedcomment}
@@ -1215,37 +1303,16 @@ reproducibility.
 \begin{authorresponse}
 We thank the Reviewer for pointing out the missing parameter settings.
 Table~II now lists $N_{\rm iter}=2$ and $\zeta=1.1$, and Section V-A explains
-their use. The factor $\zeta=1.1$ increases the RB capacity bounds by 10\%
-at each relaxation step when the continuous relaxation of \textbf{P2} is infeasible.
-
-After incorporating HO interruption into the system model, we examined
-different iteration settings using Oracle channel information and an HO
-interruption of 10~ms. In all configurations, the RB demand for a vehicle
-switching BS is increased in the RB-capacity constraints of \textbf{P2} to
-account for the interruption of data service during HO execution.
-We compared exactly two iterations with at most three or five iterations
-over 30~s at traffic arrival rates of 21, 27, and 35~Mbps per vehicle, using
-three random seeds and the same traffic realizations across configurations.
-The latter two configurations stopped early if the maximum absolute change
-in estimated BS load was at most $\epsilon=0.1$ RB. At all three tested arrival rates,
-they required more GAP solves on average without reducing system transmit
-power or violation probability averaged over the three seeds. We therefore
-adopt $N_{\rm iter}=2$ to balance performance and computational cost: the first
-round of GAP-HO iteration assumes full RB utilization at all micro BSs, and the second uses
-the resulting BS loads to update the RB demand estimates and BS-vehicle
-associations. Algorithm~1 retains the general loop of $N_{\rm iter}$ rounds
-but no longer uses a test for convergence. Accordingly, $\epsilon$ is
-removed from the algorithm rather than assigned a value in the table.
+their use. {\color{blue}Algorithm~1 now performs exactly $N_{\rm iter}$
+rounds without a convergence test, so $\epsilon$ has been removed.\par}
 \end{authorresponse}
 \begin{manuscriptchanges}
+{\color{blue}
 Table~II adds the number of GAP-HO iterations $N_{\rm iter}=2$ and the RB
-capacity relaxation factor $\zeta=1.1$. Algorithm~1 replaces the test for convergence and its
-conditional branch with an unconditional update of the estimated BS loads
-in each round. Section IV-B describes this procedure with a fixed number
-of rounds, and Section V-A explains the choice of $N_{\rm iter}=2$ and
-$\zeta=1.1$. The closing sentence of
-Section V-A specifies that the parameter values in Table~II are used
-unless otherwise stated.
+capacity relaxation factor $\zeta=1.1$. Section IV-B and Algorithm~1 specify
+$N_{\rm iter}$ rounds and remove the convergence test and its parameter
+$\epsilon$. Section V-A explains the parameter choices and states that
+Table~II gives the default simulation settings.\par}
 \end{manuscriptchanges}
 \revisionlocation{Page 8, Section IV-B and Algorithm~1;
 Pages 10--11, Section V-A, Table~II and the discussion of parameter settings.}
