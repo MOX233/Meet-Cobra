@@ -1,0 +1,15 @@
+{
+  "cases": 63,
+  "training_performed": false,
+  "related_unit_tests_passed": 37,
+  "all_input_and_source_hashes_verified": true,
+  "paired_traffic_verified": true,
+  "raw_metrics_recomputed": ["power_w", "violation_percent", "mean_proxy_ms", "p90_proxy_ms", "p99_proxy_ms", "macro_association_percent", "handovers"],
+  "module_isolation_verified": true,
+  "physical_rb_and_queue_bounds_verified": true,
+  "energy_identity_verified": true,
+  "optimizer_calls_with_triggered_vehicles": 11759,
+  "optimizer_failures": 0,
+  "actor_parameters_unchanged_in_each_case": true,
+  "formal_algorithm_and_paper_unchanged": true
+}

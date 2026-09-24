@@ -1,0 +1,105 @@
+{
+  "actor_sha256": "9b4d87a4f1505a46cc79675bacd1105ab86c8c7c2e43a35016426bf4604756d9",
+  "diagnostics_sha256": "915fc15babd831292ced5f5f8e44fd786847bd095a8798b2c750e67b50fd7afb",
+  "diagnostics_summary": {
+    "actor_decisions_by_source_bs": [
+      [
+        670,
+        172
+      ],
+      [
+        647,
+        50
+      ],
+      [
+        566,
+        53
+      ],
+      [
+        473,
+        34
+      ],
+      [
+        515,
+        51
+      ]
+    ],
+    "actual_rb_utilization": [
+      0.6690399656860272,
+      0.8984218019117352,
+      0.9549283099450881,
+      0.8774105145413867,
+      0.8733572300183046
+    ],
+    "changed_states": 0,
+    "macro_cheapest": 15,
+    "macro_exits": 172,
+    "macro_power_w": 88.98231543624162,
+    "macro_targets": 70,
+    "macro_with_lower_power_micro": 62,
+    "mean_absolute_feature_change": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ra_calls": 150000,
+    "ra_interference_sample_count": 26972,
+    "ra_sampled_interference_ratio": 1.0,
+    "state_count": 33934,
+    "target_assignments": 360
+  },
+  "elapsed_s": 108.55245558201568,
+  "frames": 300,
+  "metrics": {
+    "handovers": 360,
+    "macro_association_percent": 19.446256002845793,
+    "mean_overflow_rb": 0.6843808085570945,
+    "mean_proxy_ms": 2.5266205551678382,
+    "optimizer_calls": 175,
+    "optimizer_failures": 0,
+    "p90_proxy_ms": 1.3060087760836243,
+    "p99_proxy_ms": 17.049961602382698,
+    "pilots_per_vehicle_slot": 0.8187645039531075,
+    "power_w": 136.55667114093944,
+    "violation_percent": 0.9141944047175589
+  },
+  "protocol_sha256": "3e0e0d9ad19f420ce64ab88cf764c0ef9ca1be56edb7ea57dac76a0747edeb9e",
+  "rate_mbps": 25,
+  "raw_sha256": "fced15358af866dad7463ea0bef562ad5fbe26822f0f83700ce742ccbb9138f7",
+  "seed": 102,
+  "settings": {
+    "hook": "bounded_average",
+    "route": "E",
+    "scope": "optimizer"
+  },
+  "traffic_sha256": "d9041c24c43ab20e423803d06cf7db73c884273a1155301ee95803c2da175cc0",
+  "variant": "E_optimizer"
+}

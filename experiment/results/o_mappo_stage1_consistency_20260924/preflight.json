@@ -1,0 +1,11 @@
+{
+  "actor_sha256": "9b4d87a4f1505a46cc79675bacd1105ab86c8c7c2e43a35016426bf4604756d9",
+  "baseline_all_raw_arrays_match": true,
+  "code_sha256": "acf6af866f3fb87c0deac6f3916695c5d57ef776f531cdbb9f50bba5f423c481",
+  "optimizer_only_matches_previous_implementation": [
+    "C",
+    "E"
+  ],
+  "reference": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/validation_actor2/runs/actor2_seed33_selected_rate13_seed101.json",
+  "reference_sha256": "ff552b1449b5226502460aa76ed0aca7d7a21c3fff93d85319862aa885d7af11"
+}
