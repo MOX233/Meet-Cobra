@@ -53,11 +53,25 @@ def save_policy(policy, path):
     os.replace(temp, path)
 
 
-def configuration():
+def configuration(actor_hidden_sizes=None):
     return OMAPPOConfig(beam_search_variant='hierarchical32', candidate_gain_mode='search',
         reward_sweep_reference_pilots=256, ho_interruption_ms=10, optimizer_solver='milp',
         torch_threads=1, actor_learning_rate=3e-4, critic_learning_rate=3e-4,
-        hidden_sizes=(64,), batch_size=256, ppo_epochs=4)
+        hidden_sizes=(64,), actor_hidden_sizes=actor_hidden_sizes, batch_size=256, ppo_epochs=4)
+
+
+def initial_policy(config, seed, critic_reference=None):
+    policy = OMAPPPolicy(config=dataclasses.replace(config), seed=seed)
+    if critic_reference is not None:
+        reference = OMAPPPolicy.load(str(critic_reference), seed=seed)
+        expected = dataclasses.asdict(config)
+        actual = dataclasses.asdict(reference.config)
+        expected.pop('actor_hidden_sizes')
+        actual.pop('actor_hidden_sizes')
+        if expected != actual:
+            raise ValueError('Actor-depth comparison changed settings beyond actor depth')
+        policy.critic.load_state_dict(reference.critic.state_dict())
+    return policy
 
 
 def initialize_worker(root):
@@ -165,7 +179,8 @@ def train(args):
     args.root.mkdir(parents=True, exist_ok=True)
     lock = (args.root/'training.lock').open('a')
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    config = configuration()
+    actor_hidden_sizes = tuple(map(int, args.actor_hidden_sizes.split(','))) if args.actor_hidden_sizes else None
+    config = configuration(actor_hidden_sizes)
     data_root = args.data_root or args.root
     seeds = [int(x) for x in args.training_seeds.split(',')]
     manifest = dict(config=dataclasses.asdict(config), training_seeds=seeds, rates=RATES,
@@ -182,6 +197,11 @@ def train(args):
         selection='mean and worst normalized per-load cost on held-out time; exact validation before test',
         code={str(p.relative_to(ROOT)):digest(p) for p in
               [Path(__file__), ROOT/'utils/o_mappo.py', ROOT/'utils/o_mappo_sim.py', ROOT/'utils/hierarchical_beam.py']})
+    critic_references = {}
+    if args.critic_reference_root:
+        critic_references = {s: args.critic_reference_root/f'train_seed{s}/round0000.pt' for s in seeds}
+        manifest['critic_initialization'] = {str(s): dict(path=str(p.resolve()), sha256=digest(p))
+                                              for s,p in critic_references.items()}
     path = args.root / 'training_protocol.json'
     if path.exists():
         if read(path) != native(manifest):
@@ -208,7 +228,7 @@ def train(args):
             with torch.no_grad():
                 last_probs[seed] = policies[seed].actor(torch.from_numpy(probes[seed])).softmax(-1).numpy()
         else:
-            policies[seed] = OMAPPPolicy(config=dataclasses.replace(config), seed=seed)
+            policies[seed] = initial_policy(config, seed, critic_references.get(seed))
             histories[seed] = []
             best_scores[seed] = float('inf')
             save_policy(policies[seed], folder / 'round0000.pt')
@@ -343,6 +363,8 @@ def main():
     p = sub.add_parser('train')
     p.add_argument('--root', type=Path, default=DEFAULT_ROOT)
     p.add_argument('--data-root', type=Path)
+    p.add_argument('--actor-hidden-sizes', help='Optional actor-only widths, e.g. 64,64; critic is unchanged')
+    p.add_argument('--critic-reference-root', type=Path, help='Reuse same-seed initial critics for a depth ablation')
     p.add_argument('--training-seeds', default='11,22,33')
     p.add_argument('--rounds', type=int, default=160)
     p.add_argument('--rollout-seconds', type=float, default=10)

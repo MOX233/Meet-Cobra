@@ -173,6 +173,7 @@ class OMAPPOConfig:
     track_rx_radius: int = 1
     tracking_pilots: int = 1
     hidden_sizes: Tuple[int, ...] = (64,)
+    actor_hidden_sizes: Optional[Tuple[int, ...]] = None  # None preserves legacy shared depth.
     recurrent: bool = False
     recurrent_hidden_size: int = 128
     recurrent_sequence_length: int = 4
@@ -202,6 +203,9 @@ class OMAPPOConfig:
         return (2 * self.track_tx_radius + 1) * (2 * self.track_rx_radius + 1)
 
     def validate(self) -> None:
+        for widths in (self.hidden_sizes, self.actor_hidden_sizes):
+            if widths is not None and (not widths or any(not isinstance(w, int) or w <= 0 for w in widths)):
+                raise ValueError("hidden layer widths must be positive integers")
         if self.candidate_gain_mode not in ("optimal", "search"):
             raise ValueError("invalid candidate_gain_mode")
         if self.reward_sweep_reference_pilots is not None and self.reward_sweep_reference_pilots <= 0:
@@ -907,12 +911,13 @@ class OMAPPPolicy:
         torch.manual_seed(seed)
         self.rng = np.random.default_rng(seed)
         network = _GRUNet if config.recurrent else _MLP
+        actor_hidden_sizes = config.actor_hidden_sizes or config.hidden_sizes
         if config.recurrent:
             self.actor = network(
                 self.local_dim,
                 2,
                 config.recurrent_hidden_size,
-                config.hidden_sizes,
+                actor_hidden_sizes,
             )
             self.critic = network(
                 self.global_dim,
@@ -924,10 +929,10 @@ class OMAPPPolicy:
             # Match the from-scratch gain-report initialization exactly on
             # common weights. Zero new input columns preserve initial policy
             # outputs; gradients can learn their contribution immediately.
-            base_actor = _MLP(self.critic_local_dim, 2, config.hidden_sizes)
+            base_actor = _MLP(self.critic_local_dim, 2, actor_hidden_sizes)
             self.critic = _MLP(self.global_dim, 1, config.hidden_sizes)
             rng_state = torch.random.get_rng_state()
-            self.actor = _MLP(self.local_dim, 2, config.hidden_sizes)
+            self.actor = _MLP(self.local_dim, 2, actor_hidden_sizes)
             with torch.no_grad():
                 for index, (old, new) in enumerate(zip(base_actor.model, self.actor.model)):
                     if isinstance(old, nn.Linear):
@@ -939,7 +944,7 @@ class OMAPPPolicy:
                             new.weight.copy_(old.weight)
             torch.random.set_rng_state(rng_state)
         else:
-            self.actor = network(self.local_dim, 2, config.hidden_sizes)
+            self.actor = network(self.local_dim, 2, actor_hidden_sizes)
             self.critic = network(self.global_dim, 1, config.hidden_sizes)
         self.actor_optimizer = torch.optim.Adam(
             self.actor.parameters(), lr=config.actor_learning_rate
@@ -1117,6 +1122,8 @@ class OMAPPPolicy:
         checkpoint = torch.load(path, map_location="cpu", weights_only=False)
         config_dict = dict(checkpoint["config"])
         config_dict["hidden_sizes"] = tuple(config_dict["hidden_sizes"])
+        if config_dict.get("actor_hidden_sizes") is not None:
+            config_dict["actor_hidden_sizes"] = tuple(config_dict["actor_hidden_sizes"])
         policy = OMAPPPolicy(OMAPPOConfig(**config_dict), seed=seed)
         policy.actor.load_state_dict(checkpoint["actor"])
         policy.critic.load_state_dict(checkpoint["critic"])
