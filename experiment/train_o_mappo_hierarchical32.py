@@ -20,6 +20,9 @@ import time
 
 for name in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'NUMBA_NUM_THREADS'):
     os.environ[name] = '1'
+os.environ['OMP_PROC_BIND'] = 'false'
+os.environ['KMP_AFFINITY'] = 'disabled'
+CPU_POOL = tuple(sorted(os.sched_getaffinity(0)))
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import numpy as np
@@ -33,7 +36,7 @@ from utils.o_mappo_sim import run_sim_o_mappo
 from utils.ho_utils import make_paired_traffic
 
 RATES = list(range(1, 36, 2))
-DEFAULT_ROOT = ROOT / 'experiment/results/o_mappo_h32_retrained_20260924'
+DEFAULT_ROOT = ROOT / 'experiment/results/o_mappo_h32_retrained_20260924_v2'
 SOURCE = ROOT / DEFAULT_TRAIN_PATH
 DATA = None
 
@@ -62,9 +65,20 @@ def initialize_worker():
     single_thread_solvers()
 
 
+def bind_worker():
+    # Some OpenMP builds pin every forked worker to CPU 0 despite a larger
+    # allowed mask. Assign distinct cores AFTER checkpoint/thread setup.
+    identity = mp.current_process()._identity
+    if identity:
+        core = CPU_POOL[(identity[-1]-1) % len(CPU_POOL)]
+        for task in Path('/proc/self/task').iterdir():
+            os.sched_setaffinity(int(task.name), {core})
+
+
 def rollout(job):
     policy_path, rate, start, length, seed, learn = job
     policy = OMAPPPolicy.load(str(policy_path), seed=seed)
+    bind_worker()
     timeline = temporal_slice(DATA, start, start + length - .1)
     result, memory = run_fluid_o_mappo_episode(paper_args(rate * 1e6), timeline, policy,
         o_mappo_reward_presets()['qos_energy020_load1'], rate, seed=seed, learn=learn, collect_only=True)
@@ -172,12 +186,12 @@ def train(args):
                                     for r in anchor_rows], 1e-3)
             atomic_json(reference_path, dict(costs=reference.tolist(), rows=anchor_rows))
         for round_no in range(0, args.rounds + 1):
-            active = [s for s in seeds if round_no > max([x['round'] for x in histories[s]], default=-1)]
+            unfinished = [s for s in seeds if not convergence(histories[s])['passed']]
+            if not unfinished:
+                break
+            active = [s for s in unfinished if round_no > max([x['round'] for x in histories[s]], default=-1)]
             if not active:
                 continue
-            active = [s for s in active if not convergence(histories[s])['passed']]
-            if not active:
-                break
             if round_no:
                 jobs = []
                 for seed in active:
