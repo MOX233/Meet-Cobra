@@ -1,0 +1,106 @@
+{
+  "actor_sha256": "e1be46476dc17cbd2300a47b8930dceb173e469b9e8cf1dc18c35a31411e5b43",
+  "diagnostics_sha256": "8debbf98eca82abceb85eb72e6d8f34bccf98ce54a0e3c0bae4e008d2b74fa95",
+  "diagnostics_summary": {
+    "actor_decisions_by_source_bs": [
+      [
+        10,
+        246
+      ],
+      [
+        1016,
+        85
+      ],
+      [
+        727,
+        66
+      ],
+      [
+        892,
+        70
+      ],
+      [
+        871,
+        70
+      ]
+    ],
+    "actual_rb_utilization": [
+      0.07900918403391036,
+      0.808322147651007,
+      0.7496690054911531,
+      0.8586953426886315,
+      0.7723723815334552
+    ],
+    "changed_states": 40890,
+    "macro_cheapest": 19,
+    "macro_exits": 246,
+    "macro_power_w": 10.508221476510066,
+    "macro_targets": 87,
+    "macro_with_lower_power_micro": 80,
+    "mean_absolute_feature_change": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.16796018269699267,
+      0.0,
+      0.0,
+      0.0016507703595011005,
+      0.5359331871921551,
+      0.5242592607917048,
+      0.48626832671374204,
+      0.5188068057234814,
+      0.1746014061440616,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ra_calls": 150000,
+    "ra_interference_sample_count": 39047,
+    "ra_sampled_interference_ratio": 0.4296007310308023,
+    "state_count": 40890,
+    "target_assignments": 537
+  },
+  "elapsed_s": 133.31948677403852,
+  "exact_reference_parity": true,
+  "frames": 300,
+  "metrics": {
+    "handovers": 535,
+    "macro_association_percent": 3.097072798444078,
+    "mean_overflow_rb": 0.20583524309457915,
+    "mean_proxy_ms": 1.5581638052761555,
+    "optimizer_calls": 209,
+    "optimizer_failures": 0,
+    "p90_proxy_ms": 1.777634703673832,
+    "p99_proxy_ms": 2.171234256607233,
+    "pilots_per_vehicle_slot": 0.9777305939525771,
+    "power_w": 52.60379865771819,
+    "violation_percent": 0.18706361545356748
+  },
+  "protocol_sha256": "f129bd6ba06e9df26248709e327ebc538dca37a557e7d5af543c22b53f5f6aca",
+  "rate_mbps": 15,
+  "raw_sha256": "04ae32589bad8d8b5cbefcdad8e3480677f2486d32559d39b718ed5562cf2c8c",
+  "seed": 1,
+  "settings": {
+    "hook": "bounded_average",
+    "route": "E",
+    "scope": "all"
+  },
+  "traffic_sha256": "062b55f36d244d3f02955809b6ee4a913d178e89d7005d6d4bdc58e0b6cd8ae3",
+  "variant": "control"
+}

@@ -91,5 +91,15 @@ class SlotTrackingTests(unittest.TestCase):
         self.assertAlmostEqual(om.average_sweep_pilots(self.args,32,5),(32+99*5)/100)
         self.assertGreater(om.average_sweep_pilots(self.args,32,5),om.average_sweep_pilots(self.args,32,1))
 
+    def test_policy_configuration_changes_only_tracking_count(self):
+        adapter=SlotTracking()
+        config=om.OMAPPOConfig(beam_search_variant='hierarchical32',actor_hidden_sizes=(64,64))
+        actor=object(); policy=SimpleNamespace(config=config,actor=actor)
+        adapter.original_load=lambda:policy
+        result=adapter.load()
+        expected=dataclasses.asdict(config); expected['tracking_pilots']=5
+        self.assertEqual(dataclasses.asdict(result.config),expected)
+        self.assertIs(result.actor,actor)
+
 
 if __name__=='__main__': unittest.main()

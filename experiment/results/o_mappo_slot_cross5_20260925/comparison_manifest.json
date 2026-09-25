@@ -1,0 +1,43 @@
+{
+  "csv_sha256": "fe11d7b8453191928e7fb904a1cc0f538859b3c79f447be355419d74fd1cae2f",
+  "evidence": [
+    {
+      "new_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_slot_cross5_20260925/runs/slot_cross5_rate1_seed1.json",
+      "new_sha256": "2e6f777dafef87e96c80a65ff53582f8164a3cc813157928051e6c4ad3a7ce8b",
+      "original_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_full_grid_20260925/runs/E_all_trained_rate1_seed1.json",
+      "original_sha256": "b679d870f5ea91ecf7139a9f2b99e0d33e8cb6b6b3e82a9e103709f0e3ea6359"
+    },
+    {
+      "new_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_slot_cross5_20260925/runs/slot_cross5_rate5_seed1.json",
+      "new_sha256": "4fc613faad31f6c5ba09f05264e021b63eddffeb81b47e63637d916e1c5d9c78",
+      "original_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_full_grid_20260925/runs/E_all_trained_rate5_seed1.json",
+      "original_sha256": "00c109dc6202fcd9ee5fc8cb643041dc895891093f6d03b3b5881c2192237f5a"
+    },
+    {
+      "new_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_slot_cross5_20260925/runs/slot_cross5_rate15_seed1.json",
+      "new_sha256": "423d541e7b51731e6590088b9fad42c5929f7625dd518df0af540ad1cc445f99",
+      "original_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_full_grid_20260925/runs/E_all_trained_rate15_seed1.json",
+      "original_sha256": "035d733d8f09f4000cbb85112c7c0dad2e8a5999137820dac8b4c5b51b44c280"
+    },
+    {
+      "new_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_slot_cross5_20260925/runs/slot_cross5_rate21_seed1.json",
+      "new_sha256": "ec1acb3a2213c70eea98d2c4cb3be0b945e273aeecb479f0d55ed5bc8a138bd1",
+      "original_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_full_grid_20260925/runs/E_all_trained_rate21_seed1.json",
+      "original_sha256": "207e4c7427493515e7589c74933804f21b6ab000f5d4d9620dcf9e37f191343b"
+    },
+    {
+      "new_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_slot_cross5_20260925/runs/slot_cross5_rate25_seed1.json",
+      "new_sha256": "4706b321cd1b81af70e404decb0d9c5cf1a103b893f3f6bd56cd155facc41d02",
+      "original_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_full_grid_20260925/runs/E_all_trained_rate25_seed1.json",
+      "original_sha256": "2fc5878a3f3f89a86cbf404b8556702a16ccd7830bdba62f3dd3af4e969c336c"
+    },
+    {
+      "new_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_slot_cross5_20260925/runs/slot_cross5_rate29_seed1.json",
+      "new_sha256": "58678cb5da71c4c87398964118ad8bcda4e58350c750406cd7d24743a41d9aca",
+      "original_file": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_full_grid_20260925/runs/E_all_trained_rate29_seed1.json",
+      "original_sha256": "27ee58c5116850b0c56df0b494a27ba5f4875cf7762ca189b2b4cedacc3cc1da"
+    }
+  ],
+  "protocol_sha256": "f129bd6ba06e9df26248709e327ebc538dca37a557e7d5af543c22b53f5f6aca",
+  "summary_sha256": "df81b74663317cd73715f3c0ae9c86e68104d87d7cd2b89bce09820ec5dc3a6c"
+}
