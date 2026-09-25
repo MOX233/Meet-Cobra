@@ -1,0 +1,9 @@
+{
+  "finished_unix": 1790325065.6351655,
+  "selection": {
+    "label": "seed11",
+    "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_predicted_cross5_20260925/training/seed11/best_positive.pt",
+    "score": 1.196519281909916
+  },
+  "test_cases": 54
+}

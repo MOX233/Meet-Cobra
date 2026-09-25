@@ -101,12 +101,14 @@ def plot(root,summary):
         for label,color in zip(names,colors):
             group=[r for r in summary['aggregates'] if r['label']==label]
             y=np.array([r['metrics'][key]['mean'] for r in group]);sd=np.array([r['metrics'][key]['std'] for r in group])
-            ax.plot(RATES,y,label=label,color=color,linewidth=1.6,marker='o',markersize=3)
+            legend='Prediction input, fine-tuned' if label==names[0] else label
+            ax.plot(RATES,y,label=legend,color=color,linewidth=1.6,marker='o',markersize=3)
             ax.fill_between(RATES,np.maximum(y-sd,0),y+sd,color=color,alpha=.12,linewidth=0)
         ax.set_xlabel('Arrival rate per vehicle (Mbps)');ax.set_ylabel(title)
         ax.grid(alpha=.2);ax.set_xlim(1,35)
         if key=='violation_percent':ax.set_yscale('symlog',linthresh=.01)
         if key=='p99_proxy_ms':ax.set_yscale('log')
+        else:ax.set_ylim(bottom=0)
     handles,labels=axes[0,0].get_legend_handles_labels()
     fig.legend(handles,labels,loc='outside upper center',ncol=2,frameon=False)
     fig.savefig(root/'comparison.pdf');fig.savefig(root/'comparison.png',dpi=180);plt.close(fig)
@@ -121,6 +123,7 @@ def plot(root,summary):
         axes[1].plot([r['round'] for r in h],[r['score'] for r in h],'-o',ms=3,color=color,label=f'Seed {seed}')
     axes[0].set_ylabel('Training reward (raw and 7-update mean)')
     axes[1].set_ylabel('Balanced validation cost (lower is better)')
+    axes[1].set_title('Checkpoint screening: 700–710 s',fontsize=10)
     for ax in axes:ax.set_xlabel('PPO update');ax.grid(alpha=.2);ax.legend(frameon=False)
     fig.savefig(root/'training_curves.pdf');fig.savefig(root/'training_curves.png',dpi=180);plt.close(fig)
 
@@ -136,7 +139,11 @@ def report(root,s):
         '| Mbps | Prediction, fine-tuned | Prediction, no fine-tuning | True-CSI cross5 | MEET-COBRA | Oracle-MC |',
         '|---:|---:|---:|---:|---:|---:|']
     for rate in RATES:
-        cells=[f"{lookup[label,rate]['power_w']['mean']:.3f} W / {lookup[label,rate]['violation_percent']['mean']:.4f}%" for label in labels]
+        cells=[]
+        for label in labels:
+            m=lookup[label,rate]; u=m['violation_percent']['mean']
+            u_text=f'{u:.2e}' if 0<u<1e-4 else f'{u:.4f}'
+            cells.append(f"{m['power_w']['mean']:.3f} W / {u_text}%")
         lines.append('| '+str(rate)+' | '+' | '.join(cells)+' |')
     lines+=['','## Training stability','']
     lines.append(f"Separate selection-interval score: best fine-tuned {s['selected']['score']:.5f}; no fine-tuning {s['zero_validation']['score']:.5f}. The all-candidate validation choice is {s['validation_choice_including_zero']['label']}. This choice does not use test metrics.")

@@ -1,6 +1,8 @@
 # Prediction-only O-MAPPO HO32 / cross5 experiment
 
-Status: implementation and small-scale checks passed; full training/evaluation pending.
+Status: three-seed training and all-load evaluations completed on 2026-09-25.
+All 324 scheme/load/seed records passed independent raw-data and paired-traffic
+checks; all 27 relevant regression tests passed again after the experiments.
 
 ## Scope
 
@@ -36,7 +38,9 @@ The four pre-existing tracked working-tree modifications are left untouched.
   using all-load evaluation at 710--720 s. Test once at 800--830 s for all 18
   loads and traffic seeds 1, 2, 3; omit the initial two frames in summaries.
 - Selection cost: U in percent + 0.02 P in watts, normalized separately by load
-  using the fixed untrained prediction-input validation control. Score is half
+  using the fixed prediction-input control with no additional fine-tuning. The
+  control retains the already-trained E_all actor; it is not randomly initialized.
+  Score is half
   the mean normalized cost plus half the worst normalized cost.
 - Convergence is assessed from five validation checkpoints, per-load cost span,
   aggregate cost span and policy changes. A prescribed update count alone is
@@ -77,7 +81,87 @@ the common position/path-loss model.
   perturbing future physical samples cannot change past chosen beams.
 - A five-second GPU rollout and PPO update passed (494 executed-action
   transitions in that smoke run). Its numbers are validation-smoke diagnostics,
-  not final test evidence.
+not final test evidence.
+
+## Completed training and model selection
+
+All three training seeds completed 160 PPO updates. Each update pooled the 18
+loads before optimization; this is not 160 supervised-learning epochs. Training
+took approximately 53.6 minutes, excluding data preparation and final evaluation.
+The three best positive-update checkpoints were selected at updates 40, 20 and
+150 for seeds 11, 22 and 33, respectively. Evaluation on the separate 710--720 s
+selection interval chose seed 11, update 40. Its all-load score was 1.19652,
+compared with 1.72807 and 1.79365 for the other two candidates. The no-additional-
+fine-tuning control scored 1.72503 on this same interval. Lower is better.
+
+None of the three training runs passed the predefined stability criterion.
+Mean training reward over the last 20 updates was also not consistently higher
+than over the first 20. Therefore, these results must not be described as a
+converged policy or as a consistent improvement from continued training. The
+chosen checkpoint is validation-selected, not the last checkpoint or a model
+selected separately for each test load.
+
+## Complete test comparisons
+
+The selected prediction-input model, the prediction-input control without
+additional fine-tuning, and the frozen true-CSI HO32/cross5 control each have
+18 loads times three traffic/fading seeds, i.e., 54 runs of 30 s. Six verified
+true-CSI pilot cases were reused; the remaining 48 were newly run. Existing
+MEET-COBRA, Oracle-MC and formal O-MAPPO results were retained as references.
+The no-additional-fine-tuning control was declared while training was ongoing
+and cannot change the frozen positive-update training protocol. Its independent
+validation score, not its test results, was used when comparing model choices.
+
+The complete numerical tables, plots, raw-result audit and checkpoint hashes are
+stored under `experiment/results/o_mappo_predicted_cross5_20260925/`:
+
+- `report.md`, `comparison.csv`, and `analysis.json`: full-load results and provenance.
+- `comparison.pdf` and `training_curves.pdf`: experimental figures only.
+- `selection.json`, `training_complete.json`, and the three validation histories:
+  model selection and stability diagnostics.
+- `test/runs`, `zero_test/runs`, and `true_control/runs`: per-case JSON summaries,
+  diagnostics and compressed raw queues, RB allocations and other system records.
+- `training/seed11/best_positive.pt`: the common selected test checkpoint.
+
+### Main findings
+
+All numbers below are averages over three test seeds. U is expressed in percent,
+not as a fraction.
+
+- At 1, 5, 15 and 21 Mbps, the fine-tuned prediction-input model uses 5.889,
+  12.385, 32.222 and 45.728 W, respectively, versus 5.439, 10.948, 26.848 and
+  38.124 W for MEET-COBRA. The earlier low-load power advantage of the
+  CSI-privileged cross5 version is not retained.
+- MEET-COBRA has lower mean U at all 18 loads. At 25--33 Mbps the fine-tuned
+  prediction-input model uses less power than MEET-COBRA, but with substantially
+  larger violations. At 29 Mbps, for example, the comparison is 107.397 W /
+  4.1799% versus 127.746 W / 0.1939%. This is not an energy advantage at matched
+  latency performance.
+- Continued training does not uniformly improve the prediction-input baseline.
+  At 29 Mbps, retaining the original actor weights gives 136.539 W / 1.5763%,
+  whereas the validation-selected fine-tuned model gives 107.397 W / 4.1799%.
+  Its macro-BS association share falls from 13.61% to 7.74%, and its L99 proxy
+  rises from 91.38 to 364.76 ms. These are observed tradeoffs, not proof that one
+  specific training or estimation mechanism caused the performance change.
+- The forecast-based decision interface is feasible and removes privileged
+  candidate-channel access. It does not by itself establish that this PPO
+  configuration generalizes robustly across loads. No final baseline or paper
+  result has been replaced on the basis of this experiment.
+
+### Interpretation limits
+
+The true-CSI versus prediction-input comparison changes channel-derived actor
+features, target-BS estimates, occupancy estimates and the interference input
+used by RA. The fine-tuned version additionally changes actor weights and uses
+exact slot-level training instead of the older frame-fluid approximation.
+Therefore, the overall difference must not be attributed solely to actor input
+noise or to the HO optimizer in isolation.
+
+Three test seeds vary arrivals and small-scale fading over the same 30 s vehicle
+trajectory interval; they are not three independent propagation environments.
+Plot bands represent one sample standard deviation, not confidence intervals.
+The current experiment supports a transparent information-matched comparison,
+not a claim of universal or statistically established superiority.
 
 ## Commands
 

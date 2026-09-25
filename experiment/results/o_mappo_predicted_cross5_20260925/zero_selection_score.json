@@ -1,0 +1,6 @@
+{
+  "criterion": "same score as trained candidate selection",
+  "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_predicted_cross5_20260925/training/seed11/round0000.pt",
+  "policy_sha256": "4e5da235b29896269346b5e4b3ed9243a22aadf4bda01f9cfd40335ea2de7668",
+  "score": 1.7250306886482902
+}

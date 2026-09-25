@@ -1,0 +1,70 @@
+{
+  "inputs": {
+    "alignment": "report at x predicts x+0.1; previous report supplies current RA",
+    "arrays": {
+      "channel_sha256": "28bcc37e8469b37d0fe588b41aa73a2a29dc8c562417492ad18a28a906bdc14d",
+      "frames": 5401,
+      "index_sha256": "5d01cfd61263b35b8246a505322d966f2e08e5ff08bd4499a7a5de9f4a6ac312",
+      "records": 567433
+    },
+    "data_root": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_h32_retrained_20260924_v4",
+    "intervals": {
+      "selection": [
+        710,
+        720
+      ],
+      "test": [
+        800,
+        830
+      ],
+      "train": [
+        200,
+        650
+      ],
+      "validation": [
+        700,
+        710
+      ]
+    },
+    "models": {
+      "beam": {
+        "architecture": "BeamPredictionLSTMModel(\n  (lstm_layers): LSTM(128, 128, batch_first=True)\n  (shared_layers): Sequential()\n  (output_heads): ModuleList(\n    (0-3): 4 x Sequential(\n      (0): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (1): ReLU()\n      (2): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (3): ReLU()\n      (4): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (5): ReLU()\n      (6): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=256, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=256, out_features=256, bias=False)\n        (bn2): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n        (downsample): Sequential(\n          (0): Linear(in_features=128, out_features=256, bias=False)\n          (1): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        )\n      )\n    )\n  )\n)",
+        "checkpoint": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/revision_directional_20260922/models/beam/best.pth",
+        "parameter_bytes": 4243456,
+        "parameter_count": 1060864,
+        "selected_stage2_epoch": 88,
+        "selection_metric": "maximum validation Top-1",
+        "sha256": "3ab0a2defe9f4795eceb2cb3d8de0bb2265a8d074e39c353a1cda6a8748abd4b",
+        "state_dict_bytes": 4288800
+      },
+      "desired_gain": {
+        "architecture": "BestGainPredictionLSTMModel(\n  (lstm_layers): LSTM(128, 128, batch_first=True)\n  (shared_layers): Sequential()\n  (output_heads): ModuleList(\n    (0-3): 4 x Sequential(\n      (0): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (1): ReLU()\n      (2): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (3): ReLU()\n      (4): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (5): ReLU()\n      (6): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=1, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=1, out_features=1, bias=False)\n        (bn2): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n        (downsample): Sequential(\n          (0): Linear(in_features=128, out_features=1, bias=False)\n          (1): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        )\n      )\n    )\n  )\n)",
+        "checkpoint": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/revision_directional_20260922/models/desired_gain/best.pth",
+        "parameter_bytes": 2134096,
+        "parameter_count": 533524,
+        "selected_stage2_epoch": 59,
+        "selection_metric": "minimum validation MAE",
+        "sha256": "8c8bc19f2bb30214742f44b3fb1626029a549ecbe6d66249098480f11ce627eb",
+        "state_dict_bytes": 2163120
+      },
+      "interfering_gain": {
+        "architecture": "BestGainPredictionLSTMModel(\n  (lstm_layers): LSTM(128, 128, batch_first=True)\n  (shared_layers): Sequential()\n  (output_heads): ModuleList(\n    (0-3): 4 x Sequential(\n      (0): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (1): ReLU()\n      (2): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (3): ReLU()\n      (4): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=128, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=128, out_features=128, bias=False)\n        (bn2): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n      )\n      (5): ReLU()\n      (6): VectorResBlock(\n        (fc1): Linear(in_features=128, out_features=1, bias=False)\n        (bn1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (fc2): Linear(in_features=1, out_features=1, bias=False)\n        (bn2): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        (relu): ReLU(inplace=True)\n        (downsample): Sequential(\n          (0): Linear(in_features=128, out_features=1, bias=False)\n          (1): BatchNorm1d(1, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n        )\n      )\n    )\n  )\n)",
+        "checkpoint": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/revision_directional_20260922/models/interfering_gain/best.pth",
+        "parameter_bytes": 2134096,
+        "parameter_count": 533524,
+        "selected_stage2_epoch": 100,
+        "selection_metric": "minimum validation MAE",
+        "sha256": "af270976bfcd91d9661faa0bb752cc87eab85322b0da1dad3958f7d62249e5cb",
+        "state_dict_bytes": 2163120
+      }
+    },
+    "prediction_noise_seed": 20260917,
+    "source_code": {
+      "experiment/compare_stateful_prediction.py": "73c3684c7cfc2f13a3d712b95d34d335e7b4cf5eb3edd930c59f9bb04629da7d",
+      "experiment/prepare_stateful_trajectories.py": "c7009f2e156b5f1470ef7a5bb6d38f6bed4bf8c6d3bb12db3dc70a1ba669ec80",
+      "utils/NN_utils.py": "351dc4bd5a9e75304bc3dd7ea2019c35971eefa1ac1c7bbadb5ffcc7cb75dc26",
+      "utils/data_utils.py": "31c464cab50c22d49386cb14f3de2f8f459733a24ccf11a539a3cccd6a1a2689"
+    }
+  },
+  "report_sha256": "c0fe44f986636f89017c631f47c2c5fe0c59e84e790653b1a845eefcc752c02b"
+}

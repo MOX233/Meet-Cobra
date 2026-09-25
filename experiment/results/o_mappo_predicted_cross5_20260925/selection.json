@@ -1,0 +1,24 @@
+{
+  "ranking": [
+    {
+      "label": "seed11",
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_predicted_cross5_20260925/training/seed11/best_positive.pt",
+      "score": 1.196519281909916
+    },
+    {
+      "label": "seed22",
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_predicted_cross5_20260925/training/seed22/best_positive.pt",
+      "score": 1.7280708904514572
+    },
+    {
+      "label": "seed33",
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_predicted_cross5_20260925/training/seed33/best_positive.pt",
+      "score": 1.793651437643145
+    }
+  ],
+  "selected": {
+    "label": "seed11",
+    "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_predicted_cross5_20260925/training/seed11/best_positive.pt",
+    "score": 1.196519281909916
+  }
+}

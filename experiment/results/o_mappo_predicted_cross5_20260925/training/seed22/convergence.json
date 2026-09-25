@@ -1,0 +1,14 @@
+{
+  "maximum_per_load_cost_span": 0.22934181810035467,
+  "maximum_probe_flip_fraction": 0.013671875,
+  "maximum_probe_probability_change": 0.011934562586247921,
+  "passed": false,
+  "score_span": 0.052534205782286875,
+  "window_rounds": [
+    120,
+    130,
+    140,
+    150,
+    160
+  ]
+}
