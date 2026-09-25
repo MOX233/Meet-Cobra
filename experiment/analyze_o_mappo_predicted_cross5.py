@@ -44,6 +44,7 @@ def audit_row(path,raw,rate,seed):
 def collect(root):
     assert (root/'complete.json').exists(),'Training/test pipeline is not complete'
     assert (root/'true_control/summary.json').exists(),'Paired true-CSI control grid is not complete'
+    assert (root/'zero_test/summary.json').exists(),'Unfinetuned prediction-input control is not complete'
     protocol=old.read(root/'protocol.json')
     for name,h in protocol['code'].items():assert digest(ROOT/name)==h,name
     assert digest(TEST)==protocol['test_sha256']
@@ -53,6 +54,7 @@ def collect(root):
     for rate in RATES:
         for seed in [1,2,3]:
             specs=[('Prediction-input O-MAPPO',root/'test/runs'/f'predicted_cross5_rate{rate}_seed{seed}.json',None),
+                   ('Prediction input, no fine-tuning',root/'zero_test/runs'/f'predicted_zero_rate{rate}_seed{seed}.json',None),
                    ('True-CSI cross5 O-MAPPO',root/'true_control/runs'/f'true_cross5_rate{rate}_seed{seed}.json',None),
                    ('MEET-COBRA',PAPER/'runs'/f'meet_cobra_rate{rate}_seed{seed}.json',PAPER/'raw'/f'meet_cobra_rate{rate}_seed{seed}.npz'),
                    ('Oracle-MC',PAPER/'runs'/f'oracle_mc_rate{rate}_seed{seed}.json',PAPER/'raw'/f'oracle_mc_rate{rate}_seed{seed}.npz'),
@@ -72,7 +74,10 @@ def collect(root):
                 minimum=min(r['metrics'][k] for r in group),maximum=max(r['metrics'][k] for r in group),
                 per_seed=[r['metrics'][k] for r in group]) for k in group[0]['metrics']}
             aggregates.append(dict(label=label,rate=rate,metrics=metrics))
+    zero=old.read(root/'zero_selection_score.json')
+    choice=dict(label='Prediction input, no fine-tuning',**zero) if zero['score']<selected['score'] else selected
     summary=dict(selected=selected,selected_sha256=sha,training=old.read(root/'training_complete.json'),
+        zero_validation=zero,validation_choice_including_zero=choice,
         simulations_per_scheme=54,rates=RATES,seeds=[1,2,3],seconds=30,warmup_frames=2,
         same_traffic_verified=True,raw_metrics_recomputed=True,
         code_sha256=digest(Path(__file__)),aggregates=aggregates,rows=rows)
@@ -89,8 +94,8 @@ def plot(root,summary):
     import matplotlib.pyplot as plt
     plt.rcParams.update({'font.family':'DejaVu Sans','font.size':10,'axes.spines.top':False,'axes.spines.right':False})
     fig,axes=plt.subplots(2,2,figsize=(10,7),layout='constrained')
-    names=['Prediction-input O-MAPPO','True-CSI cross5 O-MAPPO','MEET-COBRA','Oracle-MC']
-    colors=['#D55E00','#0072B2','#009E73','#777777']
+    names=['Prediction-input O-MAPPO','True-CSI cross5 O-MAPPO','MEET-COBRA','Prediction input, no fine-tuning']
+    colors=['#D55E00','#0072B2','#009E73','#9A62A7']
     for ax,key,title in zip(axes.flat,['power_w','violation_percent','p99_proxy_ms','macro_association_percent'],
         ['System transmit power (W)','Violation probability (%)','99th-percentile latency proxy (ms)','Macro-BS association (%)']):
         for label,color in zip(names,colors):
@@ -121,19 +126,20 @@ def plot(root,summary):
 
 
 def report(root,s):
-    labels=['Prediction-input O-MAPPO','True-CSI cross5 O-MAPPO','MEET-COBRA','Oracle-MC']
+    labels=['Prediction-input O-MAPPO','Prediction input, no fine-tuning','True-CSI cross5 O-MAPPO','MEET-COBRA','Oracle-MC']
     lookup={(r['label'],r['rate']):r['metrics'] for r in s['aggregates']}
     lines=['# Prediction-only O-MAPPO: completed experiment','',
         'All values below are three-seed means. Each run lasts 30 s; the first two frames are omitted.',
         'The baseline uses one common validation-selected checkpoint at every test load. No paper files were changed.','',
         f"Selected: {s['selected']['label']}; checkpoint SHA-256 `{s['selected_sha256']}`.",'',
         '## Power / violation probability','',
-        '| Mbps | Prediction-input O-MAPPO | True-CSI cross5 O-MAPPO | MEET-COBRA | Oracle-MC |',
-        '|---:|---:|---:|---:|---:|']
+        '| Mbps | Prediction, fine-tuned | Prediction, no fine-tuning | True-CSI cross5 | MEET-COBRA | Oracle-MC |',
+        '|---:|---:|---:|---:|---:|---:|']
     for rate in RATES:
         cells=[f"{lookup[label,rate]['power_w']['mean']:.3f} W / {lookup[label,rate]['violation_percent']['mean']:.4f}%" for label in labels]
         lines.append('| '+str(rate)+' | '+' | '.join(cells)+' |')
     lines+=['','## Training stability','']
+    lines.append(f"Separate selection-interval score: best fine-tuned {s['selected']['score']:.5f}; no fine-tuning {s['zero_validation']['score']:.5f}. The all-candidate validation choice is {s['validation_choice_including_zero']['label']}. This choice does not use test metrics.")
     for seed in SEEDS:
         h=old.read(root/'training'/f'seed{seed}'/'validation_history.json')
         best=old.read(root/'training'/f'seed{seed}'/'best_positive.json')
@@ -154,7 +160,8 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,default=DEFAULT)
     p.add_argument('--wait',action='store_true',help='Wait in short intervals for both already-running pipelines')
     a=p.parse_args()
-    while a.wait and not ((a.root/'complete.json').exists() and (a.root/'true_control/summary.json').exists()):
+    while a.wait and not ((a.root/'complete.json').exists() and (a.root/'true_control/summary.json').exists()
+                         and (a.root/'zero_test/summary.json').exists()):
         print('WAITING for trained and true-CSI grids',flush=True)
         time.sleep(30)
     summary=collect(a.root);plot(a.root,summary);report(a.root,summary)
