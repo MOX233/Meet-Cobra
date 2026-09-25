@@ -1,0 +1,63 @@
+{
+  "approved_policy_sha256": "16cef09a17207776f9a371d136a01d8bbe1643277dae3528d0c29a7255ab7f85",
+  "formal_cases": 432,
+  "replaced_scheme": "o_mappo",
+  "replacement_cases": 54,
+  "other_scheme_rows_unchanged": 630,
+  "replacement_metric_rows": 90,
+  "changed_metric_rows": 90,
+  "new_curve_matches_approved_analysis": true,
+  "plot_source_sha256": "f1292db0d317f24ba6db4453bb36a02a197f024596b657d5c6fecc6ac3ea320f",
+  "figures": {
+    "power_comparison_curves": {
+      "pdf": {
+        "before": "e2b5b62d4d71141a48b382ae4f5e1ce61a4117867fe6138018640953e7ce3953",
+        "after": "bcd755b638489366ec7e7732f65847f24e725aa843f891a305eda04ce7dd301e"
+      },
+      "png": {
+        "before": "841919a634dafa40bbcb27e917c3eb7de8defa86ed8228f33bea2bbc3246d93b",
+        "after": "b3e984aaee2156ffce7f9e95e387e51c3defd6896eb7730a4fa93dbb2404ca03"
+      }
+    },
+    "violation_prob_comparison_curves": {
+      "pdf": {
+        "before": "5c3ae74666ff2fdcb306d5dc0bf425be2105feb80d104d33f723c995f87ccd59",
+        "after": "44393d8aaf4d435abc0829761478193abeb0df5dc76866ab5cef7e178123768b"
+      },
+      "png": {
+        "before": "7e5b781203000d2e422b9dfc2ae3a71f6c1270b04749287d2ee128e021d787d0",
+        "after": "6fa0fa36379f8da2e599cf2694111708c5ad5dba3791b013443d26b60aff211f"
+      }
+    },
+    "latency_90th_comparison_curves": {
+      "pdf": {
+        "before": "d8fcabb6d343bb6aa752cd7cd6daa9b776035384a3e46823019be837418d742e",
+        "after": "d6a6b435b7bfcd4439af600f163ec14738e9c8da5ae82550023d935f066c91df"
+      },
+      "png": {
+        "before": "655c72bbba9a5c16adf463da2d1e294edf027575c56b4cd784029bbcbc95431e",
+        "after": "dc88ca3ec670d58cc6c44b23cb75aba86ea41690f50f74667172cfeec25dc4bf"
+      }
+    },
+    "latency_99th_comparison_curves": {
+      "pdf": {
+        "before": "985ae8afd4b0198eb29b35413d71e443df2c7af1f3dad3330ea60d51cb1d8583",
+        "after": "ab54531c977590d46089e30407f0a252fdf1695b090d39e00f0ae03f1d9d2865"
+      },
+      "png": {
+        "before": "a147fa769b557955c89896fa25aab54f1c16fed45c428aeb379fa2dec74ff1b7",
+        "after": "9c832bb2375bd50d9129487d1d7ed9b18c3875bbe2e842833c35b94adf3aceab"
+      }
+    },
+    "BS0_assoc_ratio_comparison_curves": {
+      "pdf": {
+        "before": "a67950f44096d5efcfee575f98f0b33ab5a56b41becb5a2d4b4c105abd4c5fc4",
+        "after": "e14411325521fd22e7c01282270fefda5742e7d69a4cc7d82282ef32bf5ab7b4"
+      },
+      "png": {
+        "before": "cabfe5787a843263d3a7be3386aa2eb06d2fb0d853a5033b1ff39e845ee17301",
+        "after": "db6257fba5f49231d11701de05738a9ed9a0f23393d800726eaa536233ba0cd2"
+      }
+    }
+  }
+}

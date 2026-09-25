@@ -21,9 +21,9 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 GRID = ROOT / 'experiment/results/revision_directional_20260922/grid'
 FIGURES = ROOT / 'latexCodes/figures'
-OMAPPO_RESULTS = ROOT / 'experiment/results/o_mappo_predicted_cross5_20260925'
+OMAPPO_RESULTS = ROOT / 'experiment/results/o_mappo_eall_full_grid_20260925'
 MTS_RESULTS = ROOT / 'experiment/results/mts_h32_full_grid_20260925'
-REPORT = OMAPPO_RESULTS / 'paper_figures'
+REPORT = MTS_RESULTS / 'paper_figures'
 METHODS = ('meet_cobra', 'oracle_mc', 'reactive_obra', 'o_mappo',
            'mts_report', 'wo_gap_ho', 'wo_pet_bf', 'wo_otr_ra')
 STYLE = {
@@ -138,51 +138,24 @@ def load(grid):
 
 def replace_o_mappo(root, protocol, rows, curves):
     """Overlay the approved O-MAPPO data, preserving all seven other schemes."""
-    if (root / 'analysis.json').exists():
-        # The prediction-input study also contains controls. Promote only its
-        # single validation-selected positive-update model, never a control.
-        source = root / 'analysis.json'
-        analysis = read(source)
-        manifest = read(root / 'protocol.json')
-        selected = read(root / 'selection.json')['selected']
-        assert analysis['selected'] == selected
-        assert read(root / 'complete.json')['selection'] == selected
-        assert digest(Path(selected['policy'])) == analysis['selected_sha256']
-        assert manifest['test_sha256'] == protocol['cache_sha256']
-        assert analysis['same_traffic_verified'] and analysis['raw_metrics_recomputed']
-        result = dict(cases=analysis['simulations_per_scheme'], rates=analysis['rates'],
-                      seeds=analysis['seeds'], seconds=analysis['seconds'],
-                      warmup_frames=analysis['warmup_frames'], raw_metrics_recomputed=True,
-                      policy_sha256=analysis['selected_sha256'],
-                      provenance=[dict(file=r['path'], sha256=r['sha256'],
-                                       raw_sha256=r['raw_sha256']) for r in analysis['rows']
-                                  if r['label'] == 'Prediction-input O-MAPPO'])
-        case_protocol_sha = digest(root / 'test/protocol.json')
-    else:
-        source = root / 'summary.json'
-        result = read(source)
-        assert result['protocol_sha256'] == digest(root / 'protocol.json')
-        assert read(root / 'protocol.json')['timeline_sha256'] == protocol['cache_sha256']
-        case_protocol_sha = None
+    result = read(root / 'summary.json')
     assert result['cases'] == 54 and result['raw_metrics_recomputed']
     assert result['rates'] == protocol['rates'] and result['seeds'] == protocol['seeds']
     assert result['seconds'] == 30 and result['warmup_frames'] == protocol['warmup_frames']
+    assert result['protocol_sha256'] == digest(root / 'protocol.json')
+    manifest = read(root / 'protocol.json')
+    assert manifest['timeline_sha256'] == protocol['cache_sha256']
     replacements = {}
     for record in result['provenance']:
         path = Path(record['file'])
         assert digest(path) == record['sha256']
         assert digest(path.with_suffix('.npz')) == record['raw_sha256']
         row = read(path)
-        checkpoint_sha = row.get('checkpoint_sha256', row.get('actor_sha256', row.get('policy_sha256')))
+        checkpoint_sha = row.get('checkpoint_sha256', row.get('actor_sha256'))
         assert checkpoint_sha == result['policy_sha256']
-        if case_protocol_sha is not None:
-            assert row['protocol_sha256'] == case_protocol_sha
-            assert row['label'] == 'predicted_cross5'
-            row = dict(row, rate_mbps=row['rate'])
         key = (row['rate_mbps'], row['seed'])
         assert key not in replacements
         replacements[key] = row
-    assert set(replacements) == {(r, s) for r in protocol['rates'] for s in protocol['seeds']}
     updated = []
     for row in rows:
         if row['method'] != 'o_mappo':
@@ -195,7 +168,7 @@ def replace_o_mappo(root, protocol, rows, curves):
         curves['o_mappo'][metric] = np.array([
             [replacements[rate, seed]['metrics'][metric] for seed in protocol['seeds']]
             for rate in protocol['rates']])
-    return updated, dict(root=str(root), summary_source=str(source), summary_sha256=digest(source),
+    return updated, dict(root=str(root), summary_sha256=digest(root / 'summary.json'),
                         policy_sha256=result['policy_sha256'], cases=54,
                         raw_metrics_recomputed=True, paired_traffic_verified=True)
 

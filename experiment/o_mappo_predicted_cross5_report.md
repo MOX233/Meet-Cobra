@@ -163,7 +163,37 @@ Plot bands represent one sample standard deviation, not confidence intervals.
 The current experiment supports a transparent information-matched comparison,
 not a claim of universal or statistically established superiority.
 
-## Commands
+## Subsequent paper promotion (2026-09-25)
+
+After reviewing the experiment, the user approved the fine-tuned prediction-input
+version as the formal O-MAPPO-adapted baseline. This is a separate promotion step;
+the experiment above did not itself edit the paper. No simulations or NN training
+were repeated during promotion.
+
+The formal Fig. 5--8 assets (five PDFs, including separate L90 and L99 panels) now
+use the selected seed-11/update-40 model at all 18 loads and all three test seeds.
+`paper_figures/figure_replacement_audit.json` verifies all 90 O-MAPPO metric rows
+against the approved analysis and confirms that the other seven schemes' 630
+rows are unchanged. Figure formatting, mean/min/max conventions and captions are
+unchanged. The old figures, working manuscript, response and figure data were
+copied to `pre_promotion_archive/` before replacement.
+
+The manuscript's baseline description now specifies prediction inputs and paid
+HO32/cross5 search. Its performance discussion, L99 threshold crossing and
+conclusion, together with R2C5 and R3 Major C3, reflect the observed power/latency
+tradeoff rather than claiming lower power at every high load. No convergence or
+algorithmic-performance-limit claim is added. The user's existing MTS paragraph
+and Fig. 4 edits are preserved. Both LaTeX documents compile; ten figure-loader
+regression tests pass, including legacy result formats and selection mismatch
+rejection.
+
+The default plotting entry point is now:
+
+```bash
+/home/ubuntu/anaconda3/envs/sionna/bin/python experiment/plot_revision_system_results.py
+```
+
+### Original experiment commands
 
 ```bash
 /home/ubuntu/anaconda3/envs/sionna/bin/python -u experiment/train_o_mappo_predicted_cross5.py launch

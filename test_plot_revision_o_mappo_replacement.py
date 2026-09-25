@@ -56,5 +56,59 @@ class ReplacementTest(unittest.TestCase):
                 root=Path(folder); p,rows,curves=self.fixture(root,**{bad:True})
                 with self.assertRaises(AssertionError): plot.replace_o_mappo(root,p,rows,curves)
 
+    def prediction_fixture(self, root):
+        p, rows, curves = self.fixture(root)
+        policy = root/'selected.pt'; policy.write_bytes(b'validation-selected policy')
+        selected = dict(label='seed11', policy=str(policy), score=1.1965)
+        (root/'test').mkdir()
+        (root/'test/protocol.json').write_text('{}')
+        (root/'protocol.json').write_text(json.dumps(dict(test_sha256='timeline')))
+        (root/'selection.json').write_text(json.dumps(dict(selected=selected)))
+        (root/'complete.json').write_text(json.dumps(dict(selection=selected)))
+        records = []
+        for r in plot.read(root/'summary.json')['provenance']:
+            path = Path(r['file']); row = plot.read(path)
+            row.pop('actor_sha256')
+            row.update(rate=row.pop('rate_mbps'), label='predicted_cross5',
+                       policy_sha256=plot.digest(policy),
+                       protocol_sha256=plot.digest(root/'test/protocol.json'))
+            path.write_text(json.dumps(row))
+            records.append(dict(label='Prediction-input O-MAPPO', path=str(path),
+                                sha256=plot.digest(path), raw_sha256=r['raw_sha256']))
+        # A comparison control must not be mistaken for the approved curve.
+        records.append(dict(label='Prediction input, no fine-tuning', path='not-a-selected-case',
+                            sha256='ignored', raw_sha256='ignored'))
+        analysis = dict(selected=selected, selected_sha256=plot.digest(policy),
+                        same_traffic_verified=True, raw_metrics_recomputed=True,
+                        simulations_per_scheme=54, rates=p['rates'], seeds=p['seeds'],
+                        seconds=30, warmup_frames=2, rows=records)
+        (root/'analysis.json').write_text(json.dumps(analysis))
+        return p, rows, curves
+
+    def test_prediction_input_format_preserves_other_seven_schemes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder); p,rows,curves=self.prediction_fixture(root)
+            before=copy.deepcopy(curves)
+            after,proof=plot.replace_o_mappo(root,p,rows,curves)
+            self.assertEqual(proof['cases'],54)
+            self.assertTrue(proof['summary_source'].endswith('analysis.json'))
+            for old,new in zip(rows,after):
+                if old['method']!='o_mappo': self.assertEqual(old,new)
+            for method in plot.METHODS:
+                for metric in plot.METRICS:
+                    expected=np.array([[r+s for s in p['seeds']] for r in p['rates']])
+                    np.testing.assert_array_equal(curves[method][metric],
+                        expected if method=='o_mappo' else before[method][metric])
+
+    def test_prediction_input_rejects_changed_selection_or_missing_case(self):
+        for bad in ('selection','missing'):
+            with self.subTest(bad=bad),tempfile.TemporaryDirectory() as folder:
+                root=Path(folder); p,rows,curves=self.prediction_fixture(root)
+                a=plot.read(root/'analysis.json')
+                if bad=='selection': a['selected']['label']='not-validation-selected'
+                else: a['rows'].pop(0)
+                (root/'analysis.json').write_text(json.dumps(a))
+                with self.assertRaises(AssertionError): plot.replace_o_mappo(root,p,rows,curves)
+
 
 if __name__=='__main__': unittest.main()
