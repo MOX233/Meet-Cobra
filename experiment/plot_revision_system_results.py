@@ -21,7 +21,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 GRID = ROOT / 'experiment/results/revision_directional_20260922/grid'
 FIGURES = ROOT / 'latexCodes/figures'
-OMAPPO_RESULTS = ROOT / 'experiment/results/o_mappo_actor2_full_grid_20260924'
+OMAPPO_RESULTS = ROOT / 'experiment/results/o_mappo_eall_full_grid_20260925'
 REPORT = OMAPPO_RESULTS / 'paper_figures'
 METHODS = ('meet_cobra', 'oracle_mc', 'reactive_obra', 'o_mappo',
            'mts_report', 'wo_gap_ho', 'wo_pet_bf', 'wo_otr_ra')
@@ -136,7 +136,7 @@ def load(grid):
 
 
 def replace_o_mappo(root, protocol, rows, curves):
-    """Overlay the approved actor2 data, preserving all seven other schemes."""
+    """Overlay the approved O-MAPPO data, preserving all seven other schemes."""
     result = read(root / 'summary.json')
     assert result['cases'] == 54 and result['raw_metrics_recomputed']
     assert result['rates'] == protocol['rates'] and result['seeds'] == protocol['seeds']
@@ -150,7 +150,8 @@ def replace_o_mappo(root, protocol, rows, curves):
         assert digest(path) == record['sha256']
         assert digest(path.with_suffix('.npz')) == record['raw_sha256']
         row = read(path)
-        assert row['checkpoint_sha256'] == result['policy_sha256']
+        checkpoint_sha = row.get('checkpoint_sha256', row.get('actor_sha256'))
+        assert checkpoint_sha == result['policy_sha256']
         key = (row['rate_mbps'], row['seed'])
         assert key not in replacements
         replacements[key] = row
@@ -264,7 +265,7 @@ def main():
     parser.add_argument('--figures', type=Path, default=FIGURES)
     parser.add_argument('--report', type=Path, default=REPORT)
     parser.add_argument('--o-mappo-results', type=Path, default=OMAPPO_RESULTS,
-                        help='Approved actor2 full-grid results to replace the historical O-MAPPO curve.')
+                        help='Approved full-grid results to replace the historical O-MAPPO curve.')
     parser.add_argument('--legacy-o-mappo', action='store_true',
                         help='Reproduce the historical exhaustive-search O-MAPPO curve instead.')
     parser.add_argument('--audit', action='store_true')

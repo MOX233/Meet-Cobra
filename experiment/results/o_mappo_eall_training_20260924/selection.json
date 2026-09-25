@@ -1,0 +1,87 @@
+{
+  "note": "Both no-training controls retained; a trained candidate need not beat its zero-round control",
+  "rankings": [
+    {
+      "label": "E_all_seed11",
+      "mean_ratio": 0.6673174422468328,
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/E_all/seed11/best_positive.pt",
+      "route": "E_all",
+      "score": 0.7355881140410144,
+      "worst_ratio": 0.8038587858351961
+    },
+    {
+      "label": "E_all_seed22",
+      "mean_ratio": 0.7120717499243855,
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/E_all/seed22/best_positive.pt",
+      "route": "E_all",
+      "score": 0.7758850291053125,
+      "worst_ratio": 0.8396983082862397
+    },
+    {
+      "label": "E_all_seed33",
+      "mean_ratio": 0.624575882709459,
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/E_all/seed33/best_positive.pt",
+      "route": "E_all",
+      "score": 0.7648291731434926,
+      "worst_ratio": 0.9050824635775264
+    },
+    {
+      "label": "E_all_zero",
+      "mean_ratio": 0.735851554420106,
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/checkpoints/actor2_seed33/selected.pt",
+      "route": "E_all",
+      "score": 0.8584203277830941,
+      "worst_ratio": 0.9809891011460822
+    },
+    {
+      "label": "legacy_seed11",
+      "mean_ratio": 1.0324138530803775,
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/legacy/seed11/best_positive.pt",
+      "route": "legacy",
+      "score": 1.1120973046620666,
+      "worst_ratio": 1.191780756243756
+    },
+    {
+      "label": "legacy_seed22",
+      "mean_ratio": 1.0455090553493736,
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/legacy/seed22/best_positive.pt",
+      "route": "legacy",
+      "score": 1.355612025869593,
+      "worst_ratio": 1.6657149963898121
+    },
+    {
+      "label": "legacy_seed33",
+      "mean_ratio": 0.9763027275790945,
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/legacy/seed33/best_positive.pt",
+      "route": "legacy",
+      "score": 1.0957358429683914,
+      "worst_ratio": 1.2151689583576883
+    },
+    {
+      "label": "legacy_zero",
+      "mean_ratio": 1.0,
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/checkpoints/actor2_seed33/selected.pt",
+      "route": "legacy",
+      "score": 1.0,
+      "worst_ratio": 1.0
+    }
+  ],
+  "selected_trained": {
+    "E_all": {
+      "label": "E_all_seed11",
+      "mean_ratio": 0.6673174422468328,
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/E_all/seed11/best_positive.pt",
+      "route": "E_all",
+      "score": 0.7355881140410144,
+      "worst_ratio": 0.8038587858351961
+    },
+    "legacy": {
+      "label": "legacy_seed33",
+      "mean_ratio": 0.9763027275790945,
+      "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/legacy/seed33/best_positive.pt",
+      "route": "legacy",
+      "score": 1.0957358429683914,
+      "worst_ratio": 1.2151689583576883
+    }
+  }
+}

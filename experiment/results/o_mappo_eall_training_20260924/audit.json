@@ -1,0 +1,170 @@
+{
+  "evaluation": [
+    {
+      "cases": 36,
+      "grid": "zero_validation",
+      "optimizer_calls": 1536,
+      "optimizer_failures": 0
+    },
+    {
+      "cases": 108,
+      "grid": "trained_validation",
+      "optimizer_calls": 4787,
+      "optimizer_failures": 0
+    },
+    {
+      "cases": 36,
+      "grid": "paired_test",
+      "optimizer_calls": 6823,
+      "optimizer_failures": 0
+    }
+  ],
+  "note": "Proxy training and directional exact evaluation audited separately; stability is not optimality.",
+  "passed": true,
+  "training": [
+    {
+      "best_round": 20,
+      "best_score": 1.2879929644531907,
+      "convergence": {
+        "maximum_per_load_cost_span": 0.2554001058285918,
+        "maximum_probe_flip_fraction": 0.013237847222222222,
+        "maximum_probe_probability_change": 0.015798445791006088,
+        "passed": false,
+        "score_span": 0.11364802651916447,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "final_score": 1.4145984139701313,
+      "initial_score": 1.0,
+      "mean_reward_first20": 0.7944310877319251,
+      "mean_reward_last20": 0.7936775075152194,
+      "route": "legacy",
+      "seed": 11
+    },
+    {
+      "best_round": 80,
+      "best_score": 1.2673524967820882,
+      "convergence": {
+        "maximum_per_load_cost_span": 0.25876594285082255,
+        "maximum_probe_flip_fraction": 0.009114583333333334,
+        "maximum_probe_probability_change": 0.008213173598051071,
+        "passed": false,
+        "score_span": 0.02532910789517658,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "final_score": 1.5214663683128262,
+      "initial_score": 1.0,
+      "mean_reward_first20": 0.8074844285961692,
+      "mean_reward_last20": 0.7632883071179534,
+      "route": "legacy",
+      "seed": 22
+    },
+    {
+      "best_round": 80,
+      "best_score": 1.337559487754097,
+      "convergence": {
+        "maximum_per_load_cost_span": 0.486063103416271,
+        "maximum_probe_flip_fraction": 0.010633680555555556,
+        "maximum_probe_probability_change": 0.01326716411858797,
+        "passed": false,
+        "score_span": 0.01965788994069463,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "final_score": 1.5039941941196342,
+      "initial_score": 1.0,
+      "mean_reward_first20": 0.7997131877387667,
+      "mean_reward_last20": 0.7811848597116714,
+      "route": "legacy",
+      "seed": 33
+    },
+    {
+      "best_round": 20,
+      "best_score": 0.9698940867449306,
+      "convergence": {
+        "maximum_per_load_cost_span": 0.231596949793053,
+        "maximum_probe_flip_fraction": 0.016493055555555556,
+        "maximum_probe_probability_change": 0.016526993364095688,
+        "passed": false,
+        "score_span": 0.06852381284458972,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "final_score": 1.128283343004953,
+      "initial_score": 1.019088779722057,
+      "mean_reward_first20": 1.062899381431163,
+      "mean_reward_last20": 1.074578982095513,
+      "route": "E_all",
+      "seed": 11
+    },
+    {
+      "best_round": 30,
+      "best_score": 0.9405136962524967,
+      "convergence": {
+        "maximum_per_load_cost_span": 0.23012627784004877,
+        "maximum_probe_flip_fraction": 0.009331597222222222,
+        "maximum_probe_probability_change": 0.012235251255333424,
+        "passed": false,
+        "score_span": 0.022068078896228353,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "final_score": 0.997271148112151,
+      "initial_score": 1.019088779722057,
+      "mean_reward_first20": 1.071669253540828,
+      "mean_reward_last20": 1.0407390730843846,
+      "route": "E_all",
+      "seed": 22
+    },
+    {
+      "best_round": 120,
+      "best_score": 1.044509733495411,
+      "convergence": {
+        "maximum_per_load_cost_span": 0.338218072691171,
+        "maximum_probe_flip_fraction": 0.021701388888888888,
+        "maximum_probe_probability_change": 0.015681784600019455,
+        "passed": false,
+        "score_span": 0.12487668262565535,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "final_score": 1.1557500744429259,
+      "initial_score": 1.019088779722057,
+      "mean_reward_first20": 1.0863399860005891,
+      "mean_reward_last20": 1.0908805457033088,
+      "route": "E_all",
+      "seed": 33
+    }
+  ]
+}
