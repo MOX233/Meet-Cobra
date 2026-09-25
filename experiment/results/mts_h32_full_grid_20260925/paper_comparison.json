@@ -1,0 +1,446 @@
+{
+  "comparisons": [
+    {
+      "legacy_mts": {
+        "macro_association_percent": 2.885349220807996,
+        "p90_proxy_ms": 16.673602126424896,
+        "p99_proxy_ms": 18.917666666666666,
+        "power_w": 5.710736017897093,
+        "violation_percent": 0.2256511464635378
+      },
+      "meet": {
+        "macro_association_percent": 0.07139515990053916,
+        "p90_proxy_ms": 16.953,
+        "p99_proxy_ms": 18.932333333333336,
+        "power_w": 5.4388008948545865,
+        "violation_percent": 0.2505673784572424
+      },
+      "mts": {
+        "macro_association_percent": 3.740449871570776,
+        "p90_proxy_ms": 16.000333333333334,
+        "p99_proxy_ms": 18.840333333333334,
+        "power_w": 6.014109619686802,
+        "violation_percent": 0.2314137165143383
+      },
+      "rate_mbps": 1
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 0.5449009905052643,
+        "p90_proxy_ms": 6.204192244117745,
+        "p99_proxy_ms": 7.961555555555556,
+        "power_w": 7.857308724832215,
+        "violation_percent": 0.21227219778077808
+      },
+      "meet": {
+        "macro_association_percent": 0.07385706196607499,
+        "p90_proxy_ms": 6.302185628384206,
+        "p99_proxy_ms": 7.971333333333334,
+        "power_w": 7.952653243847874,
+        "violation_percent": 0.21648853689758948
+      },
+      "mts": {
+        "macro_association_percent": 0.5736231812698491,
+        "p90_proxy_ms": 6.0121111111111105,
+        "p99_proxy_ms": 7.095939858947859,
+        "power_w": 8.325187919463088,
+        "violation_percent": 0.21275243856548745
+      },
+      "rate_mbps": 3
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 0.5366946502868116,
+        "p90_proxy_ms": 4.024866666666667,
+        "p99_proxy_ms": 5.009933333333334,
+        "power_w": 11.048816554809846,
+        "violation_percent": 0.21943627202404592
+      },
+      "meet": {
+        "macro_association_percent": 0.07631896403161083,
+        "p90_proxy_ms": 4.027,
+        "p99_proxy_ms": 5.0148,
+        "power_w": 10.947901565995528,
+        "violation_percent": 0.2168037173086735
+      },
+      "mts": {
+        "macro_association_percent": 0.6228612225805658,
+        "p90_proxy_ms": 3.9950666666666663,
+        "p99_proxy_ms": 4.426882258063601,
+        "power_w": 11.777626398210295,
+        "violation_percent": 0.21333315725889643
+      },
+      "rate_mbps": 5
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 0.5744438152916944,
+        "p90_proxy_ms": 3.0374761904761907,
+        "p99_proxy_ms": 3.5601516305343743,
+        "power_w": 14.287995525727075,
+        "violation_percent": 0.22312785048729653
+      },
+      "meet": {
+        "macro_association_percent": 0.08124276816268249,
+        "p90_proxy_ms": 3.0441912618140425,
+        "p99_proxy_ms": 3.598787412041872,
+        "power_w": 13.945107382550338,
+        "violation_percent": 0.2155181429978006
+      },
+      "mts": {
+        "macro_association_percent": 0.6359913669300902,
+        "p90_proxy_ms": 3.019714285714286,
+        "p99_proxy_ms": 3.4343910599827105,
+        "power_w": 15.356013422818798,
+        "violation_percent": 0.22345205451902342
+      },
+      "rate_mbps": 7
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 0.5990628359470527,
+        "p90_proxy_ms": 2.4509612100791527,
+        "p99_proxy_ms": 3.047804712622613,
+        "power_w": 17.821449664429533,
+        "violation_percent": 0.22817994926923865
+      },
+      "meet": {
+        "macro_association_percent": 0.08124276816268249,
+        "p90_proxy_ms": 2.460410320026739,
+        "p99_proxy_ms": 3.061451188074228,
+        "power_w": 16.913731543624163,
+        "violation_percent": 0.21450206174218356
+      },
+      "mts": {
+        "macro_association_percent": 0.6729198979131277,
+        "p90_proxy_ms": 2.2787076826004604,
+        "p99_proxy_ms": 2.9922222222222223,
+        "power_w": 19.260700223713645,
+        "violation_percent": 0.22952300589488414
+      },
+      "rate_mbps": 9
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 0.6359913669300902,
+        "p90_proxy_ms": 2.283089122971806,
+        "p99_proxy_ms": 2.5916196748428177,
+        "power_w": 21.222521252796422,
+        "violation_percent": 0.23275519661310062
+      },
+      "meet": {
+        "macro_association_percent": 0.08616657229375417,
+        "p90_proxy_ms": 2.285908573429897,
+        "p99_proxy_ms": 2.6088842389380815,
+        "power_w": 19.821794183445192,
+        "violation_percent": 0.21854219139090816
+      },
+      "mts": {
+        "macro_association_percent": 0.7672928104253347,
+        "p90_proxy_ms": 2.235085829110341,
+        "p99_proxy_ms": 2.54047740832924,
+        "power_w": 23.06603131991052,
+        "violation_percent": 0.2216523114505603
+      },
+      "rate_mbps": 11
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 0.7262611093330706,
+        "p90_proxy_ms": 2.0652324489690415,
+        "p99_proxy_ms": 2.406007697162965,
+        "power_w": 25.428098434004472,
+        "violation_percent": 0.2486784629316702
+      },
+      "meet": {
+        "macro_association_percent": 0.08862847435928999,
+        "p90_proxy_ms": 2.0648796568976704,
+        "p99_proxy_ms": 2.4192025926469625,
+        "power_w": 23.328324384787475,
+        "violation_percent": 0.22257401881444328
+      },
+      "mts": {
+        "macro_association_percent": 0.8165308517360512,
+        "p90_proxy_ms": 2.0113076923076925,
+        "p99_proxy_ms": 2.2964846845137257,
+        "power_w": 27.222447427293066,
+        "violation_percent": 0.21485454577883514
+      },
+      "rate_mbps": 13
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 0.750880129988429,
+        "p90_proxy_ms": 2.0014666666666665,
+        "p99_proxy_ms": 2.1780287306056976,
+        "power_w": 29.10404921700224,
+        "violation_percent": 0.21657320887112866
+      },
+      "meet": {
+        "macro_association_percent": 0.09109037642482581,
+        "p90_proxy_ms": 2.001203334876879,
+        "p99_proxy_ms": 2.188967251924693,
+        "power_w": 26.847890380313203,
+        "violation_percent": 0.22613032333880057
+      },
+      "mts": {
+        "macro_association_percent": 0.9642449756682012,
+        "p90_proxy_ms": 1.9035587220743653,
+        "p99_proxy_ms": 2.1049449681181165,
+        "power_w": 32.39780536912752,
+        "violation_percent": 0.22298084660417702
+      },
+      "rate_mbps": 15
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 0.8698720631559943,
+        "p90_proxy_ms": 1.7050973115069923,
+        "p99_proxy_ms": 2.039026686566145,
+        "power_w": 33.688516778523486,
+        "violation_percent": 0.22512952511228015
+      },
+      "meet": {
+        "macro_association_percent": 0.09109037642482581,
+        "p90_proxy_ms": 1.6933884076440269,
+        "p99_proxy_ms": 2.0554705671101394,
+        "power_w": 30.382798657718126,
+        "violation_percent": 0.23107887810445185
+      },
+      "mts": {
+        "macro_association_percent": 1.2506462492922032,
+        "p90_proxy_ms": 1.4546092233955343,
+        "p99_proxy_ms": 2.0046470588235294,
+        "power_w": 37.66652796420582,
+        "violation_percent": 0.22228568980685023
+      },
+      "rate_mbps": 17
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 1.2572113214669656,
+        "p90_proxy_ms": 1.4566406231696103,
+        "p99_proxy_ms": 1.985666666666667,
+        "power_w": 38.95454362416107,
+        "violation_percent": 0.23447257136380018
+      },
+      "meet": {
+        "macro_association_percent": 0.10339988675250499,
+        "p90_proxy_ms": 1.4607241267168989,
+        "p99_proxy_ms": 1.9968070175438595,
+        "power_w": 33.79625950782997,
+        "violation_percent": 0.24028133732629034
+      },
+      "mts": {
+        "macro_association_percent": 2.5644813182664925,
+        "p90_proxy_ms": 1.4578868521473431,
+        "p99_proxy_ms": 1.830303969876353,
+        "power_w": 46.715411633109625,
+        "violation_percent": 0.23108384732525913
+      },
+      "rate_mbps": 19
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 2.0097327194990853,
+        "p90_proxy_ms": 1.4728636265297823,
+        "p99_proxy_ms": 1.7646672172520592,
+        "power_w": 46.19151454138703,
+        "violation_percent": 0.2485217250308804
+      },
+      "meet": {
+        "macro_association_percent": 0.14032841773554247,
+        "p90_proxy_ms": 1.4741803160156826,
+        "p99_proxy_ms": 1.8206505426583133,
+        "power_w": 38.123653243847876,
+        "violation_percent": 0.2534847390717379
+      },
+      "mts": {
+        "macro_association_percent": 3.2053964893276548,
+        "p90_proxy_ms": 1.4697006183270744,
+        "p99_proxy_ms": 1.7967110917571112,
+        "power_w": 55.22189485458613,
+        "violation_percent": 0.2594692045808279
+      },
+      "rate_mbps": 21
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 3.2653027729223596,
+        "p90_proxy_ms": 1.4662997805636062,
+        "p99_proxy_ms": 1.7138446882292315,
+        "power_w": 56.62329753914989,
+        "violation_percent": 0.29984215795985664
+      },
+      "meet": {
+        "macro_association_percent": 0.880540305439983,
+        "p90_proxy_ms": 1.4614679845770076,
+        "p99_proxy_ms": 1.7679857327365749,
+        "power_w": 46.17299552572707,
+        "violation_percent": 0.24117024747241053
+      },
+      "mts": {
+        "macro_association_percent": 4.826148682472078,
+        "p90_proxy_ms": 1.4265466701999203,
+        "p99_proxy_ms": 1.8422235465525905,
+        "power_w": 68.3764899328859,
+        "violation_percent": 0.38801682312005575
+      },
+      "rate_mbps": 23
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 4.394495186981462,
+        "p90_proxy_ms": 1.4224980860222647,
+        "p99_proxy_ms": 1.678256380545246,
+        "power_w": 67.43001342281877,
+        "violation_percent": 0.41714850674450554
+      },
+      "meet": {
+        "macro_association_percent": 4.355104753932888,
+        "p90_proxy_ms": 1.409067980228401,
+        "p99_proxy_ms": 1.6615434806316742,
+        "power_w": 66.28335123042505,
+        "violation_percent": 0.18954989362275265
+      },
+      "mts": {
+        "macro_association_percent": 8.547723971540412,
+        "p90_proxy_ms": 1.3805656015297882,
+        "p99_proxy_ms": 1.9904133333333334,
+        "power_w": 91.43899776286354,
+        "violation_percent": 0.4707798385486037
+      },
+      "rate_mbps": 25
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 7.657336057838286,
+        "p90_proxy_ms": 1.3797821051594275,
+        "p99_proxy_ms": 1.6244746783126915,
+        "power_w": 89.69886800894854,
+        "violation_percent": 0.4771272133868993
+      },
+      "meet": {
+        "macro_association_percent": 9.00317585366454,
+        "p90_proxy_ms": 1.366398546063527,
+        "p99_proxy_ms": 1.5875084033298528,
+        "power_w": 95.02902908277406,
+        "violation_percent": 0.1611317170333554
+      },
+      "mts": {
+        "macro_association_percent": 10.866015083253322,
+        "p90_proxy_ms": 1.3497336857112057,
+        "p99_proxy_ms": 2.0048780666984922,
+        "power_w": 109.99351901565994,
+        "violation_percent": 0.5975038364534128
+      },
+      "rate_mbps": 27
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 10.028968380971138,
+        "p90_proxy_ms": 1.3493899587187068,
+        "p99_proxy_ms": 1.5958360864335812,
+        "power_w": 109.00532662192393,
+        "violation_percent": 0.6036977253191743
+      },
+      "meet": {
+        "macro_association_percent": 13.61185652034762,
+        "p90_proxy_ms": 1.3402841427610763,
+        "p99_proxy_ms": 1.5420367408740887,
+        "power_w": 127.74586577181209,
+        "violation_percent": 0.19387001953553543
+      },
+      "mts": {
+        "macro_association_percent": 14.164963851071336,
+        "p90_proxy_ms": 1.3319179297505048,
+        "p99_proxy_ms": 3.0099402998003844,
+        "power_w": 135.90793736017898,
+        "violation_percent": 0.7687154658814951
+      },
+      "rate_mbps": 29
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 12.989815931788902,
+        "p90_proxy_ms": 1.3329842166080967,
+        "p99_proxy_ms": 1.812867516483587,
+        "power_w": 134.26252572706935,
+        "violation_percent": 0.7460860713888673
+      },
+      "meet": {
+        "macro_association_percent": 17.129914571998327,
+        "p90_proxy_ms": 1.3241707045028521,
+        "p99_proxy_ms": 1.5437914475531498,
+        "power_w": 157.63031096196866,
+        "violation_percent": 0.27438323787223884
+      },
+      "mts": {
+        "macro_association_percent": 17.168484371025055,
+        "p90_proxy_ms": 1.2213565778562454,
+        "p99_proxy_ms": 43.359156885635315,
+        "power_w": 162.4186823266219,
+        "violation_percent": 1.1241261881976905
+      },
+      "rate_mbps": 31
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 15.930968266082376,
+        "p90_proxy_ms": 1.2681221542557535,
+        "p99_proxy_ms": 33.53819068934383,
+        "power_w": 160.99213422818792,
+        "violation_percent": 1.0804188703822872
+      },
+      "meet": {
+        "macro_association_percent": 17.964499372214974,
+        "p90_proxy_ms": 1.240949129263145,
+        "p99_proxy_ms": 5.000454829938863,
+        "power_w": 172.81369351230424,
+        "violation_percent": 0.5237801850023086
+      },
+      "mts": {
+        "macro_association_percent": 18.369071944984693,
+        "p90_proxy_ms": 1.1850561238458284,
+        "p99_proxy_ms": 267.5371521850444,
+        "power_w": 177.02581655480984,
+        "violation_percent": 2.3320386783890794
+      },
+      "rate_mbps": 33
+    },
+    {
+      "legacy_mts": {
+        "macro_association_percent": 16.901778313925337,
+        "p90_proxy_ms": 1.1787130849917862,
+        "p99_proxy_ms": 177.40707421665374,
+        "power_w": 175.25850335570468,
+        "violation_percent": 1.9167722304378019
+      },
+      "meet": {
+        "macro_association_percent": 16.876338659248134,
+        "p90_proxy_ms": 1.1772575097455864,
+        "p99_proxy_ms": 29.496711254525184,
+        "power_w": 175.79630201342283,
+        "violation_percent": 1.1497392059940748
+      },
+      "mts": {
+        "macro_association_percent": 18.131908712671407,
+        "p90_proxy_ms": 1.2574369092056052,
+        "p99_proxy_ms": 1136.3356597861055,
+        "power_w": 180.6007673378076,
+        "violation_percent": 5.925065891145082
+      },
+      "rate_mbps": 35
+    }
+  ],
+  "first_load_above_20ms": {
+    "meet_cobra": 35,
+    "mts_report": 31,
+    "o_mappo": 21,
+    "oracle_mc": null,
+    "reactive_obra": 19,
+    "wo_gap_ho": 25,
+    "wo_otr_ra": 33,
+    "wo_pet_bf": 33
+  }
+}

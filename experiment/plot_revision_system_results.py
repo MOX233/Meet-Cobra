@@ -22,7 +22,8 @@ ROOT = Path(__file__).resolve().parents[1]
 GRID = ROOT / 'experiment/results/revision_directional_20260922/grid'
 FIGURES = ROOT / 'latexCodes/figures'
 OMAPPO_RESULTS = ROOT / 'experiment/results/o_mappo_eall_full_grid_20260925'
-REPORT = OMAPPO_RESULTS / 'paper_figures'
+MTS_RESULTS = ROOT / 'experiment/results/mts_h32_full_grid_20260925'
+REPORT = MTS_RESULTS / 'paper_figures'
 METHODS = ('meet_cobra', 'oracle_mc', 'reactive_obra', 'o_mappo',
            'mts_report', 'wo_gap_ho', 'wo_pet_bf', 'wo_otr_ra')
 STYLE = {
@@ -172,6 +173,44 @@ def replace_o_mappo(root, protocol, rows, curves):
                         raw_metrics_recomputed=True, paired_traffic_verified=True)
 
 
+def replace_mts(root, protocol, rows, curves):
+    """Overlay the approved H32-cross5 data; leave the other seven curves intact."""
+    result = read(root / 'summary.json')
+    assert result['cases'] == 54 and result['raw_metrics_recomputed']
+    assert result['variant'] == 'hier32_cross5'
+    assert result['rates'] == protocol['rates'] and result['seeds'] == protocol['seeds']
+    assert result['seconds'] == 30 and result['warmup_frames'] == protocol['warmup_frames']
+    assert result['protocol_sha256'] == digest(root / 'protocol.json')
+    assert read(root / 'protocol.json')['cache_sha256'] == protocol['cache_sha256']
+    replacements = {}
+    for record in result['provenance']:
+        path = Path(record['file'])
+        assert digest(path) == record['sha256']
+        assert digest(root / 'raw' / (path.stem + '.npz')) == record['raw_sha256']
+        assert digest(root / 'diagnostics' / (path.stem + '.json')) == record['diagnostics_sha256']
+        row = read(path)
+        assert row['variant'] == 'hier32_cross5' and row['protocol_sha256'] == result['protocol_sha256']
+        pair = (row['rate_mbps'], row['seed'])
+        assert pair not in replacements
+        replacements[pair] = row
+    assert len(replacements) == 54
+    updated = []
+    for row in rows:
+        if row['method'] != 'mts_report':
+            updated.append(row)
+            continue
+        new = replacements[row['rate_mbps'], row['seed']]
+        assert row['traffic_sha256'] == new['traffic_sha256'] and new['frames'] == row['frames']
+        updated.append(dict(new, method='mts_report'))
+    for metric in METRICS:
+        curves['mts_report'][metric] = np.array([
+            [replacements[rate, seed]['metrics'][metric] for seed in protocol['seeds']]
+            for rate in protocol['rates']])
+    return updated, dict(root=str(root), summary_sha256=digest(root / 'summary.json'),
+                        variant=result['variant'], cases=54, raw_metrics_recomputed=True,
+                        paired_traffic_verified=True)
+
+
 def base_axes(figsize=(3.65, 3.4)):
     fig, ax = plt.subplots(figsize=figsize)
     fig.subplots_adjust(left=.145, right=.98, bottom=.14, top=.72)
@@ -268,6 +307,10 @@ def main():
                         help='Approved full-grid results to replace the historical O-MAPPO curve.')
     parser.add_argument('--legacy-o-mappo', action='store_true',
                         help='Reproduce the historical exhaustive-search O-MAPPO curve instead.')
+    parser.add_argument('--mts-results', type=Path, default=MTS_RESULTS,
+                        help='Approved full-grid H32-cross5 MTS results.')
+    parser.add_argument('--legacy-mts', action='store_true',
+                        help='Reproduce the archived prediction-candidate MTS curve instead.')
     parser.add_argument('--audit', action='store_true')
     parser.add_argument('--power-only', action='store_true',
                         help='Regenerate only the power figure; leave the other figures unchanged.')
@@ -288,6 +331,9 @@ def main():
     replacement = None
     if not args.legacy_o_mappo:
         rows, replacement = replace_o_mappo(args.o_mappo_results, protocol, rows, curves)
+    mts_replacement = None
+    if not args.legacy_mts:
+        rows, mts_replacement = replace_mts(args.mts_results, protocol, rows, curves)
     comparisons = []
     for rate in protocol['rates']:
         a = [x for x in rows if x['method'] == 'meet_cobra' and x['rate_mbps'] == rate]
@@ -297,6 +343,7 @@ def main():
                 [x['comparison']['service_capacity_ratio'] for x in a])))))
     result = dict(protocol_sha256=digest(args.grid/'protocol.json'), audit=audit_result,
                   o_mappo_replacement=replacement,
+                  mts_replacement=mts_replacement,
                   power_figure_includes_oracle_cr_lb=args.include_oracle_cr_lb,
                   generated_metrics=['power_w'] if args.power_only else list(METRICS),
                   cases=len(rows), seeds=protocol['seeds'], rates_mbps=protocol['rates'],

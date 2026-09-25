@@ -6,11 +6,11 @@
 >
 > 八周截止日按 decision letter 推算为 2026-10-12，以投稿系统为准。
 >
-> 最近更新：2026-09-22。全方案 432 次重跑及 Fig. 5–Fig. 8 更新完成后，已另行完成 R1C6 的 27 次方向性服务迭代实验并更新相关回复。本文是内部工作记录，不是提交给审稿人的回复。
+> 最近更新：2026-09-25。MTS H32-cross5 的全负载、三 seed 实验已完成，并据此更新 Fig. 5–Fig. 8、正文和两条基线回复；其余七个方案的数据保持不变。本文是内部工作记录，不是提交给审稿人的回复。
 
 ## 1. 工作边界与写作约定
 
-当前授权：在最新物理评估设置下重跑 R1C6 的迭代次数实验，更新回复信对应内容。已完成三个负载、三个配对 seeds、三种迭代配置的 27 次运行，并同步 R3 Minor Comment 2。本轮不重新训练，不修改正式算法默认配置、论文正文或 Fig. 5–Fig. 8。
+当前授权：完成用户选定的 MTS H32-cross5 的全负载、多 seed 实验，更新论文相关内容、结果图及对应回复。本轮已完成 54 个配对 case（复用六个配置相同且通过核验的初步 case，补跑 48 个），不重新训练预测模型，不修改 MEET-COBRA 或当前 E_all 版 O-MAPPO。此前 R1C6 的 27 次方向性服务迭代实验及其回复保持不变。
 
 长期约定：
 
@@ -141,15 +141,18 @@
 | 方法 | 已确定的实现 | 信息与比较边界 |
 |---|---|---|
 | O-MAPPO-adapted | 采用配套训练的两层共享 actor 进行二元 HO 触发；MILP 优化器分配目标 BS；切换到微 BS 时分层搜索 32 次，否则按决策机制局部追踪 9 个波束对；逐时隙 OTR-RA | 正式采用 E_all 的一致估计：actor、目标 BS 优化器和 OTR-RA 使用波束平均干扰增益及不超过 BS 容量的占用估计。仍使用当前帧真实 CSI，候选期望增益由分层搜索获得；不宣称与 MEET-COBRA 信息完全相同 |
-| MTS-GS-HBF-adapted | 使用预测报告版本；每五帧进行考虑 RB 容量的 Gale–Shapley 关联；每帧在服务微 BS 的 M_P 个预测候选中实测选束，保持至帧末；逐时隙 OTR-RA | 与 MEET-COBRA 共享预测报告，结合已观测的服务链路增益及队列、负载信息；匹配及 RA 干扰估计不读私有真实信道 |
+| MTS-GS-HBF-adapted | 正式选择 H32-cross5；每五帧进行考虑 RB 容量的 Gale–Shapley 关联；每帧首个可服务时隙执行 32 次分层搜索，其余可服务时隙执行五点邻域跟踪；逐时隙 OTR-RA | 关联仍使用与 MEET-COBRA 相同的预测增益及因果反馈；BF 不使用预测波束候选或 PET-BF，仅依据已计费的服务链路探测选束；匹配及 RA 干扰估计不读私有真实信道 |
 
 - 2026-09-25 用户批准以 E_all 配套训练模型替换两层原版的正式结果。结构仍为 actor 31→64→64→2、critic 94→64→1；统一 checkpoint 为 `experiment/results/o_mappo_eall_training_20260924/training/E_all/seed11/best_positive.pt`（续训 seed 11、第 20 轮，SHA-256 `e1be46476dc17cbd2300a47b8930dceb173e469b9e8cf1dc18c35a31411e5b43`）。它在独立于测试时段的全负载验证中选出，所有负载和 seeds 均使用同一权重。原模型及其结果保留，不采用报告输入、预测派生输入或 recurrent actor 版本。
 - O-MAPPO 分层搜索先测 8 个发射扇区与 2 个接收扇区的 16 个组合，再测选中扇区内 4×4 个细波束对，总计 32 次；宽波束通过部分天线激活构造，数据传输仍用完整 DFT 码本。优化器以当前帧该搜索所得增益计算需求与代价，下一帧执行时重新搜索，不能声称拥有未来 CSI 或得到全码本最优波束。优化器含负载、能耗和超容量惩罚，不保证永远找到严格可行的最优关联。
 - E_all 与原版各完成三个 seed、160 轮等预算续训，六组均未通过预设稳定性检查；正文和回复不可写成已证明收敛或近似最优。E_all 已在三个负载的精确测试中获得配套训练收益，但低负载下存在功率与违反概率取舍；不可把早期验证区间结果当作正式测试区间结果。配套训练记录见 `experiment/o_mappo_eall_training_report.md`，原单层与两层比较保留在 `experiment/o_mappo_actor_depth_report.md`。
 - MTS 当前入口采用 pressure_early 设置和有界占用估计。匹配偏好包含预测速率、负载、能耗、HO 代价和队列紧迫度；容量指导接纳，但极端负载下有回退机制，不声称全局最优或无条件严格稳定匹配。
-- MTS 的 beam probing 发生在帧首可服务时隙；发生 HO 时推迟至中断结束。每帧探测 M_P=5 个候选，其余可服务时隙计入正常导频，但不搜索相邻波束。必须替换早期简介中“周期性全码本搜索与期间局部追踪”的描述。
+- 2026-09-25 用户选择 MTS 的 H32-cross5 版本，以减少 BF 对 MEET-COBRA 预测模块的依赖。分层搜索为 16 个宽波束对加选中扇区内 16 个细波束对；每帧首个可服务时隙计 32 次，发生 HO 时推迟至中断结束。其余可服务时隙计五次，即当前波束对和仅改变 Tx 或 Rx 一个相邻索引的四个候选，不包含同时改变两端的对角候选。初始化时隙不叠加五点搜索，跟踪时隙不另加当前波束导频。
+- MTS 的关联候选 RB 需求估计和有界占用估计计入该 BF 方案的帧平均开销。五帧关联周期、匹配偏好参数、预测增益前端和 OTR-RA 保持不变。实际服务必须按逐时隙选择的波束计算方向性逐 RB 干扰。BF 已独立不等于整个方案不使用机器学习，也不等于复现了原文的混合模拟/数字 BF。
+- 原预测候选 BF 版本及三臂初步实验保留归档，见 `experiment/results/mts_hierarchical_tracking_20260925_v2/`；不将初步单 seed 数据当作完整多 seed 结论。O-MAPPO 的逐时隙五点跟踪尚未作为正式配置实现或训练，本轮不改变其现有结果。
+- 完整三 seed 结果见 `experiment/results/mts_h32_full_grid_20260925/report.md`。MEET-COBRA 在全部 18 个负载的平均功率低于本版 MTS；MTS 在 1、3、5、13、15、17、19 Mbps 的平均 U 略低。MTS 的平均 L99 首次超过 20 ms 的测试负载为 31 Mbps，MEET 为 35 Mbps。33 Mbps 时，MTS 为 177.03 W、U=2.332%、L99=267.54 ms，MEET 为 172.81 W、0.524%、5.00 ms。旧版 MTS 在部分高负载下功率较低的结论不再适用于当前版本。
 - 两者的物理服务评估都计入各自建模的 BF 探测开销和相同 HO 中断。O-MAPPO 获取完整决策信道信息的额外成本并未由其服务链路搜索开销完全代表，不能宣称完成了全 CSI 获取成本相同的比较。
-- 正文保留两段方法介绍；Section V-D 与独立回复已加入最终功率、违反概率和尾部时延结果。MTS 在部分高负载下功率更低、违反概率更高，应呈现 tradeoff，而不是预设 MEET 在所有指标占优。
+- 正文保留两段方法介绍；Section V-D 与独立回复中的功率、违反概率和尾部时延结论应以当前正式版本的完整结果为准。不得沿用旧 MTS 版本的特定负载数值或预设 MEET 在所有指标占优。
 - Reactive-OBRA 运行的是既有 HO_EE_Greedy_offload：按估计功率代价为每辆车顺序选取剩余容量足够的 BS，无可用者时回退到宏 BS。正文已据实现更正旧 RSS-first 描述，本轮未更改算法。
 - 2026-09-24 确认从论文基线列表和 Fig. 5 中移除 Oracle-CR-LB：它仅是固定 P2 实例估计关联代价的连续松弛参考，不用于判断完整系统的全局最优性。保留 Oracle-MC 以评估预测误差影响；保留原始松弛结果、不可行性记录和求解代码，且不改变 GAP-HO 中的连续松弛步骤。绘图默认不显示该参考曲线，仍可用 `--include-oracle-cr-lb` 复现历史展示。
 
@@ -163,15 +166,18 @@
 ## 5. 实验依赖与版本保护
 
 - 最新运行入口：experiment/revision_training.py 和 experiment/revision_pipeline.py；运行说明：experiment/revision_directional_runbook.md。
-- 全方案集合为 MEET-COBRA、Oracle-MC、Reactive-OBRA、三种消融、O-MAPPO-adapted、预测报告版 MTS-GS-HBF-adapted。
-- 正式网格为八个方案、18 个负载点 {1,3,...,35} Mbps、三个 seeds {1,2,3}，共 432 个 case；不是早期计划的五 seed、720 次。每例 30 s，统计排除前两帧。2026-09-25 更新采用 E_all 的 54 个 O-MAPPO case（复用已完成的 9 个，补跑其余 45 个）；其余 378 个 case 保持不变，不混用旧、新 O-MAPPO 曲线数据。54 个 case 已全部完成并通过原始数组核验，优化器失败为零。
+- 全方案集合为 MEET-COBRA、Oracle-MC、Reactive-OBRA、三种消融、O-MAPPO-adapted、H32-cross5 版 MTS-GS-HBF-adapted；MTS 的关联部分仍用预测增益。
+- 正式网格为八个方案、18 个负载点 {1,3,...,35} Mbps、三个 seeds {1,2,3}，共 432 个 case；不是早期计划的五 seed、720 次。每例 30 s，统计排除前两帧。当前数据由原方向性网格中的六个方案共 324 个 case、E_all O-MAPPO 的 54 个 case、H32-cross5 MTS 的 54 个 case 组成。各方案使用相同预测缓存、配对流量及物理评估设置，不在同一条曲线内拼接不同算法版本。
 - 流程依赖为：确定干扰预测 checkpoint → 生成并验证因果预测缓存 → 配对全负载多 seed 运行 → 汇总显式 RB 服务、近似误差及系统指标 → 更新图表和回复。
-- NN checkpoint 三模型组合及哈希校验清单位于 experiment/results/revision_directional_20260922/selected_models/bundle.json。原全方案协议位于同目录 grid/protocol.json，SHA-256 为 6c851155e24935ecaab253b22633c7fb6922ba053bdcd442022eec9ec0068362。E_all 正式补跑入口为 `experiment/o_mappo_eall_full_grid.py`，结果位于 `experiment/results/o_mappo_eall_full_grid_20260925/`。新入口逐 case 校验与原网格的配对流量、checkpoint、物理设置和原始数据。两层旧版结果保留在 `experiment/results/o_mappo_actor2_full_grid_20260924/`，其余方案无需重跑。
+- NN checkpoint 三模型组合及哈希校验清单位于 experiment/results/revision_directional_20260922/selected_models/bundle.json。原全方案协议位于同目录 grid/protocol.json，SHA-256 为 6c851155e24935ecaab253b22633c7fb6922ba053bdcd442022eec9ec0068362。E_all 正式补跑入口为 `experiment/o_mappo_eall_full_grid.py`，结果位于 `experiment/results/o_mappo_eall_full_grid_20260925/`。新入口逐 case 校验与原网格的配对流量、checkpoint、物理设置和原始数据。两层旧版结果保留在 `experiment/results/o_mappo_actor2_full_grid_20260924/`。
+- MTS 正式补跑入口为 `experiment/mts_h32_full_grid.py`，结果位于 `experiment/results/mts_h32_full_grid_20260925/`。54 个 case 已完成，原始功率、队列指标、RB 容量、逐时隙方向性服务、32/5 次探测记账及配对流量均通过独立核验。六个初步 case 按源码、缓存及原始结果哈希复用，其余 48 个新增运行。`summary.json` 保存逐 seed 结果、均值和范围及原始文件哈希。
 - 之前完成的全负载实验、小规模入口检查和新的最终网格是不同证据，不因旧目录里已有结果就把最新协议标记为完成。
 - 误差传播和移动性研究另行确认协议，不能隐含在上述 432 次运行中。
 - 绘图与审计入口为 experiment/plot_revision_system_results.py；新图使用 *_revision1.pdf，附 PNG 预览，原 PDF 和旧 _WBL 文件均保留。曲线数据点为三 seed 均值，浅色带为 seed 最小值到最大值，不是置信区间，也未进行平滑拟合。
 - L90、L99 先按每个 seed 的车辆时隙 q_v/lambda_v 样本计算，再在 seeds 间取平均；不额外加一个时隙，不把所有 seed 的队列合并后再求分位数。U 按定义先对各帧车辆时隙求违反比例，再进行时间及 seed 平均。
-- E_all 正式替换记录见 `experiment/o_mappo_eall_full_grid_report.md`；新八方案图表数据和清单位于 `experiment/results/o_mappo_eall_full_grid_20260925/paper_figures/`。此前各版结果与报告均保留。绘图默认使用 E_all，`--o-mappo-results experiment/results/o_mappo_actor2_full_grid_20260924` 可复现两层旧版，`--legacy-o-mappo` 可复现更早的穷举搜索版；复现旧图时另指定输出目录。
+- 当前八方案图表数据和清单位于 `experiment/results/mts_h32_full_grid_20260925/paper_figures/`。`figure_replacement_audit.json` 确认只替换 MTS 的 90 个指标数据行，其余 630 行完全不变。替换前五张图和 CSV 另存于同目录下 `pre_update_figures/`，原始结果均未删除。绘图默认使用 E_all O-MAPPO 和 H32-cross5 MTS，`--legacy-mts` 可复现旧 MTS，须另设图和报告输出目录。
+- E_all 正式替换记录见 `experiment/o_mappo_eall_full_grid_report.md`，历史图表数据位于 `experiment/results/o_mappo_eall_full_grid_20260925/paper_figures/`。`--o-mappo-results experiment/results/o_mappo_actor2_full_grid_20260924` 可复现两层旧版，`--legacy-o-mappo` 可复现更早的穷举搜索版；这些参数不改变 MTS 选择。
+- 本轮保护点为 `f5a9601` 和标签 `pre-mts-h32-cross5-paper-20260925`，保存替换前正文；`7446f20` 保存 MTS 全网格运行和审计入口。历史图和回复可由该标签恢复，不覆盖无关的 Fig. 4 用户修改。
 - 历史保护点：a5e50ff 为 GAP 方案 B 前快照，cdd095a 保存方案 B；c0c7029 为新方向性预测流水线前快照，5d93a05 保存运行入口准备，0e9474f 恢复原零信道数值约定。文字更早对照点 c7150f118c01e139ad6dddd4820b74e23ff3f8d3 可按需查阅。
 - 后续运行保存代码版本、checkpoint 和缓存哈希、标签定义、逐阶段训练配置、负载、seed、统计窗口、HO 与 pilot 设置。禁止混用不同物理服务或标签口径的数据拼接最终曲线。
 

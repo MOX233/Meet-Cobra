@@ -1,0 +1,40 @@
+{
+  "cases": [
+    {
+      "rate": 1,
+      "seed": 1,
+      "sha256": "ed1e525e8811c497046a9af940ce0e1ec16c019a6596531396544ca76b373321",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/mts_hierarchical_tracking_20260925_v2/runs/hier32_cross5_rate1_seed1.json"
+    },
+    {
+      "rate": 5,
+      "seed": 1,
+      "sha256": "9ee27d3a26fb01b365fac87c2a64ff6d2cb92a6f44596ad1471b026329121cd9",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/mts_hierarchical_tracking_20260925_v2/runs/hier32_cross5_rate5_seed1.json"
+    },
+    {
+      "rate": 15,
+      "seed": 1,
+      "sha256": "bcca1b99872433ed017f074cf7ed7b2084ab362178ce649525dcae34e247cf6a",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/mts_hierarchical_tracking_20260925_v2/runs/hier32_cross5_rate15_seed1.json"
+    },
+    {
+      "rate": 21,
+      "seed": 1,
+      "sha256": "0bac072b83025bd5cf6ac1a65d33a335684e0919264498eede360d6d09f4f89b",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/mts_hierarchical_tracking_20260925_v2/runs/hier32_cross5_rate21_seed1.json"
+    },
+    {
+      "rate": 25,
+      "seed": 1,
+      "sha256": "6aec9e3cb8745f092e12a2d0140cb75a02f60f6cd815cd33cb993cec6d99624c",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/mts_hierarchical_tracking_20260925_v2/runs/hier32_cross5_rate25_seed1.json"
+    },
+    {
+      "rate": 29,
+      "seed": 1,
+      "sha256": "c5b76437dcaae04f3cbbf871afc0dd338f4cdde3baa1ae5fdda8f4605caa1a28",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/mts_hierarchical_tracking_20260925_v2/runs/hier32_cross5_rate29_seed1.json"
+    }
+  ]
+}

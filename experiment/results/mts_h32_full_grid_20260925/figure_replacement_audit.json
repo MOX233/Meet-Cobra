@@ -1,0 +1,34 @@
+{
+  "all_other_schemes_unchanged": true,
+  "new_figure_data_sha256": "f5d8af9373bd24092319c1a221305ba180ef9c217911ade666d8d2c66c08202e",
+  "original_figure_data_sha256": "c8e89b77835b4a41f98d91fef9b117a7ddc152318835f4db30ba763ab2c5dca2",
+  "paired_seeds": [
+    1,
+    2,
+    3
+  ],
+  "rates": [
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31,
+    33,
+    35
+  ],
+  "raw_audit_summary_sha256": "f3373fbfdd82c4b8fa8457a08eb153ae2f4b9225893bed9cfecbe962ee8d2382",
+  "replaced_mts_rows": 90,
+  "total_figure_rows": 720,
+  "unchanged_other_scheme_rows": 630
+}

@@ -778,19 +778,24 @@ are not charged, giving this baseline an information advantage over MEET-COBRA.
 \textbf{MTS-GS-HBF-adapted} follows the framework of Heydarian et al. [23],
 which coordinates user association, analog BF, and user selection with
 digital BF on progressively shorter timescales. In our adaptation,
-Gale--Shapley matching updates BS--vehicle associations every five frames,
-while beam pairs are updated every frame. The baseline uses the same
-prediction reports as MEET-COBRA. We adapt the matching preferences so that vehicles rank
+Gale--Shapley matching updates BS--vehicle associations every five frames
+using the same predicted channel gains as MEET-COBRA. We adapt the matching preferences so that vehicles rank
 candidate BSs by balancing predicted rates against BS loads, energy costs,
 and HO costs. BSs rank vehicles according to queue urgency, predicted rates,
 and estimated RB demands, and consider their RB capacities when determining
 BS--vehicle associations. To accommodate our DFT beam-pair model, we replace the
-original hybrid BF with codebook beam-pair selection. Each serving micro BS
-probes the $M_{\rm P}=5$ reported beam pairs for each associated vehicle and
-retains the beam pair with the highest measured gain for the remainder of the frame.
-The beam-selection procedure remains distinct from PET-BF's slot-level search
-with early termination. The comparison therefore evaluates matching and
-periodic beam selection together, rather than isolating the association mechanism.
+original hybrid BF with hierarchical search and local tracking, without using
+predicted beam-pair candidates or PET-BF. Each serving micro-BS link probes
+16 combinations of wide transmit and receive beams and then 16 fine beam pairs
+within the selected sectors, for 32 probes in the first available slot of
+each frame. In every subsequent slot, it probes the current beam pair and
+the four neighboring pairs obtained by changing one beam index by one step,
+and selects the pair with the highest measured gain. Thus, the five probes
+include the current-beam measurement and exclude simultaneous changes of
+both beam indices. Searches begin after the HO interruption when applicable.
+The RB demand estimates account for this probing overhead. The comparison
+evaluates matching and beam tracking together, rather than isolating the
+association mechanism.
 
 Both added baselines use OTR-RA; the physical evaluation accounts for their
 respective BF overheads and the same $10$~ms HO interruption.
@@ -809,45 +814,46 @@ $\lambda$ (Mbps) & Scheme & Mean power (W) & $U$ (\%) \\
 \hline
 23 & MEET-COBRA & 46.17 & 0.241 \\
 23 & O-MAPPO-adapted & 135.93 & 1.974 \\
-23 & MTS-GS-HBF-adapted & 56.62 & 0.300 \\
+23 & MTS-GS-HBF-adapted & 68.38 & 0.388 \\
 29 & MEET-COBRA & 127.75 & 0.194 \\
 29 & O-MAPPO-adapted & 176.85 & 9.966 \\
-29 & MTS-GS-HBF-adapted & 109.01 & 0.604 \\
+29 & MTS-GS-HBF-adapted & 135.91 & 0.769 \\
 35 & MEET-COBRA & 175.80 & 1.150 \\
 35 & O-MAPPO-adapted & 185.28 & 22.982 \\
-35 & MTS-GS-HBF-adapted & 175.26 & 1.917 \\
+35 & MTS-GS-HBF-adapted & 180.60 & 5.925 \\
 \hline
 \end{tabular}
 \end{center}
 
 These comparisons support conclusions beyond an improvement over Reactive-OBRA.
-MEET-COBRA achieves lower power and fewer violations than O-MAPPO-adapted at
-these loads. MTS-GS-HBF-adapted provides a closer comparison and exposes a
-tradeoff. At $29$~Mbps it uses less power, but its violation probability is
-about three times that of MEET-COBRA. We report this tradeoff explicitly
-rather than claiming that MEET-COBRA dominates both metrics at every load.
+MEET-COBRA achieves lower power and fewer violations than both added baselines
+at these loads. MTS-GS-HBF-adapted provides a closer comparison and achieves
+slightly fewer violations at several lower loads, as shown in Fig.~6.
+MEET-COBRA has lower mean power throughout the evaluated range and fewer
+violations from $21$~Mbps onward.
 The mean $L_{99}$ first exceeds $20$~ms at $35$~Mbps for MEET-COBRA, compared
-with $33$~Mbps for MTS-GS-HBF-adapted and $21$~Mbps for O-MAPPO-adapted.
+with $31$~Mbps for MTS-GS-HBF-adapted and $21$~Mbps for O-MAPPO-adapted.
 \end{authorresponse}
 \begin{manuscriptchanges}
 Section V-C adds the two comparators, explaining their source methods,
 adaptations, information inputs, and differences from MEET-COBRA.
 The MTS-GS-HBF-adapted description specifies the preferences of vehicles and
-BSs separately and explains the replacement of hybrid BF by DFT beam selection
-once per frame.
+BSs separately and explains the replacement of hybrid BF by frame-level
+hierarchical search and slot-level local tracking without predicted beam-pair candidates.
 Oracle-CR-LB is removed from Section V-C and Fig.~5 because its relaxed
 \textbf{P2} objective is only a reference for estimated association cost.
 Oracle-MC is retained to assess the effect of prediction errors.
 Section V-D and Figs.~5--8 now include both baselines, three-seed statistics,
-and their power and latency tradeoffs. Figure~7 presents $L_{90}$ and $L_{99}$
+and their power and latency performance. Figure~7 presents $L_{90}$ and $L_{99}$
 separately. The updated discussion includes:
 
-\emph{However, at $29$~Mbps, MTS-GS-HBF-adapted uses less power ($109.01$ versus
-$127.75$~W), but has a higher violation probability ($0.60\%$ versus $0.19\%$).
-MEET-COBRA thus does not uniformly minimize both metrics relative to this
-baseline. Its advantage at higher loads is maintaining fewer latency violations.}
+\emph{At $29$~Mbps, MTS-GS-HBF-adapted uses $135.91$~W with $U=0.77\%$,
+compared with $127.75$~W and $0.19\%$ for MEET-COBRA. Although
+MTS-GS-HBF-adapted achieves slightly fewer violations at several lower loads,
+MEET-COBRA has lower mean power throughout the evaluated range and fewer
+violations from $21$~Mbps onward.}
 \end{manuscriptchanges}
-\revisionlocation{Pages 12--13, Section V-C, benchmark descriptions;
+\revisionlocation{Page 12, Section V-C, benchmark descriptions;
 Pages 13--14, Section V-D and Figs.~5--8, full-load comparison and discussion;
 Pages 1 and 14, Abstract and Conclusion, updated performance summary.}
 \end{reviewedit}
@@ -1255,20 +1261,23 @@ giving it an information advantage over MEET-COBRA.
 \textbf{MTS-GS-HBF-adapted} follows the framework of Heydarian et al. [23],
 which coordinates user association, analog BF, and user selection with
 digital BF on progressively shorter timescales. In our adaptation,
-Gale--Shapley matching updates BS--vehicle associations every five frames,
-while beam pairs are updated every frame. The baseline uses the same
-prediction reports as MEET-COBRA. We adapt the matching preferences
+Gale--Shapley matching updates BS--vehicle associations every five frames
+using the same predicted channel gains as MEET-COBRA. We adapt the matching preferences
 so that vehicles rank candidate BSs by balancing predicted rates against
 BS loads, energy costs, and HO costs. BSs rank vehicles according to queue
 urgency, predicted rates, and estimated RB demands, and consider their RB
 capacities when determining BS--vehicle associations. To accommodate our DFT beam-pair model,
-we replace the original hybrid BF with codebook beam-pair selection. Each
-serving micro BS probes the $M_{\rm P}=5$ reported beam pairs for each associated
-vehicle and retains the beam pair with the highest measured gain for the remainder
-of the frame. The beam-selection procedure remains distinct from PET-BF's
-slot-level search with early termination. The comparison therefore evaluates
-matching and periodic beam selection together, rather than isolating the
-association mechanism.
+we replace the original hybrid BF with hierarchical search and local tracking,
+without using predicted beam-pair candidates or PET-BF. Each serving micro-BS
+link performs 32 probes in the first available slot of every frame, consisting
+of 16 wide beam pairs followed by 16 fine beam pairs within the selected
+sectors. Subsequent slots probe the current beam pair and four neighboring
+pairs obtained by changing either the transmit or receive beam index by one
+step, selecting the pair with the highest measured gain. The five probes
+include the current-beam measurement; acquisition begins after the HO
+interruption when applicable. The RB demand estimates include the corresponding
+probing overhead. This comparison evaluates matching and beam tracking together,
+rather than isolating the association mechanism.
 
 Both baselines use OTR-RA, with their respective beam-search overheads and
 the same $10$~ms HO interruption included in the evaluation.
@@ -1285,31 +1294,33 @@ Scheme & Mean power (W) & $U$ (\%) & $L_{99}$ (ms) \\
 \hline
 MEET-COBRA & 172.81 & 0.524 & 5.00 \\
 O-MAPPO-adapted & 185.17 & 17.211 & 5545.38 \\
-MTS-GS-HBF-adapted & 160.99 & 1.080 & 33.54 \\
+MTS-GS-HBF-adapted & 177.03 & 2.332 & 267.54 \\
 \hline
 \end{tabular}
 \end{center}
 
-MEET-COBRA improves both power and latency performance over O-MAPPO-adapted
-at this load. MTS-GS-HBF-adapted uses less power, but has a higher latency
-constraint violation probability and a larger 99th-percentile queueing-delay
-proxy $L_{99}$. These comparisons complement the module ablations by
+MEET-COBRA achieves lower power, a lower latency constraint violation
+probability, and a smaller 99th-percentile queueing-delay proxy $L_{99}$
+than both added baselines at this load. MTS-GS-HBF-adapted remains competitive
+at lower loads, with slightly fewer violations at several operating points.
+These comparisons complement the module ablations by
 evaluating MEET-COBRA against alternative HO and BF coordination methods
-and showing their power and latency tradeoffs.
+across traffic loads.
 \end{authorresponse}
 \begin{manuscriptchanges}
 Section V-C introduces both baselines, explaining their core ideas,
 adaptations, and differences from MEET-COBRA. The MTS-GS-HBF-adapted description
 specifies the preferences of vehicles and BSs separately and explains the
-replacement of hybrid BF by DFT beam selection once per frame.
+replacement of hybrid BF by frame-level hierarchical search and slot-level
+local tracking without predicted beam-pair candidates.
 Section V-D and Figs.~5--8
 include their results across all evaluated loads and discuss the resulting
-power and latency tradeoffs.
+power and latency performance.
 Oracle-CR-LB is removed from Section V-C and Fig.~5 because its relaxed
 \textbf{P2} objective is only a reference for estimated association cost.
 Oracle-MC is retained to assess the effect of prediction errors.
 \end{manuscriptchanges}
-\revisionlocation{Pages 12--13, Section V-C, O-MAPPO-adapted and MTS-GS-HBF-adapted;
+\revisionlocation{Page 12, Section V-C, O-MAPPO-adapted and MTS-GS-HBF-adapted;
 Pages 13--14, Section V-D and Figs.~5--8, multi-seed performance comparisons.}
 \end{reviewedit}
 
