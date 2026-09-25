@@ -1,0 +1,24 @@
+{
+  "device": "cuda:3",
+  "diagnostics_sha256": "ba0efadc23d1baa4fb2bd1cbd11501467792957612412612e5b9d039021ea8e0",
+  "elapsed_s": 97.73989822895965,
+  "frames": 300,
+  "metrics": {
+    "macro_association_percent": 9.963317659223517,
+    "mean_proxy_ms": 3.0930807947340027,
+    "mean_serving_gain_db": -81.43268930641675,
+    "micro_probes_per_active_slot": 1.0400160843388324,
+    "p90_proxy_ms": 1.349161986834368,
+    "p99_proxy_ms": 1.5854434553602892,
+    "pilots_per_vehicle_slot": 0.9362316531359899,
+    "power_w": 108.75782550335569,
+    "violation_percent": 0.5832284605610933,
+    "within_frame_beam_changes": 0
+  },
+  "protocol_sha256": "4eadd27567c87bdad6ff96283ffc7e36128f79bc5c73a8bb01805a41e3e6a1a0",
+  "rate_mbps": 29,
+  "raw_sha256": "68506ed5d17d6db4e46a6c1fcc3191d48cbfcb91cd8421355be13234197153e3",
+  "seed": 1,
+  "traffic_sha256": "11603376449b7b5dd5edc506d646b3700075ae08e516148459f028bd51fdc77f",
+  "variant": "report_hold"
+}
