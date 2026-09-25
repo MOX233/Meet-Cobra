@@ -1,0 +1,58 @@
+{
+  "cases": [
+    {
+      "diagnostics_sha256": "be9ced0c25dcb54cd0fe383c3b0fffd71c0128c086946f065f380daed3366a01",
+      "raw_sha256": "633111880dc17a311373c142d9f14fee18e788bb19d678036e951feed59933b5",
+      "sha256": "1d15c37ffbbbbdcb7733b26a089f5c87a4face3b83da908b9067da829b95c88f",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/paired_test/runs/E_all_trained_rate13_seed1.json"
+    },
+    {
+      "diagnostics_sha256": "774b60a36434f87a89d54904a79728f3a712dfbb70847feb717c5ec5f5e8ad6b",
+      "raw_sha256": "5bb87240c43106d5c3ee2b80c6501284d54ef3ca83e88d9a467eaeba0dcc09ae",
+      "sha256": "7824bfc07cd5f1145d28b335a0c6c3d8737ee5660fac6467c09cb2bf553b7d7b",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/paired_test/runs/E_all_trained_rate13_seed2.json"
+    },
+    {
+      "diagnostics_sha256": "26b472d1c5fe6e248ffff170e4b95bb8384fbebc5a349f474155777745c08cb7",
+      "raw_sha256": "c442354bc9557217e1919509e09f4ef3fd66721c68fa224b99c8b606c639b457",
+      "sha256": "10d39a9e8de5d7189691d6d25cc14f84bcf8c5c2e3f0ca9a6175246bb49b4126",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/paired_test/runs/E_all_trained_rate13_seed3.json"
+    },
+    {
+      "diagnostics_sha256": "3b72d2904ab22523fe97c3334a39b21b6306894c21121b4a8e06fa4de3857064",
+      "raw_sha256": "6c77f656ed00243aae18b09ff19b2d45ca56a5c5844f2eb48cf4ea48f3e3970e",
+      "sha256": "be650d401e8f115cef9cfacf6bc89ae51ecbff6d85d0cf54b91d492fefd5d8a2",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/paired_test/runs/E_all_trained_rate25_seed1.json"
+    },
+    {
+      "diagnostics_sha256": "48dd462cd0b9765b259e143f7e5761e0c5d5b770af3f5f52dc6c6628c979d26e",
+      "raw_sha256": "9113c37a17329ed38be283b893586447a5bca69b8bb11d4cb7412467e23f6a65",
+      "sha256": "1ffc687b30f48e97b35ce9baf896ba06509b7a0096666b69926f5825ddf49bcc",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/paired_test/runs/E_all_trained_rate25_seed2.json"
+    },
+    {
+      "diagnostics_sha256": "06b354f7d1af00c316eff435ed7068a48190f8d8f4abbec9181a14d3ad0c3050",
+      "raw_sha256": "5ce6c6eb153f75af6ebb813831f5420a49e5e79442ed62adc79dc4be80ed3416",
+      "sha256": "5ace30b3a8640ee502693cc272adee54eda7fae764565084f33c73231a91eb7c",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/paired_test/runs/E_all_trained_rate25_seed3.json"
+    },
+    {
+      "diagnostics_sha256": "ee69d08cca9a30f52ab102f7e186f023bf46da87c7cb620c9aa5efb413bf221c",
+      "raw_sha256": "abf6e85c7a752842b14c13aad5d18c828d99d2800dcdbbc3b57a59be229cadb1",
+      "sha256": "3ff42a2832897497a73ee1740bb6d9cdf18bda7ef6c4f1f96e84b89ced729b45",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/paired_test/runs/E_all_trained_rate5_seed1.json"
+    },
+    {
+      "diagnostics_sha256": "07f3f589de05757644e6e385994f72d371f79ae887652e943368d551261fa7ad",
+      "raw_sha256": "987fc7c37b906d23f2f7724d38ba9cf36c072f77e1ef2c7a31ab11e91a158080",
+      "sha256": "fcd5eb2a03bc22731592daeec1694dc983b2e093add942ef235c6d78918239f1",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/paired_test/runs/E_all_trained_rate5_seed2.json"
+    },
+    {
+      "diagnostics_sha256": "8677d2c988f4d79f6c3ae25a2365d2e4a7ed412089e95cf5e102f481eadb3f3e",
+      "raw_sha256": "3447d7e069113650e6721189d49c588eca1162c90d4159adbb69e81380160d30",
+      "sha256": "7ab6034d6531751e27d1e6757cfb00315f9f40640d9f366b924ce39a90095922",
+      "source": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/paired_test/runs/E_all_trained_rate5_seed3.json"
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "rounds": 160,
+  "seeds": {
+    "E_all_11": {
+      "maximum_per_load_cost_span": 0.231596949793053,
+      "maximum_probe_flip_fraction": 0.016493055555555556,
+      "maximum_probe_probability_change": 0.016526993364095688,
+      "passed": false,
+      "score_span": 0.06852381284458972,
+      "window_rounds": [
+        120,
+        130,
+        140,
+        150,
+        160
+      ]
+    },
+    "E_all_22": {
+      "maximum_per_load_cost_span": 0.23012627784004877,
+      "maximum_probe_flip_fraction": 0.009331597222222222,
+      "maximum_probe_probability_change": 0.012235251255333424,
+      "passed": false,
+      "score_span": 0.022068078896228353,
+      "window_rounds": [
+        120,
+        130,
+        140,
+        150,
+        160
+      ]
+    },
+    "E_all_33": {
+      "maximum_per_load_cost_span": 0.338218072691171,
+      "maximum_probe_flip_fraction": 0.021701388888888888,
+      "maximum_probe_probability_change": 0.015681784600019455,
+      "passed": false,
+      "score_span": 0.12487668262565535,
+      "window_rounds": [
+        120,
+        130,
+        140,
+        150,
+        160
+      ]
+    },
+    "legacy_11": {
+      "maximum_per_load_cost_span": 0.2554001058285918,
+      "maximum_probe_flip_fraction": 0.013237847222222222,
+      "maximum_probe_probability_change": 0.015798445791006088,
+      "passed": false,
+      "score_span": 0.11364802651916447,
+      "window_rounds": [
+        120,
+        130,
+        140,
+        150,
+        160
+      ]
+    },
+    "legacy_22": {
+      "maximum_per_load_cost_span": 0.25876594285082255,
+      "maximum_probe_flip_fraction": 0.009114583333333334,
+      "maximum_probe_probability_change": 0.008213173598051071,
+      "passed": false,
+      "score_span": 0.02532910789517658,
+      "window_rounds": [
+        120,
+        130,
+        140,
+        150,
+        160
+      ]
+    },
+    "legacy_33": {
+      "maximum_per_load_cost_span": 0.486063103416271,
+      "maximum_probe_flip_fraction": 0.010633680555555556,
+      "maximum_probe_probability_change": 0.01326716411858797,
+      "passed": false,
+      "score_span": 0.01965788994069463,
+      "window_rounds": [
+        120,
+        130,
+        140,
+        150,
+        160
+      ]
+    }
+  }
+}

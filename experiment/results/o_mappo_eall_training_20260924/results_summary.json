@@ -1,0 +1,985 @@
+{
+  "aggregates": [
+    {
+      "label": "legacy_zero",
+      "mean": {
+        "handovers": 857.6666666666666,
+        "macro_association_percent": 5.089572203484412,
+        "mean_overflow_rb": 0.02403884876715717,
+        "mean_proxy_ms": 2.0092765091565097,
+        "optimizer_calls": 236.66666666666666,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 3.0364,
+        "p99_proxy_ms": 4.0897652808058504,
+        "pilots_per_vehicle_slot": 0.958314261728379,
+        "power_w": 24.555109619686785,
+        "violation_percent": 0.03799637249271982
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 841,
+            "macro_association_percent": 4.889337502154165,
+            "mean_overflow_rb": 0.02307364676306152,
+            "mean_proxy_ms": 1.999397664171955,
+            "optimizer_calls": 236,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.0370000000000004,
+            "p99_proxy_ms": 4.088761705076091,
+            "pilots_per_vehicle_slot": 0.9602492506765352,
+            "power_w": 24.051348993288574,
+            "violation_percent": 0.032242955726259695
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 889,
+            "macro_association_percent": 5.5048130185381225,
+            "mean_overflow_rb": 0.024992407822538882,
+            "mean_proxy_ms": 2.0278945375290456,
+            "optimizer_calls": 238,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.0354,
+            "p99_proxy_ms": 4.091360845810568,
+            "pilots_per_vehicle_slot": 0.9542981294309197,
+            "power_w": 25.51787248322146,
+            "violation_percent": 0.04923290173710771
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 843,
+            "macro_association_percent": 4.8745660897609495,
+            "mean_overflow_rb": 0.024050491715871106,
+            "mean_proxy_ms": 2.000537325768528,
+            "optimizer_calls": 236,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.0368,
+            "p99_proxy_ms": 4.0891732915308925,
+            "pilots_per_vehicle_slot": 0.9603954050776816,
+            "power_w": 24.09610738255032,
+            "violation_percent": 0.03251326001479204
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 5
+    },
+    {
+      "label": "E_all_zero",
+      "mean": {
+        "handovers": 462.3333333333333,
+        "macro_association_percent": 0.9305989807725448,
+        "mean_overflow_rb": 0.014747805037986979,
+        "mean_proxy_ms": 2.160692606291672,
+        "optimizer_calls": 174.66666666666666,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 3.6701352106316807,
+        "p99_proxy_ms": 4.33742858175268,
+        "pilots_per_vehicle_slot": 0.9992562747392094,
+        "power_w": 18.877682326621912,
+        "violation_percent": 0.028641614935449988
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 467,
+            "macro_association_percent": 0.8493562126098624,
+            "mean_overflow_rb": 0.016488243529830096,
+            "mean_proxy_ms": 2.154710143311543,
+            "optimizer_calls": 176,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.6443112774244537,
+            "p99_proxy_ms": 4.335050045799326,
+            "pilots_per_vehicle_slot": 1.0000583668713425,
+            "power_w": 19.095523489932873,
+            "violation_percent": 0.02642652952253279
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 459,
+            "macro_association_percent": 0.7754991506437874,
+            "mean_overflow_rb": 0.01072030310155167,
+            "mean_proxy_ms": 2.159428763878913,
+            "optimizer_calls": 177,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.6707890272767645,
+            "p99_proxy_ms": 4.336737421749828,
+            "pilots_per_vehicle_slot": 1.0007891097327246,
+            "power_w": 18.87955704697985,
+            "violation_percent": 0.026390655541353853
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 461,
+            "macro_association_percent": 1.1669415790639848,
+            "mean_overflow_rb": 0.017034868482579173,
+            "mean_proxy_ms": 2.1679389116845607,
+            "optimizer_calls": 171,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.695305327193824,
+            "p99_proxy_ms": 4.340498277708885,
+            "pilots_per_vehicle_slot": 0.9969213476135609,
+            "power_w": 18.657966442953004,
+            "violation_percent": 0.03310765974246331
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 5
+    },
+    {
+      "label": "legacy_trained",
+      "mean": {
+        "handovers": 730.3333333333334,
+        "macro_association_percent": 4.350180949801817,
+        "mean_overflow_rb": 0.01792148307503497,
+        "mean_proxy_ms": 2.04468377638298,
+        "optimizer_calls": 219.66666666666666,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 3.0361333333333334,
+        "p99_proxy_ms": 4.082362106313558,
+        "pilots_per_vehicle_slot": 0.9653847854133715,
+        "power_w": 23.515427293064857,
+        "violation_percent": 0.038697036326055756
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 730,
+            "macro_association_percent": 4.352642851867353,
+            "mean_overflow_rb": 0.0179348605908425,
+            "mean_proxy_ms": 2.042599148367974,
+            "optimizer_calls": 220,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.036,
+            "p99_proxy_ms": 4.081127323868811,
+            "pilots_per_vehicle_slot": 0.9653568305505876,
+            "power_w": 23.516436241610712,
+            "violation_percent": 0.03879587703749807
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 731,
+            "macro_association_percent": 4.357566655998425,
+            "mean_overflow_rb": 0.01776450920438975,
+            "mean_proxy_ms": 2.0455096680728615,
+            "optimizer_calls": 220,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.0362,
+            "p99_proxy_ms": 4.0827325923081705,
+            "pilots_per_vehicle_slot": 0.9653116666885044,
+            "power_w": 23.501731543624135,
+            "violation_percent": 0.0388960103048244
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 730,
+            "macro_association_percent": 4.340333341539673,
+            "mean_overflow_rb": 0.018065079429872656,
+            "mean_proxy_ms": 2.0459425127081055,
+            "optimizer_calls": 219,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.0362,
+            "p99_proxy_ms": 4.083226402763692,
+            "pilots_per_vehicle_slot": 0.9654858590010224,
+            "power_w": 23.528114093959708,
+            "violation_percent": 0.03839922163584481
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 5
+    },
+    {
+      "label": "E_all_trained",
+      "mean": {
+        "handovers": 490.3333333333333,
+        "macro_association_percent": 1.129192414059102,
+        "mean_overflow_rb": 0.014822335570401532,
+        "mean_proxy_ms": 2.224803588674678,
+        "optimizer_calls": 186.0,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 3.85988803538946,
+        "p99_proxy_ms": 4.354531775879911,
+        "pilots_per_vehicle_slot": 0.9973745182545493,
+        "power_w": 17.59816778523488,
+        "violation_percent": 0.04628767297153272
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 490,
+            "macro_association_percent": 1.1275511460154115,
+            "mean_overflow_rb": 0.014832474210935146,
+            "mean_proxy_ms": 2.2235613257720477,
+            "optimizer_calls": 186,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.8645975460742834,
+            "p99_proxy_ms": 4.355211942431683,
+            "pilots_per_vehicle_slot": 0.9973910475203177,
+            "power_w": 17.545187919463075,
+            "violation_percent": 0.045787372180075184
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 489,
+            "macro_association_percent": 1.1127797336221965,
+            "mean_overflow_rb": 0.014878777074055658,
+            "mean_proxy_ms": 2.2250269801969704,
+            "optimizer_calls": 185,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.8568270546289063,
+            "p99_proxy_ms": 4.355529264533562,
+            "pilots_per_vehicle_slot": 0.9975420447081456,
+            "power_w": 17.611382550335552,
+            "violation_percent": 0.04595868231486736
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 492,
+            "macro_association_percent": 1.1472463625396983,
+            "mean_overflow_rb": 0.014755755426213798,
+            "mean_proxy_ms": 2.2258224600550154,
+            "optimizer_calls": 187,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.8582395054651903,
+            "p99_proxy_ms": 4.352854120674488,
+            "pilots_per_vehicle_slot": 0.9971904625351845,
+            "power_w": 17.637932885906025,
+            "violation_percent": 0.04711696441965559
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 5
+    },
+    {
+      "label": "legacy_zero",
+      "mean": {
+        "handovers": 621.0,
+        "macro_association_percent": 17.129914571998327,
+        "mean_overflow_rb": 0.11182443878703675,
+        "mean_proxy_ms": 1.2961986807433348,
+        "optimizer_calls": 222.0,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 1.9772051282051282,
+        "p99_proxy_ms": 2.1722007561589773,
+        "pilots_per_vehicle_slot": 0.8369931798329454,
+        "power_w": 86.29866442953016,
+        "violation_percent": 0.057677681308039463
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 621,
+            "macro_association_percent": 17.129914571998327,
+            "mean_overflow_rb": 0.111737101472028,
+            "mean_proxy_ms": 1.296692621648635,
+            "optimizer_calls": 222,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.9772307692307693,
+            "p99_proxy_ms": 2.1723601032561284,
+            "pilots_per_vehicle_slot": 0.8369931798329454,
+            "power_w": 86.31172483221472,
+            "violation_percent": 0.05992763977792084
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 621,
+            "macro_association_percent": 17.129914571998327,
+            "mean_overflow_rb": 0.11192782006606784,
+            "mean_proxy_ms": 1.2952988739740525,
+            "optimizer_calls": 222,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.9773076923076922,
+            "p99_proxy_ms": 2.1721657766998197,
+            "pilots_per_vehicle_slot": 0.8369931798329454,
+            "power_w": 86.28144295302009,
+            "violation_percent": 0.05677673036360656
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 621,
+            "macro_association_percent": 17.129914571998327,
+            "mean_overflow_rb": 0.11180839482301441,
+            "mean_proxy_ms": 1.296604546607317,
+            "optimizer_calls": 222,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.977076923076923,
+            "p99_proxy_ms": 2.1720763885209835,
+            "pilots_per_vehicle_slot": 0.8369931798329454,
+            "power_w": 86.30282550335566,
+            "violation_percent": 0.056328673782590995
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 13
+    },
+    {
+      "label": "E_all_zero",
+      "mean": {
+        "handovers": 431.0,
+        "macro_association_percent": 6.17937418449494,
+        "mean_overflow_rb": 0.12084457506274121,
+        "mean_proxy_ms": 1.5708048796451486,
+        "optimizer_calls": 172.0,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 2.0014615384615384,
+        "p99_proxy_ms": 2.327637704266189,
+        "pilots_per_vehicle_slot": 0.9470116287960145,
+        "power_w": 55.57022371364659,
+        "violation_percent": 0.1463240183123685
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 431,
+            "macro_association_percent": 6.17937418449494,
+            "mean_overflow_rb": 0.12029187191404263,
+            "mean_proxy_ms": 1.5712801047188363,
+            "optimizer_calls": 172,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 2.0014615384615384,
+            "p99_proxy_ms": 2.327714825981403,
+            "pilots_per_vehicle_slot": 0.9470116287960145,
+            "power_w": 55.56657046979872,
+            "violation_percent": 0.1475908637113333
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 431,
+            "macro_association_percent": 6.17937418449494,
+            "mean_overflow_rb": 0.12121654953894555,
+            "mean_proxy_ms": 1.5680644365244742,
+            "optimizer_calls": 172,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 2.0014615384615384,
+            "p99_proxy_ms": 2.32760085125593,
+            "pilots_per_vehicle_slot": 0.9470116287960145,
+            "power_w": 55.58219463087255,
+            "violation_percent": 0.14245268874272224
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 431,
+            "macro_association_percent": 6.17937418449494,
+            "mean_overflow_rb": 0.12102530373523544,
+            "mean_proxy_ms": 1.5730700976921357,
+            "optimizer_calls": 172,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 2.0014615384615384,
+            "p99_proxy_ms": 2.3275974355612346,
+            "pilots_per_vehicle_slot": 0.9470116287960145,
+            "power_w": 55.56190604026851,
+            "violation_percent": 0.14892850248304992
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 13
+    },
+    {
+      "label": "legacy_trained",
+      "mean": {
+        "handovers": 494.6666666666667,
+        "macro_association_percent": 17.77903608327794,
+        "mean_overflow_rb": 0.12901106367459436,
+        "mean_proxy_ms": 1.3429511142019799,
+        "optimizer_calls": 195.66666666666666,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 1.9754137243675347,
+        "p99_proxy_ms": 2.175156200311705,
+        "pilots_per_vehicle_slot": 0.8304549628014478,
+        "power_w": 87.81558165548093,
+        "violation_percent": 0.0916728520663385
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 503,
+            "macro_association_percent": 17.738004382185675,
+            "mean_overflow_rb": 0.14104865713649578,
+            "mean_proxy_ms": 1.3692427346474618,
+            "optimizer_calls": 204,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.975,
+            "p99_proxy_ms": 2.1771142800368177,
+            "pilots_per_vehicle_slot": 0.8308703106008698,
+            "power_w": 87.90534228187913,
+            "violation_percent": 0.09831364426346857
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 486,
+            "macro_association_percent": 18.348556094438564,
+            "mean_overflow_rb": 0.12354240594310625,
+            "mean_proxy_ms": 1.3231381417767736,
+            "optimizer_calls": 191,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.9736923076923079,
+            "p99_proxy_ms": 2.172442852814853,
+            "pilots_per_vehicle_slot": 0.824779306706411,
+            "power_w": 89.42779194630867,
+            "violation_percent": 0.07838016983618785
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 495,
+            "macro_association_percent": 17.250547773209583,
+            "mean_overflow_rb": 0.12244212794418108,
+            "mean_proxy_ms": 1.3364724661817042,
+            "optimizer_calls": 192,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.9775488654102964,
+            "p99_proxy_ms": 2.1759114680834433,
+            "pilots_per_vehicle_slot": 0.8357152710970626,
+            "power_w": 86.11361073825499,
+            "violation_percent": 0.09832474209935906
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 13
+    },
+    {
+      "label": "E_all_trained",
+      "mean": {
+        "handovers": 528.3333333333334,
+        "macro_association_percent": 2.420049730421724,
+        "mean_overflow_rb": 0.1027694409453916,
+        "mean_proxy_ms": 1.4395656779511405,
+        "optimizer_calls": 210.33333333333334,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 2.00325641025641,
+        "p99_proxy_ms": 2.3207339594208816,
+        "pilots_per_vehicle_slot": 0.9844549638970791,
+        "power_w": 43.77610290827741,
+        "violation_percent": 0.08722655421132401
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 525,
+            "macro_association_percent": 2.4126640242251165,
+            "mean_overflow_rb": 0.10266503259227938,
+            "mean_proxy_ms": 1.439607916018981,
+            "optimizer_calls": 209,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 2.0031538461538463,
+            "p99_proxy_ms": 2.320289159970661,
+            "pilots_per_vehicle_slot": 0.9845213660153409,
+            "power_w": 43.7311812080537,
+            "violation_percent": 0.08644509888810524
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 529,
+            "macro_association_percent": 2.4126640242251165,
+            "mean_overflow_rb": 0.10295876208472764,
+            "mean_proxy_ms": 1.4393935887324019,
+            "optimizer_calls": 210,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 2.0033076923076925,
+            "p99_proxy_ms": 2.3202053559693683,
+            "pilots_per_vehicle_slot": 0.9845343651178037,
+            "power_w": 43.737355704698,
+            "violation_percent": 0.08691914566799086
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 531,
+            "macro_association_percent": 2.434821142814939,
+            "mean_overflow_rb": 0.1026845281591678,
+            "mean_proxy_ms": 1.4396955291020395,
+            "optimizer_calls": 212,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 2.0033076923076925,
+            "p99_proxy_ms": 2.3217073623226168,
+            "pilots_per_vehicle_slot": 0.9843091605580927,
+            "power_w": 43.85977181208054,
+            "violation_percent": 0.08831541807787588
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 13
+    },
+    {
+      "label": "legacy_zero",
+      "mean": {
+        "handovers": 448.0,
+        "macro_association_percent": 26.908589576306653,
+        "mean_overflow_rb": 11.623009963074749,
+        "mean_proxy_ms": 95.22092147395598,
+        "optimizer_calls": 187.0,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 2.33496,
+        "p99_proxy_ms": 2380.5000910604,
+        "pilots_per_vehicle_slot": 0.7369030522240717,
+        "power_w": 177.30190604026814,
+        "violation_percent": 7.771912459735275
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 457,
+            "macro_association_percent": 27.15970358699131,
+            "mean_overflow_rb": 12.090636676777853,
+            "mean_proxy_ms": 105.91291626082996,
+            "optimizer_calls": 191,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 2.9902,
+            "p99_proxy_ms": 2643.0550827432003,
+            "pilots_per_vehicle_slot": 0.7344323801056887,
+            "power_w": 177.18536912751645,
+            "violation_percent": 7.958595761554007
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 443,
+            "macro_association_percent": 26.790418277160935,
+            "mean_overflow_rb": 11.315626308073567,
+            "mean_proxy_ms": 88.03844426046288,
+            "optimizer_calls": 184,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 2.00416,
+            "p99_proxy_ms": 2151.047493265075,
+            "pilots_per_vehicle_slot": 0.7380980314358391,
+            "power_w": 177.4273355704695,
+            "violation_percent": 7.656318259891351
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 444,
+            "macro_association_percent": 26.77564686476772,
+            "mean_overflow_rb": 11.462766904372824,
+            "mean_proxy_ms": 91.71140390057515,
+            "optimizer_calls": 186,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 2.01052,
+            "p99_proxy_ms": 2347.3976971729235,
+            "pilots_per_vehicle_slot": 0.7381787451306876,
+            "power_w": 177.29301342281846,
+            "violation_percent": 7.700823357760466
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 25
+    },
+    {
+      "label": "E_all_zero",
+      "mean": {
+        "handovers": 338.6666666666667,
+        "macro_association_percent": 21.612217599317233,
+        "mean_overflow_rb": 4.990298406967846,
+        "mean_proxy_ms": 41.136964405696325,
+        "optimizer_calls": 144.66666666666666,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 1.5226791510995106,
+        "p99_proxy_ms": 747.6208850578399,
+        "pilots_per_vehicle_slot": 0.7906817533118405,
+        "power_w": 160.86504474272897,
+        "violation_percent": 4.825598066034929
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 325,
+            "macro_association_percent": 21.485019325931216,
+            "mean_overflow_rb": 4.387075555334515,
+            "mean_proxy_ms": 26.553585272827934,
+            "optimizer_calls": 137,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.4939832292874322,
+            "p99_proxy_ms": 511.82680472532036,
+            "pilots_per_vehicle_slot": 0.7918552238106576,
+            "power_w": 162.54835570469766,
+            "violation_percent": 4.394708749257447
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 337,
+            "macro_association_percent": 21.066495974790122,
+            "mean_overflow_rb": 4.688752775868098,
+            "mean_proxy_ms": 35.01610008698677,
+            "optimizer_calls": 145,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.5043492850106044,
+            "p99_proxy_ms": 632.9935471999949,
+            "pilots_per_vehicle_slot": 0.7962447339880532,
+            "power_w": 158.22041610738222,
+            "violation_percent": 4.552581611003199
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 354,
+            "macro_association_percent": 22.28513749723036,
+            "mean_overflow_rb": 5.895066889700929,
+            "mean_proxy_ms": 61.841207857274284,
+            "optimizer_calls": 152,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.5697049390004947,
+            "p99_proxy_ms": 1098.0423032482042,
+            "pilots_per_vehicle_slot": 0.7839453021368108,
+            "power_w": 161.826362416107,
+            "violation_percent": 5.529503837844143
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 25
+    },
+    {
+      "label": "legacy_trained",
+      "mean": {
+        "handovers": 369.6666666666667,
+        "macro_association_percent": 26.15196500816531,
+        "mean_overflow_rb": 10.39645682690573,
+        "mean_proxy_ms": 80.18476245350983,
+        "optimizer_calls": 165.0,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 2.297316228430683,
+        "p99_proxy_ms": 1813.823904781321,
+        "pilots_per_vehicle_slot": 0.7442927144700245,
+        "power_w": 178.51159731543586,
+        "violation_percent": 7.379278848458071
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 367,
+            "macro_association_percent": 26.039538147172504,
+            "mean_overflow_rb": 9.797416981613837,
+            "mean_proxy_ms": 78.73444977476746,
+            "optimizer_calls": 163,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.88326868529205,
+            "p99_proxy_ms": 1767.2896580530996,
+            "pilots_per_vehicle_slot": 0.7454393832931,
+            "power_w": 178.5700604026842,
+            "violation_percent": 6.885801695879397
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 375,
+            "macro_association_percent": 26.52207095201753,
+            "mean_overflow_rb": 11.299550989619501,
+            "mean_proxy_ms": 77.70767991464332,
+            "optimizer_calls": 168,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 3.0,
+            "p99_proxy_ms": 1709.0571018999701,
+            "pilots_per_vehicle_slot": 0.7404810807940911,
+            "power_w": 179.50897986577147,
+            "violation_percent": 7.872712784129643
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 367,
+            "macro_association_percent": 25.89428592530589,
+            "mean_overflow_rb": 10.09240250948385,
+            "mean_proxy_ms": 84.11215767111875,
+            "optimizer_calls": 164,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 2.00868,
+            "p99_proxy_ms": 1965.124954390893,
+            "pilots_per_vehicle_slot": 0.7469576793228827,
+            "power_w": 177.45575167785196,
+            "violation_percent": 7.379322065365175
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 25
+    },
+    {
+      "label": "E_all_trained",
+      "mean": {
+        "handovers": 371.3333333333333,
+        "macro_association_percent": 19.40963588468451,
+        "mean_overflow_rb": 4.093229893718662,
+        "mean_proxy_ms": 28.77260256113776,
+        "optimizer_calls": 160.66666666666666,
+        "optimizer_failures": 0.0,
+        "p90_proxy_ms": 1.4906740576003887,
+        "p99_proxy_ms": 467.74411990197353,
+        "pilots_per_vehicle_slot": 0.813257577329332,
+        "power_w": 151.4818277404919,
+        "violation_percent": 4.157776932643434
+      },
+      "per_seed": [
+        {
+          "metrics": {
+            "handovers": 365,
+            "macro_association_percent": 19.138826657475565,
+            "mean_overflow_rb": 3.7884342912552986,
+            "mean_proxy_ms": 25.834828999904317,
+            "optimizer_calls": 160,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.4785168486524227,
+            "p99_proxy_ms": 411.2207059471559,
+            "pilots_per_vehicle_slot": 0.8159742782641314,
+            "power_w": 150.57801342281851,
+            "violation_percent": 3.8311715035852365
+          },
+          "seed": 1
+        },
+        {
+          "metrics": {
+            "handovers": 374,
+            "macro_association_percent": 19.623821364386124,
+            "mean_overflow_rb": 4.354012316458389,
+            "mean_proxy_ms": 28.820372619416787,
+            "optimizer_calls": 162,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.4989141673047044,
+            "p99_proxy_ms": 492.90510967652995,
+            "pilots_per_vehicle_slot": 0.8111034175310552,
+            "power_w": 152.53672483221447,
+            "violation_percent": 4.329545637076638
+          },
+          "seed": 2
+        },
+        {
+          "metrics": {
+            "handovers": 375,
+            "macro_association_percent": 19.466259632191832,
+            "mean_overflow_rb": 4.1372430734423,
+            "mean_proxy_ms": 31.662606064092177,
+            "optimizer_calls": 160,
+            "optimizer_failures": 0,
+            "p90_proxy_ms": 1.4945911568440386,
+            "p99_proxy_ms": 499.1065440822346,
+            "pilots_per_vehicle_slot": 0.8126950361928091,
+            "power_w": 151.3307449664427,
+            "violation_percent": 4.312613657268425
+          },
+          "seed": 3
+        }
+      ],
+      "rate_mbps": 25
+    }
+  ],
+  "convergence": {
+    "rounds": 160,
+    "seeds": {
+      "E_all_11": {
+        "maximum_per_load_cost_span": 0.231596949793053,
+        "maximum_probe_flip_fraction": 0.016493055555555556,
+        "maximum_probe_probability_change": 0.016526993364095688,
+        "passed": false,
+        "score_span": 0.06852381284458972,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "E_all_22": {
+        "maximum_per_load_cost_span": 0.23012627784004877,
+        "maximum_probe_flip_fraction": 0.009331597222222222,
+        "maximum_probe_probability_change": 0.012235251255333424,
+        "passed": false,
+        "score_span": 0.022068078896228353,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "E_all_33": {
+        "maximum_per_load_cost_span": 0.338218072691171,
+        "maximum_probe_flip_fraction": 0.021701388888888888,
+        "maximum_probe_probability_change": 0.015681784600019455,
+        "passed": false,
+        "score_span": 0.12487668262565535,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "legacy_11": {
+        "maximum_per_load_cost_span": 0.2554001058285918,
+        "maximum_probe_flip_fraction": 0.013237847222222222,
+        "maximum_probe_probability_change": 0.015798445791006088,
+        "passed": false,
+        "score_span": 0.11364802651916447,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "legacy_22": {
+        "maximum_per_load_cost_span": 0.25876594285082255,
+        "maximum_probe_flip_fraction": 0.009114583333333334,
+        "maximum_probe_probability_change": 0.008213173598051071,
+        "passed": false,
+        "score_span": 0.02532910789517658,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      },
+      "legacy_33": {
+        "maximum_per_load_cost_span": 0.486063103416271,
+        "maximum_probe_flip_fraction": 0.010633680555555556,
+        "maximum_probe_probability_change": 0.01326716411858797,
+        "passed": false,
+        "score_span": 0.01965788994069463,
+        "window_rounds": [
+          120,
+          130,
+          140,
+          150,
+          160
+        ]
+      }
+    }
+  },
+  "scope": "Three fixed test loads, 3 traffic seeds; no formal baseline replacement",
+  "selection": {
+    "note": "Both no-training controls retained; a trained candidate need not beat its zero-round control",
+    "rankings": [
+      {
+        "label": "E_all_seed11",
+        "mean_ratio": 0.6673174422468328,
+        "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/E_all/seed11/best_positive.pt",
+        "route": "E_all",
+        "score": 0.7355881140410144,
+        "worst_ratio": 0.8038587858351961
+      },
+      {
+        "label": "E_all_seed22",
+        "mean_ratio": 0.7120717499243855,
+        "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/E_all/seed22/best_positive.pt",
+        "route": "E_all",
+        "score": 0.7758850291053125,
+        "worst_ratio": 0.8396983082862397
+      },
+      {
+        "label": "E_all_seed33",
+        "mean_ratio": 0.624575882709459,
+        "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/E_all/seed33/best_positive.pt",
+        "route": "E_all",
+        "score": 0.7648291731434926,
+        "worst_ratio": 0.9050824635775264
+      },
+      {
+        "label": "E_all_zero",
+        "mean_ratio": 0.735851554420106,
+        "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/checkpoints/actor2_seed33/selected.pt",
+        "route": "E_all",
+        "score": 0.8584203277830941,
+        "worst_ratio": 0.9809891011460822
+      },
+      {
+        "label": "legacy_seed11",
+        "mean_ratio": 1.0324138530803775,
+        "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/legacy/seed11/best_positive.pt",
+        "route": "legacy",
+        "score": 1.1120973046620666,
+        "worst_ratio": 1.191780756243756
+      },
+      {
+        "label": "legacy_seed22",
+        "mean_ratio": 1.0455090553493736,
+        "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/legacy/seed22/best_positive.pt",
+        "route": "legacy",
+        "score": 1.355612025869593,
+        "worst_ratio": 1.6657149963898121
+      },
+      {
+        "label": "legacy_seed33",
+        "mean_ratio": 0.9763027275790945,
+        "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/legacy/seed33/best_positive.pt",
+        "route": "legacy",
+        "score": 1.0957358429683914,
+        "worst_ratio": 1.2151689583576883
+      },
+      {
+        "label": "legacy_zero",
+        "mean_ratio": 1.0,
+        "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_actor_depth_20260924/checkpoints/actor2_seed33/selected.pt",
+        "route": "legacy",
+        "score": 1.0,
+        "worst_ratio": 1.0
+      }
+    ],
+    "selected_trained": {
+      "E_all": {
+        "label": "E_all_seed11",
+        "mean_ratio": 0.6673174422468328,
+        "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/E_all/seed11/best_positive.pt",
+        "route": "E_all",
+        "score": 0.7355881140410144,
+        "worst_ratio": 0.8038587858351961
+      },
+      "legacy": {
+        "label": "legacy_seed33",
+        "mean_ratio": 0.9763027275790945,
+        "policy": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/training/legacy/seed33/best_positive.pt",
+        "route": "legacy",
+        "score": 1.0957358429683914,
+        "worst_ratio": 1.2151689583576883
+      }
+    }
+  }
+}

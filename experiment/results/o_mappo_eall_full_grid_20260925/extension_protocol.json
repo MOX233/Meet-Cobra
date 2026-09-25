@@ -1,0 +1,36 @@
+{
+  "checkpoint_sha256": "e1be46476dc17cbd2300a47b8930dceb173e469b9e8cf1dc18c35a31411e5b43",
+  "paper_protocol": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/revision_directional_20260922/grid/protocol.json",
+  "paper_sha256": "6c851155e24935ecaab253b22633c7fb6922ba053bdcd442022eec9ec0068362",
+  "rates": [
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31,
+    33,
+    35
+  ],
+  "route": "E_all",
+  "script_sha256": "281f93baea24158efc459f4a7b192662ebb158c96e57f7cb7cdc65b285804bd0",
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "selection_sha256": "042fce09f3f0a1d19d2d6ec108242d9fea6033a8db154372720a18d5812b113c",
+  "source_protocol": "/home/ubuntu/niulab/Meet_Cobra/experiment/results/o_mappo_eall_training_20260924/paired_test/protocol.json",
+  "source_sha256": "a48e6f181b7a6b75d9f78cf4a28d7adb42b8f33ebd1e427c1b1b9654075393a0",
+  "warmup_frames": 2
+}
