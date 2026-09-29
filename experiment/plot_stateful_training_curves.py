@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -55,6 +56,7 @@ DEFAULT_STAGE1_RESULTS = DEFAULT_ROOT / "stage1_finite_window"
 DEFAULT_STAGE2_RESULTS = DEFAULT_ROOT / "stage2_stateful_tbptt"
 DEFAULT_FIGURES = ROOT / "latexCodes/figures"
 PHASE_BOUNDARY = 100
+EPOCH_RIGHT_LIMIT = 203  # Leave room for a best-checkpoint star at epoch 200.
 TRAIN_COLOR = "#0072B2"
 VALIDATION_COLOR = "#D55E00"
 
@@ -63,8 +65,18 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage1-results", type=Path, default=DEFAULT_STAGE1_RESULTS)
     parser.add_argument("--stage2-results", type=Path, default=DEFAULT_STAGE2_RESULTS)
+    parser.add_argument("--interfering-stage1-results", type=Path,
+                        help="Override only the interfering-gain stage-I results root")
+    parser.add_argument("--interfering-stage2-results", type=Path,
+                        help="Override only the interfering-gain stage-II results root")
+    parser.add_argument("--summary", type=Path,
+                        help="Write provenance and metrics here instead of the stage-II root")
     parser.add_argument("--figures", type=Path, default=DEFAULT_FIGURES)
-    return parser.parse_args()
+    args = parser.parse_args()
+    overrides = (args.interfering_stage1_results, args.interfering_stage2_results)
+    if any(overrides) and (not all(overrides) or args.summary is None):
+        parser.error("Interfering-gain overrides require both stages and an explicit --summary")
+    return args
 
 
 def read_history(path: Path) -> list[dict]:
@@ -114,14 +126,14 @@ def plot_two_phases(
 
 
 def style_two_phase_axes(ax) -> None:
-    ax.axvspan(PHASE_BOUNDARY + 0.5, 200.5, color="0.94", zorder=0)
+    ax.axvspan(PHASE_BOUNDARY + 0.5, EPOCH_RIGHT_LIMIT, color="0.94", zorder=0)
     ax.axvline(PHASE_BOUNDARY + 0.5, color="0.35", linestyle=":", linewidth=1.0, zorder=2)
     ax.text(0.25, 1.015, "Stage I: finite-window", transform=ax.transAxes,
             ha="center", va="bottom", color="0.25", fontdict=IN_FIGURE_FONT)
     ax.text(0.75, 1.015, "Stage II: stateful fine-tuning", transform=ax.transAxes,
             ha="center", va="bottom", color="0.25", fontdict=IN_FIGURE_FONT)
     ax.set_xticks([1, 50, 100, 150, 200])
-    ax.set_xlim(1, 200)
+    ax.set_xlim(1, EPOCH_RIGHT_LIMIT)
     ax.grid(axis="y", color="0.87", linewidth=0.5, zorder=0)
     ax.tick_params(direction="in", top=False, right=False)
 
@@ -271,17 +283,38 @@ def plot_gains(
 
 def main() -> None:
     args = parse_args()
-    first_stage = {
-        task: read_history(args.stage1_results / task / "history.json")
-        for task in ("beam", "desired_gain", "interfering_gain")
+    tasks = ("beam", "desired_gain", "interfering_gain")
+    roots = {
+        "stage1": {task: args.stage1_results for task in tasks},
+        "stage2": {task: args.stage2_results for task in tasks},
     }
-    histories = {
-        task: read_history(args.stage2_results / task / "history.json")
-        for task in ("beam", "desired_gain", "interfering_gain")
+    if args.interfering_stage1_results is not None:
+        roots["stage1"]["interfering_gain"] = args.interfering_stage1_results
+        roots["stage2"]["interfering_gain"] = args.interfering_stage2_results
+    source_paths = {
+        stage: {task: root / task / "history.json" for task, root in stage_roots.items()}
+        for stage, stage_roots in roots.items()
     }
+    stages = {
+        stage: {task: read_history(path) for task, path in paths.items()}
+        for stage, paths in source_paths.items()
+    }
+    first_stage, histories = stages["stage1"], stages["stage2"]
     args.figures.mkdir(parents=True, exist_ok=True)
     summary = {
         "phase_boundary_epoch": PHASE_BOUNDARY,
+        "history_sources": {
+            stage: {task: {"path": str(path.resolve()),
+                           "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+                    for task, path in paths.items()}
+            for stage, paths in source_paths.items()
+        },
+        "stage1_best_validation": {
+            "beam_top1_pct": float(values(first_stage["beam"], "val_top1_accuracy_pct").max()),
+            "beam_top3_pct": float(values(first_stage["beam"], "val_top3_accuracy_pct").max()),
+            "desired_mae_db": float(values(first_stage["desired_gain"], "val_mae_db").min()),
+            "interfering_mae_db": float(values(first_stage["interfering_gain"], "val_mae_db").min()),
+        },
         "beam": plot_beam(first_stage["beam"], histories["beam"], args.figures / "NN_training_curves(a).pdf"),
         "gains": plot_gains(
             first_stage["desired_gain"],
@@ -291,7 +324,9 @@ def main() -> None:
             args.figures / "NN_training_curves(b).pdf",
         ),
     }
-    with (args.stage2_results / "fig4_summary.json").open("w", encoding="utf-8") as handle:
+    summary_path = args.summary or args.stage2_results / "fig4_summary.json"
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    with summary_path.open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2, sort_keys=True)
         handle.write("\n")
     print(json.dumps(summary, indent=2, sort_keys=True))
