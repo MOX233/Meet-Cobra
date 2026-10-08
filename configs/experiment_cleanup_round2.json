@@ -1,0 +1,45 @@
+{
+  "asset_manifest": "configs/paper_r1_assets.json",
+  "description": "Round 2: prune selected superseded raw arrays and obsolete caches; retain every model and all summaries, protocols, diagnostics and logs.",
+  "additional_protected_trees": [
+    "experiment/results/o_mappo_eall_full_grid_20260925",
+    "experiment/results/o_mappo_slot_cross5_20260925",
+    "experiment/results/stateful_prediction_20260912",
+    "experiment/results/o_mappo_h32_retrained_20260924",
+    "experiment/results/o_mappo_stage1_consistency_20260924"
+  ],
+  "superseded_raw_trees": {
+    "experiment/results/revision_fig5_8_20260917": "Superseded by the directional-service 20260922 grid and final baseline grids; retain per-case metrics and aggregate results.",
+    "experiment/results/revision_cap_mts_full_20260918_v2": "Intermediate capped-demand grid preceding the current directional-service evaluation; retain all metrics, protocols and diagnostics.",
+    "experiment/results_multiseed": "Earlier system configuration and baseline versions, replaced by the current R1 grids; retain per-seed and aggregate records.",
+    "experiment/results/interference_validation_20260919": "Pilot interference study replaced in the paper by the full-load directional grid; retain all diagnostic summaries and comparisons."
+  },
+  "obsolete_caches": [
+    {
+      "path": "experiment/results/o_mappo_shared_frontend_20260917/train_prepared.pkl",
+      "evidence": "experiment/results/o_mappo_shared_frontend_20260917/frontend_manifest.json",
+      "hash_keys": ["train", "cache_sha256"],
+      "reason": "Old prediction frontend; final O-MAPPO training uses the v4 arrays and the current model bundle. Source channel data and former checkpoints remain."
+    },
+    {
+      "path": "experiment/results/o_mappo_shared_frontend_20260917/test_prepared.pkl",
+      "evidence": "experiment/results/o_mappo_shared_frontend_20260917/frontend_manifest.json",
+      "hash_keys": ["test", "cache_sha256"],
+      "reason": "Old test prediction cache, superseded by revision_directional_20260922/test_predictions.pkl."
+    },
+    {
+      "path": "experiment/results/revision_directional_20260921/training_data.npz",
+      "evidence": "experiment/results/revision_directional_20260921/training_data.json",
+      "hash_keys": ["output_sha256"],
+      "reason": "Superseded zero-gain convention; retain the corrected 20260922 training data and both versions of training metadata."
+    }
+  ],
+  "duplicate_validation_caches": {
+    "retained": "experiment/results/o_mappo_h32_retrained_20260924_v4/exact_validation.pkl",
+    "candidates": [
+      "experiment/results/o_mappo_h32_retrained_20260924_v2/exact_validation.pkl",
+      "experiment/results/o_mappo_h32_retrained_20260924_v3/exact_validation.pkl",
+      "experiment/results/o_mappo_h32_training_smoke_20260924/exact_validation.pkl"
+    ]
+  }
+}

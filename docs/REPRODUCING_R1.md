@@ -116,3 +116,9 @@ or caches. For exact-result recovery, back up the protected local assets separat
 A fresh Git checkout supports rebuilding the workflow but does not contain the
 large data or selected model weights. Historical experimental entrypoints that
 used deleted obsolete datasets require those datasets to be regenerated.
+
+After cleanup round 2, selected superseded system runs retain their configuration
+and per-case metrics but no longer retain the large per-slot arrays. The current
+paper grids and all model weights remain intact. See the retention table in
+`EXPERIMENTS.md` and the exact deletion ledger under `docs/maintenance/` before
+trying to audit or resume an older run.

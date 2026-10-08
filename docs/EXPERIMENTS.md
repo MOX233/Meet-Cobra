@@ -37,10 +37,27 @@ The MTS full grid also references its pilot run
 `mts_hierarchical_tracking_20260925_v2`. These are upstream dependencies, not
 disposable duplicates. The manifest lists them explicitly.
 
-Other `experiment/results*` directories are historical studies. This cleanup
-does **not** delete their models or numerical evidence. A later cleanup should
-distinguish reproducible caches from model initialization dependencies and unique
-experimental records before removing anything.
+Other `experiment/results*` directories are historical studies. All their models,
+per-case metric records, aggregate summaries, protocols and diagnostic reports
+remain. In cleanup round 2, selected superseded **raw arrays** and obsolete
+caches are pruned; their exact paths are recorded under
+`docs/maintenance/round2_20261008/`. Do not interpret an old completion JSON as
+proof that its raw arrays are still available.
+
+| Historical study | Retention after round 2 |
+|---|---|
+| `results/revision_fig5_8_20260917` | Case metrics and aggregates retained; old raw arrays pruned |
+| `results/revision_cap_mts_full_20260918_v2` | Case metrics, control-run records and diagnostics retained; old raw arrays pruned |
+| `results_multiseed` | Per-seed metrics and aggregate curves retained; old raw arrays pruned |
+| `results/interference_validation_20260919` | Metric and interference summaries retained; old raw/sample arrays pruned |
+| `results/o_mappo_shared_frontend_20260917` | Models and evaluation records retained; old train/test prediction caches pruned |
+| `results/revision_directional_20260921` | Old training metadata and models retained; obsolete-label training dataset pruned |
+
+Paths in this table are relative to `experiment/`. Current paper results and
+all initialization/model-selection dependencies listed above are retained.
+Historical reports describe the workspace when each experiment was performed;
+use the maintenance ledger for present file availability. Analyses requiring
+pruned per-slot arrays need regeneration rather than only the saved summaries.
 
 ## Frozen source versions
 

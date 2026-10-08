@@ -9,6 +9,7 @@ IEEE TWC first revision submitted on 2026-10-08. Submission snapshot:
 - [Reproduction guide](docs/REPRODUCING_R1.md)
 - [Experiment report index](docs/EXPERIMENTS.md)
 - [Workspace maintenance](docs/WORKSPACE_MANAGEMENT.md)
+- [Round-2 cleanup and result retention](docs/maintenance/round2_20261008/REPORT.md)
 - [Submitted artifacts](latexCodes/revision1/SUBMISSION_SNAPSHOT.md)
 
 The active manuscript is `latexCodes/main_revision1_journal.tex`; the response

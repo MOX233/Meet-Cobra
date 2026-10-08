@@ -21,7 +21,7 @@
 7. Before any further deletion, review the explicit plan, dependency checks and
    active processes. No `git clean -fdx` or repository-wide recursive deletion.
 
-## 2026-10-08 cleanup
+## 2026-10-08 cleanup, round 1
 
 The deletion scope is limited to obsolete top-level dataset files and disposable
 untracked build files. All experimental results and all checkpoints remain intact.
@@ -48,6 +48,37 @@ python -B scripts/workspace_maintenance.py apply --plan docs/maintenance/NEW_PLA
 python -B scripts/workspace_maintenance.py verify --plan docs/maintenance/NEW_PLAN.json
 python -B scripts/check_paper_assets.py
 ```
+
+## 2026-10-08 cleanup, round 2
+
+The separate policy `configs/experiment_cleanup_round2.json` identifies specific
+superseded experiments and caches. It does not weaken or edit the first-round
+asset manifest. All current result trees and upstream training dependencies are
+protected; metadata references provide additional exclusions. All model weights,
+including historical ones, are retained because their storage cost is small
+relative to the raw simulation arrays.
+
+Raw NPZ deletion requires a corresponding retained case record with power and
+violation metrics. Existing provenance hashes are recorded, not represented as
+new binary-hash verification. Duplicate validation caches are fully SHA-256
+checked against the retained copy. Explicit target identities, evidence hashes,
+Git status and running jobs are rechecked before deletion. Hard-linked storage
+is counted only once and only when all links are removed.
+
+The remaining experiment files are snapshotted before deletion. Small reports,
+source files and PT/PTH checkpoints additionally receive content-hash checks.
+The detailed retained-file snapshot stays locally under `archive/maintenance/`;
+its checksum and the split deletion manifests are versioned under
+`docs/maintenance/round2_20261008/`. None of these manifests is a data backup.
+
+```bash
+python -B scripts/experiment_cleanup.py verify --directory docs/maintenance/round2_20261008
+python -B scripts/check_paper_assets.py
+```
+
+The first command verifies the immediate post-cleanup snapshot. Subsequent
+intentional changes to retained experiment files will invalidate that snapshot;
+do not overwrite it to make a later check pass. Keep new runs in new directories.
 
 ## Why existing Python files are not relocated
 
