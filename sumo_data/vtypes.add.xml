@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<additional>
+    <vType id="car" 
+           vClass="passenger"
+           maxSpeed="20" 
+           length="5" 
+           minGap="0.3" 
+           accel="3" 
+           decel="6" 
+           sigma="0.5" />
+</additional>
+

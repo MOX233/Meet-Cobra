@@ -1,20 +1,47 @@
-**.pyc
-**/__pycache__
-**/_tmp**
-*_result
-save**
-old_*
-**.csv
-trajectory*
-.ipynb_checkpoints
-experiment/results_*
-data4sim
-sumo_data
-prepared_dataset
-plots
-mox.ipynb
-_scene_from_sionna_old.xml
-# latex related cache files
+# Generated data, checkpoints and experimental outputs stay outside Git.
+# Already tracked reports/figures remain versioned; use explicit paths to stage.
+/data4sim/
+/prepared_dataset/
+/sionna_result/
+/NN_result/
+/experiment/results/
+/experiment/results_*/
+/sumo_data/*
+!/sumo_data/road.net.xml
+!/sumo_data/road_Lbd1.00.rou.xml
+!/sumo_data/road_Lbd1.00.sumocfg
+!/sumo_data/vtypes.add.xml
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.pt
+*.pth
+*.h5
+*.hdf5
+*.ckpt
+/save*/
+/plots/
+/old_*
+/_scene_from_sionna_old.xml
+
+# Locally archived recovery copies are preserved, not bulk-added.
+/archive/
+/notebooks/legacy/mox.ipynb
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+*.nbc
+*.nbi
+_tmp*/
+.pytest_cache/
+.ruff_cache/
+build/
+/latexCodes/revision1/
+/latexCodes/main*.pdf
+/response_letter/response_letter.pdf
+
+# LaTeX generated files. Existing submitted .bbl files stay tracked.
 *.aux
 *.bbl
 *.blg
@@ -24,3 +51,4 @@ _scene_from_sionna_old.xml
 *.out
 *.log
 *.synctex.gz
+*.xdv

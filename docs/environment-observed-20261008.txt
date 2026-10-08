@@ -1,0 +1,16 @@
+# Observed existing server environment; not a universal pip installation lockfile.
+# Captured without changing installed packages. GPU/driver and solver setup
+# still need to be checked on another machine.
+Python 3.10.16
+numpy==1.26.4
+scipy==1.15.1
+torch==2.6.0+cu118
+numba==0.61.2
+pandas==2.2.3
+matplotlib==3.10.0
+sionna==1.0.1
+sionna-rt==1.0.1
+mitsuba==3.6.2
+drjit==1.0.3
+tensorflow==2.15.1
+Eclipse SUMO 1.24.0

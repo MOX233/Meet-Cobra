@@ -1,0 +1,63 @@
+{
+  "passed": true,
+  "checked_paths": 50,
+  "verified_sha256": {
+    "experiment/compare_stateful_prediction.py": "73c3684c7cfc2f13a3d712b95d34d335e7b4cf5eb3edd930c59f9bb04629da7d",
+    "experiment/o_mappo_shared_frontend.py": "7f0b1ceeee9d4a9821d11f55e2fd7c2cd184bdf467788986ea3abde49d589a45",
+    "experiment/pql_ba_experiment.py": "627d5d89c6ee4f0f7b38d6187d0faa7ad10851bfb3ef5ced21400e7044c97bf0",
+    "experiment/revision_pipeline.py": "bb1ace4ca84cc260eebd971d8d2e10120bf1bddcc6cff0ec8e3187f5dc50e4c5",
+    "experiment/revision_training.py": "169048619cc8b5bfa6e9b81660ed0f17f022b36a759254d2527754c5bbf90eb9",
+    "utils/NN_utils.py": "351dc4bd5a9e75304bc3dd7ea2019c35971eefa1ac1c7bbadb5ffcc7cb75dc26",
+    "utils/alg_utils.py": "64709f181ee92472210e242be06d371b72ec5ba5d4ecc383d2b51a77171449ee",
+    "utils/beam_utils.py": "8fe098b270986b576a20b3b87bc54596b6efe3a74b8891b3ba786c9e640d50ae",
+    "utils/channel_utils.py": "9261fb7ddf9a333c9e79b386d21c48caf1f0dfa8a36f6c734f015ee53093818d",
+    "utils/compiled_matching.py": "da5cfcddf05d2670c853bacd5f0e89b6233551ddde21710787aaef142ce9891c",
+    "utils/data_utils.py": "31c464cab50c22d49386cb14f3de2f8f459733a24ccf11a539a3cccd6a1a2689",
+    "utils/directional_service.py": "b328665a974121e404982e56ae00ca7abaf2c984380f30b83b3a7d42de063641",
+    "utils/dql_hbt.py": "0439641b9cb32b8a65f4ccf067525a576b13946a9e0f984c718ee653970d443d",
+    "utils/dql_hbt_sim.py": "10302f03f9a522edfdfd12841af46a13c482c7bf4f62a511f9186d964f9962df",
+    "utils/fast_pet_measurement.py": "402fd8bd7b4ff6211acb5dfef23a8ab839523bb14dc4b247d181dd9aa4d46d18",
+    "utils/gap_refinement.py": "39d5c0724b4a6a0dfb9c566bc891afedc66c92cb0832a27fdfef766829e4b6f3",
+    "utils/gpu_phy.py": "df0e5a5653f1d20db4cd2d61f0c1a698ec0ad2d940762c2970b61224867667c6",
+    "utils/ho_utils.py": "e79cb32a267df12e77c40b8e8ae229a757e32f22778935a424253e0a96857959",
+    "utils/mox_utils.py": "f85d3e8d6f89fd4ac19efe870a6a57fcbb4b3ec1535452fb025c4b54b38b150e",
+    "utils/mts_gs_hbf.py": "07beb6a84ab2bb344bb323e8b2e73723e8a2b8919ede5d65832345ae8297fa48",
+    "utils/mts_gs_hbf_sim.py": "7c4dd26c848d5ce9e83d1b4468e688e2a04845346f0ac4a375c7948b8145bc2b",
+    "utils/mts_report.py": "af2f23bde7ff9d60292ceae6c0fc4c670c9b10a2a74f8bae03f3e85c34d583e8",
+    "utils/mts_report_bounded.py": "0f24fcb5d311e178aad5041c713ae9051229538c19c735dec0a3185fbc7530f2",
+    "utils/mts_report_sim.py": "407d2a58d8f0b013ea3c048206f9623b3770b5c109aa82dc3c07ff726dc21246",
+    "utils/o_mappo.py": "a13ae8550da023458f9953da6d8095321327cb1940c769b6e7564ab527f78898",
+    "utils/o_mappo_sim.py": "e74ba049b627783e799336c237beac07f5c1472a18b16d7a926973f4537d63b8",
+    "utils/options.py": "bc017eea07093eb041ea3ad88253d7d7ce32acb52a1d6ffe74ac00d7e8c8f8f6",
+    "utils/plot_utils.py": "33bb91ae9ea16ee3bccc6bb4f7a68753f0b9213135869e247840f2e72455190d",
+    "utils/pql_ba.py": "0065974385c1e67ae6a5785a5fb86f1f0a74f1580474a06aef8228db5de8bc3c",
+    "utils/pql_ba_adapted.py": "c1ef2a8ce8158e9d50f8d0dc1abb8dcf24be5af8e3c5c882c29ffae86cda7691",
+    "utils/pql_ba_sim.py": "ac3863d807e1a291ae7d6ac5c31d38cd60f525bcc10dffca6a8815fe99fb2c36",
+    "utils/queue_utils.py": "8182b609e468c8ff214478faf9e115e659419a7e94c819b884706da2ea17c6db",
+    "utils/randomTrips.py": "33c65d6832a5b8ee79eca22ac5f08497fc55f32755cc1ec69738fe5cea0e3528",
+    "utils/revision_meet_sim.py": "efa3a6d01f0c9efc90bc720f5b0ba02d9bbc8d139fb82002e6eee2762673aef5",
+    "utils/sim_utils.py": "340566cb3aecb437cf2f86ecd7fca23d10cf178cdfbe84c269162bf51395b8a8",
+    "utils/sumo_utils.py": "2ed3916ee1f637745edb5959bd0ddcbf3e3201ebe873e67d0a2cf34b4190dfea",
+    "experiment/results/revision_directional_20260922/models/beam/best.pth": "3ab0a2defe9f4795eceb2cb3d8de0bb2265a8d074e39c353a1cda6a8748abd4b",
+    "experiment/results/revision_directional_20260922/models/desired_gain/best.pth": "8c8bc19f2bb30214742f44b3fb1626029a549ecbe6d66249098480f11ce627eb",
+    "experiment/results/revision_directional_20260922/models/interfering_gain/best.pth": "af270976bfcd91d9661faa0bb752cc87eab85322b0da1dad3958f7d62249e5cb",
+    "experiment/results/o_mappo_predicted_cross5_20260925/training/seed11/best_positive.pt": "16cef09a17207776f9a371d136a01d8bbe1643277dae3528d0c29a7255ab7f85",
+    "experiment/results/o_mappo_eall_training_20260924/training/E_all/seed11/best_positive.pt": "e1be46476dc17cbd2300a47b8930dceb173e469b9e8cf1dc18c35a31411e5b43"
+  },
+  "historical_frozen_sources_verified_in_git": {
+    "experiment/revision_pipeline.py": {
+      "commit": "0e9474fbf781cfa78c29d9a81c3db44d4de093b3",
+      "sha256": "ee026b9bdca767579b30e40f760070e0bc2111ff5615e93f829f299cf00114b1"
+    },
+    "utils/o_mappo.py": {
+      "commit": "0e9474fbf781cfa78c29d9a81c3db44d4de093b3",
+      "sha256": "8ca9b909834c035f702d32a78682e7e890e136f811d40924f3e4c77782ed5d66"
+    },
+    "utils/o_mappo_sim.py": {
+      "commit": "0e9474fbf781cfa78c29d9a81c3db44d4de093b3",
+      "sha256": "e2298ccb25607735e02de6ec5b1775065d8ddd4bf6af13421381ac54189eb4aa"
+    }
+  },
+  "submission_checksums_verified": true,
+  "note": "Large retained datasets are checked for existence; cleanup separately verifies their file identities. This is not a new simulation or full numeric re-audit."
+}
