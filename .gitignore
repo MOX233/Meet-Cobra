@@ -40,6 +40,10 @@ build/
 /latexCodes/revision1/
 /latexCodes/main*.pdf
 /response_letter/response_letter.pdf
+# External reading/annotation assets are local backups, not source dependencies.
+/response_letter/literature/*.pdf
+/response_letter/review_notes/*.pdf
+/response_letter/submission_support/*.png
 
 # LaTeX generated files. Existing submitted .bbl files stay tracked.
 *.aux

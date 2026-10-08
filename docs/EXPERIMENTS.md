@@ -59,6 +59,21 @@ Historical reports describe the workspace when each experiment was performed;
 use the maintenance ledger for present file availability. Analyses requiring
 pruned per-slot arrays need regeneration rather than only the saved summaries.
 
+## New runs after organization round 3
+
+Use the executable commands in [R1_RUNBOOK.md](R1_RUNBOOK.md). Run the six main
+methods in a new `revision_pipeline.py` grid, and evaluate the **selected final**
+O-MAPPO and MTS implementations through `scripts/r1_baselines.py`. That wrapper
+delegates to `o_mappo_predicted_cross5.simulate` and the existing MTS
+`BeamAdapter('hier32_cross5')`/`run_sim_mts_report`; it does not redefine their
+algorithms, train policies, reuse pilot cases or change frozen result directories.
+Its `plot` phase combines the six main schemes and two baselines using the
+existing publication plotting functions, without writing into the manuscript.
+
+NN training and O-MAPPO training are distinct workflows. The latter is not
+required when evaluating the already selected policy. Do not mistake a system
+test seed (1/2/3) for an RL training seed (11/22/33).
+
 ## Frozen source versions
 
 The main grid records Git revision `0e9474fbf781cfa78c29d9a81c3db44d4de093b3`.

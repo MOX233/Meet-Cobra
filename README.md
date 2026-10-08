@@ -7,6 +7,8 @@ IEEE TWC first revision submitted on 2026-10-08. Submission snapshot:
 
 - [Current assets and result locations](configs/paper_r1_assets.json)
 - [Reproduction guide](docs/REPRODUCING_R1.md)
+- [Executable R1 runbook: order, commands, resume and backup](docs/R1_RUNBOOK.md)
+- [Current and historical manuscript assets](docs/PAPER_FILES.md)
 - [Experiment report index](docs/EXPERIMENTS.md)
 - [Workspace maintenance](docs/WORKSPACE_MANAGEMENT.md)
 - [Round-2 cleanup and result retention](docs/maintenance/round2_20261008/REPORT.md)
@@ -23,7 +25,7 @@ submission is frozen. Do not overwrite its PDFs or source archive.
 | `utils/` | Models, algorithms and physical/system simulation |
 | `experiment/*.py` | Training, experiment, analysis and plotting entrypoints |
 | `test_*.py`, `tests/` | Existing scientific tests and new maintenance tests |
-| `scripts/` | Maintenance and dependency verification |
+| `scripts/` | Safe reproduction wrappers, smoke checks and maintenance |
 | `configs/` | Small, versioned asset manifests |
 | `docs/` | Current guides and indexes; historical reports retain their original paths |
 | `sionna_result/`, `sumo_data/` | Retained raw data for the current configuration |
@@ -52,3 +54,17 @@ The asset check does not retrain models or run simulations. Large datasets and
 model files remain local, outside Git. A Git checkout alone does not restore the
 exact submitted numerical results; retain current raw data, checkpoints and
 result records or regenerate them as described in the guide.
+
+For an actual small end-to-end check on an available GPU (new output name each
+time; around three minutes on the checked RTX 3090):
+
+```bash
+python -B -u scripts/smoke_r1.py --output experiment/results/reproduction_smoke_MY_CHECK --device cuda:0 --paper-plots
+```
+
+This intentionally uses a tiny test-data subset to test software, not to report
+prediction accuracy or paper performance. All outputs stay outside Git.
+For new full grids, run the **six** main schemes with `revision_pipeline.py`,
+then the two final baselines with `scripts/r1_baselines.py`; see the runbook.
+Do not use the two historical baseline choices in `revision_pipeline.py` as the
+final paper baselines. Scientific source files and frozen paths remain unchanged.

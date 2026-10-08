@@ -2,6 +2,8 @@
 
 This guide indexes the existing scientific code without changing its algorithms,
 parameters or frozen result directories. Cleanup checks are not new training runs.
+For copyable commands, exact training batch sizes, final-baseline evaluation and
+the round-3 real smoke checks, use [R1_RUNBOOK.md](R1_RUNBOOK.md).
 Use the existing `sionna` environment; observed package versions are recorded in
 [`environment-observed-20261008.txt`](environment-observed-20261008.txt).
 
@@ -28,6 +30,8 @@ Scene XML files and `meshes/` are versioned. The current SUMO network, route,
 vehicle-type and `.sumocfg` files are small configuration inputs, not datasets.
 
 The legacy top-level generation script hard-codes its time interval and GPU.
+The new `scripts/r1_data.py` wrapper exposes `sumo`, `raytrace` and `system-input`
+with fresh isolated outputs; it does not alter those legacy source files.
 Its configurable underlying function is `utils.data_utils.run_sionna_sim`.
 Do not run it blindly over the retained raw files: configure a separate run and
 explicit intervals/GPU first. Retaining the existing trajectory and channels is
@@ -96,6 +100,9 @@ The main system entrypoint `experiment/revision_pipeline.py` provides
 a new root, explicit methods, all intended traffic loads, and explicit seeds.
 Final O-MAPPO and MTS run through their own entrypoints rather than the older
 baseline implementations in the main frozen grid.
+`scripts/r1_baselines.py` is the new selected-model evaluation/plotting entrypoint
+for both final baselines beside a new six-method grid. Historical plotting of the
+submitted results still uses `experiment/plot_revision_system_results.py`.
 
 The old grid and final baselines were produced at different source revisions.
 For exact frozen reruns, retain their source hashes and use the recorded Git

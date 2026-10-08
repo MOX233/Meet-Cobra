@@ -90,3 +90,22 @@ notebooks and historical draft assets without changing scientific source hashes.
 Historical notebooks should be run with the repository root as the working
 directory. Recovery notebooks are preserved rather than discarded because their
 contents differ from the saved notebooks.
+
+## 2026-10-08 organization, round 3
+
+No additional datasets, checkpoints or simulation results were deleted.
+Ten unused historical figures were moved into `archive/figures/revision1_history/`;
+one advisor PDF and two form screenshots moved into dedicated response-letter
+subdirectories. `docs/maintenance/round3_20261008/asset_moves.json` records exact
+old/new paths and hashes. All 13 files remain recoverable at their destinations.
+
+The current manuscript is uniquely identified in `docs/PAPER_FILES.md` and the
+directory READMEs. Existing Python and TeX source paths, current figures, model
+paths, result protocols and the submitted revision were not changed.
+
+New data/preprocessing and baseline-evaluation wrappers use new output roots;
+their scientific functions still come from the established implementations.
+Runbook, workflow index and bounded end-to-end checks are versioned. Generated
+smoke datasets, weights, cache, logs and figures stay under ignored
+`experiment/results/`, not in Git. These disposable software-check outputs are
+not alternate formal models or paper results.

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "asset_manifest": "configs/paper_r1_assets.json",
+  "runbook": "docs/R1_RUNBOOK.md",
+  "active_manuscript": "latexCodes/main_revision1_journal.tex",
+  "active_response": "response_letter/response_letter.tex",
+  "immutable_submission": "latexCodes/revision1",
+  "ordered_steps": [
+    {"name": "mobility_and_channels", "entry": "scripts/r1_data.py", "phases": ["sumo", "raytrace", "system-input"], "optional_when_inputs_retained": true},
+    {"name": "compact_training_data", "entry": "experiment/prepare_stateful_trajectories.py", "next": "experiment/vehicle_split.py"},
+    {"name": "beam_desired_stage1", "entry": "experiment/train_finite_window_vehicle_split.py", "epochs": 100, "batch_size": 512, "seed": 20},
+    {"name": "beam_desired_stage2", "entry": "experiment/train_stateful_tbptt.py", "epochs": 100, "batch_size": 128, "chunk_length": 10, "learning_rate": 0.0001, "seed": 20},
+    {"name": "interfering_gain_two_stages", "entry": "experiment/revision_training.py train", "epochs_per_stage": 100, "batch_size_both_stages": 128, "seed": 20},
+    {"name": "assemble_and_cache", "entry": "experiment/revision_training.py", "phases": ["assemble", "cache"]},
+    {"name": "o_mappo_final_finetuning", "entry": "experiment/train_o_mappo_predicted_cross5.py", "initialization": "experiment/results/o_mappo_eall_training_20260924/training/E_all/seed11/best_positive.pt", "training_seeds": [11, 22, 33], "ppo_updates": 160},
+    {"name": "six_main_schemes", "entry": "experiment/revision_pipeline.py", "methods": ["meet_cobra", "oracle_mc", "reactive_obra", "wo_gap_ho", "wo_pet_bf", "wo_otr_ra"]},
+    {"name": "two_final_baselines", "entry": "scripts/r1_baselines.py", "methods": ["o_mappo", "mts_report"], "retrain": false},
+    {"name": "new_grid_plots", "entry": "scripts/r1_baselines.py plot"}
+  ],
+  "system_configuration": {"rates_mbps": [1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35], "seeds": [1,2,3], "seconds": 30, "warmup_frames": 2, "ho_ms": 10, "gap_iterations": 2, "top_k": 5},
+  "supplementary_entries": ["experiment/gap_refinement_directional.py", "experiment/gain_error_sensitivity.py", "experiment/audit_mobility_data.py", "experiment/mobility_conditioned_evaluation.py"],
+  "smoke_entry": "scripts/smoke_r1.py",
+  "historical_plot_entry": "experiment/plot_revision_system_results.py",
+  "warning": "Do not use the legacy o_mappo and mts_report choices in revision_pipeline as the final R1 baselines. Preserve source-hash guards and use new output roots."
+}

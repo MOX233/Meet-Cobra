@@ -1,0 +1,83 @@
+{
+  "moves": [
+    {
+      "source": "latexCodes/figures/BS0_assoc_ratio_comparison_curves_WBL.pdf",
+      "destination": "archive/figures/revision1_history/BS0_assoc_ratio_comparison_curves_WBL.pdf",
+      "bytes": 42846,
+      "sha256": "f9fdb4a240c55d663d4fb3e3c0289a4c7a57d48c0a7608d7786aa3c949a71a0f"
+    },
+    {
+      "source": "latexCodes/figures/BS0_assoc_ratio_comparison_curves_WBL_MS.pdf",
+      "destination": "archive/figures/revision1_history/BS0_assoc_ratio_comparison_curves_WBL_MS.pdf",
+      "bytes": 44366,
+      "sha256": "1d23701351680635ec803503e661748082bea5ab156c7df2ae66ee35ede46849"
+    },
+    {
+      "source": "latexCodes/figures/latency_90th_99th_comparison_curves_WBL.pdf",
+      "destination": "archive/figures/revision1_history/latency_90th_99th_comparison_curves_WBL.pdf",
+      "bytes": 53184,
+      "sha256": "545ab53fedf4400196c02fc10e95d99c4fd0bd477dbc95e44ce522541baf1ba3"
+    },
+    {
+      "source": "latexCodes/figures/latency_90th_99th_comparison_curves_WBL_MS.pdf",
+      "destination": "archive/figures/revision1_history/latency_90th_99th_comparison_curves_WBL_MS.pdf",
+      "bytes": 57136,
+      "sha256": "b2a2721a818dcabec5d531d5eb0100a6b961cbbdcc03aecd6aa43282329f2e0f"
+    },
+    {
+      "source": "latexCodes/figures/power_comparison_curves_WBL.pdf",
+      "destination": "archive/figures/revision1_history/power_comparison_curves_WBL.pdf",
+      "bytes": 46173,
+      "sha256": "76bd48dfd48965e869d2657dd47ca0652858bd0cc6c9638e43a8164b3f9ec5ee"
+    },
+    {
+      "source": "latexCodes/figures/power_comparison_curves_WBL_MS.pdf",
+      "destination": "archive/figures/revision1_history/power_comparison_curves_WBL_MS.pdf",
+      "bytes": 48396,
+      "sha256": "64929a8dedc558f56ff8f466b3650dfab17db92729f9833f7bb0549f2cb55f9f"
+    },
+    {
+      "source": "latexCodes/figures/violation_prob_comparison_curves_WBL.pdf",
+      "destination": "archive/figures/revision1_history/violation_prob_comparison_curves_WBL.pdf",
+      "bytes": 43778,
+      "sha256": "c3c71f4e72abf1c731b7c48cf3e79a6a0c341951832ea9abe575630de029877c"
+    },
+    {
+      "source": "latexCodes/figures/violation_prob_comparison_curves_WBL_MS.pdf",
+      "destination": "archive/figures/revision1_history/violation_prob_comparison_curves_WBL_MS.pdf",
+      "bytes": 45945,
+      "sha256": "8272064b35e654cf4c159d228638b4592c9d9254c902c0edd7b83d10db435f60"
+    },
+    {
+      "source": "latexCodes/figures/violation_by_speed_revision1.pdf",
+      "destination": "archive/figures/revision1_history/violation_by_speed_revision1.pdf",
+      "bytes": 42693,
+      "sha256": "6fa21d12ab7c8ebd1f5750f37cb8386cebdcc1a65fa48a4f05f65d22cc05f4f4"
+    },
+    {
+      "source": "latexCodes/figures/violation_by_speed_revision1.png",
+      "destination": "archive/figures/revision1_history/violation_by_speed_revision1.png",
+      "bytes": 73499,
+      "sha256": "427e5a549ca1bc99e566472c63a31fe5083af8c4c12126874eb35b80f784300b"
+    },
+    {
+      "source": "response_letter/MEETCOBRA_Response_to_reviewers-commentedSheng.pdf",
+      "destination": "response_letter/review_notes/MEETCOBRA_Response_to_reviewers-commentedSheng.pdf",
+      "bytes": 268852,
+      "sha256": "89a9fe5f3645498e393bae2a0d640b7cfd5ef6fd0ea136805e79b535c22a4c06"
+    },
+    {
+      "source": "response_letter/Required Files.png",
+      "destination": "response_letter/submission_support/Required Files.png",
+      "bytes": 187607,
+      "sha256": "a74bb68ceac0e5413a8ba1c04f87408d9f20a0ace4a7c29e9e44abdf11833d25"
+    },
+    {
+      "source": "response_letter/Required Files (2).png",
+      "destination": "response_letter/submission_support/Required Files (2).png",
+      "bytes": 188866,
+      "sha256": "dedb214e85ac2634293aaa6ddd2d5893083533b776461ed5b9c9b75cc5f37d80"
+    }
+  ],
+  "deleted_files": 0
+}
