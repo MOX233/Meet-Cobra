@@ -11,6 +11,7 @@
 \usepackage{setspace}
 \usepackage{enumitem}
 \usepackage{fancyhdr}
+\usepackage{needspace}
 \usepackage[hidelinks]{hyperref}
 
 \definecolor{responseblue}{RGB}{0,70,140}
@@ -60,7 +61,7 @@
 }
 
 \newenvironment{authorresponse}
-{\par\noindent\textcolor{responseblue}{\textbf{Response from the Authors:}}\par\color{responseblue}}
+{\par\Needspace{3\baselineskip}\noindent\textcolor{responseblue}{\textbf{Response from the Authors:}}\par\nobreak\color{responseblue}}
 {\par}
 
 \newenvironment{manuscriptchanges}
@@ -108,9 +109,9 @@
 Dear Editor and Reviewers,
 
 We sincerely thank the Editor and the Reviewers for their careful evaluation of our manuscript
-and for their constructive comments. \textcolor{blue}{We summarize the major revisions
+and for their constructive comments. We summarize the major revisions
 below, followed by our detailed point-by-point responses. Changes in the
-marked-up manuscript are highlighted in blue.}
+marked-up manuscript are highlighted in blue.
 
 \section*{Summary of Major Revisions}
 
@@ -123,13 +124,13 @@ the directional interference calculations used in simulation and quantified
 the resulting bias in receive-rate estimates.
 
 \item \textbf{Expanded evaluation.}
-Added two joint HO and BF baselines adapted from the literature, comparisons
-using paired random seeds, and studies of vehicle-speed distributions,
-performance by speed group, and gain-prediction errors.
+\textcolor{blue}{Added two literature-based baselines for joint HO and BF.
+Reported vehicular speed distributions and analyzed how NN prediction accuracy and latency performance vary with vehicular speed.
+Examined the effects of gain-prediction errors on system transmit power and latency performance.}
 
 \item \textbf{Implementation overhead and presentation.}
 Quantified NN complexity, inference latency, and control-plane reporting
-payloads. Explained parameter choices, clarified the extension beyond the
+\textcolor{blue}{overhead}. Explained parameter choices, clarified the extension beyond the
 conference paper, expanded the discussion of related work, and added a notation
 table.
 \end{enumerate}
@@ -171,17 +172,15 @@ To broaden the comparison, we introduce two literature-based joint HO and BF
 baselines, O-MAPPO-adapted and MTS-GS-HBF-adapted. The former combines
 reinforcement learning with target-BS optimization, whereas the latter applies
 Gale--Shapley matching to BS--vehicle association and updates beamforming on
-a shorter timescale than association. All schemes
-are compared across traffic loads using paired random seeds.
-We also report the vehicle-speed distributions
-and evaluate prediction and latency performance by speed group. An
-additional sensitivity study examines how gain-prediction errors affect
+a shorter timescale than association.
+We also report vehicular speed distributions and analyze how NN prediction accuracy and latency performance vary with vehicular speed.
+An additional sensitivity study examines how gain-prediction errors affect
 HO, beam probing, system transmit power, and latency performance.
 
 \item \textbf{Implementation overhead and presentation.}
 To quantify implementation overhead, we report NN parameter counts, parameter
 storage, FLOPs, measured inference latency, and control-plane reporting
-payloads. We explain the
+\textcolor{blue}{overhead}. We explain the
 algorithm parameter settings and clarify the contributions beyond the
 conference version and related joint optimization studies. We also add a
 notation table and revise terminology for consistency.
@@ -204,36 +203,31 @@ further improve the clarity of the problem formulation.
 \end{quotedcomment}
 \begin{reviewedit}{blue}
 \begin{authorresponse}
-We thank the Reviewer for this helpful suggestion. We have expanded the
-Introduction to explain how cross-tier heterogeneity complicates joint
-optimization for reducing system transmit power. The revised discussion first clarifies the underlying coupling:
-the serving BS and beam pair determine the link gain, which affects the
-resources required to satisfy the traffic demands. It then connects cross-tier differences
-to the resulting optimization tradeoffs.
-Specifically, differences in RB bandwidths, per-RB transmit powers, and resource
-budgets mean that the same traffic demand can incur different power costs and
-may not be feasible at every candidate BS. Differences in carrier frequencies,
-antenna configurations, and propagation conditions further affect beamforming
-gains, training overhead, and channel dynamics, thereby affecting the service rate available after handover.
-Moreover, handover redistributes traffic and resource usage, potentially changing
-intra-tier co-channel interference and the resource demands of other links. These
-interactions require association decisions to account jointly for beamforming
-performance, resource availability, and the effects on other users when reducing
-system transmit power under latency constraints.
+We thank the Reviewer for this helpful suggestion. \textcolor{blue}{Cross-tier
+differences in carrier frequencies, antenna configurations, and propagation
+conditions affect the link gains and training overhead associated with PHO
+and BF decisions. Together with differences in bandwidth and transmit
+power, they change the RB requirements and power costs of serving the same
+traffic, while RB budgets constrain service feasibility. Thus, association
+cannot be decided from link gain alone. HO also changes the loads of the
+source and target BSs, which can alter their resource usage and intra-tier
+co-channel interference, affecting the resource demands of other links.
+The revised Introduction explains how these effects motivate joint
+coordination of PHO, BF, and RA to reduce system transmit power under
+latency constraints.}
 \end{authorresponse}
 \begin{manuscriptchanges}
 The revised discussion reads:
 
 {\emergencystretch=1em
-\emph{The energy cost of serving traffic depends on the coupling between PHO, BF, and RA.
-The serving BS and selected beam pair jointly determine the link gain and, consequently, the number of resource blocks (RBs) required to meet the traffic demand.
-In HetNets, cross-tier differences in RB bandwidths, transmit powers, and resource budgets further complicate this coupling by changing the power cost and feasibility of serving a given traffic demand.
-Meanwhile, differences in carrier frequencies, antenna configurations, and propagation conditions result in tier-dependent beamforming gains, beam-training overhead, and channel dynamics, thereby affecting post-handover service rates.
-Moreover, handover redistributes traffic and resource usage across cells, potentially changing intra-tier co-channel interference and, consequently, the resource demands of other links.
+\emph{\textcolor{blue}{PHO and BF jointly determine the serving link gain and beam-training overhead.
+In HetNets, these quantities also depend on cross-tier differences in carrier frequencies, antenna configurations, and propagation conditions.
+Together with differences in bandwidth and transmit power across tiers, these factors affect the number of resource blocks (RBs) required to serve a given traffic demand and the resulting power consumption, while the available RB budgets constrain service feasibility.
+Moreover, HO changes the traffic loads of the source and target BSs, which can alter their resource usage and intra-tier co-channel interference, thereby affecting the resource demands of other links.}
 This motivates energy-efficient {C}oordination of hand{O}ver, {B}eamforming and {R}esource {A}llocation (COBRA) in vehicular HetNets.}\par}
 \end{manuscriptchanges}
-\revisionlocation{\textcolor{red}{Pages 1--2}, Section I (Introduction), paragraph beginning
-\emph{The energy cost of serving traffic}.}
+\revisionlocation{\textcolor{blue}{Pages 1--2}, Section I (Introduction), paragraph beginning
+\textcolor{blue}{\emph{PHO and BF jointly determine}}.}
 \end{reviewedit}
 
 \commentheading{Queueing delay and end-to-end latency}
@@ -246,11 +240,11 @@ and signaling delay, would improve the realism of the latency evaluation.
 \end{quotedcomment}
 \begin{reviewedit}{blue}
 \begin{authorresponse}
-We thank the Reviewer for this suggestion. Queueing delay at the serving BS
-forms part of end-to-end latency, which also includes transmission, propagation,
-and processing delays. In the considered two-tier HetNet, HO, BF, and RA
-jointly affect the service rate available to each vehicle and, consequently,
-its queueing delay. As clarified in Section II-C, $U$
+We thank the Reviewer for this suggestion. \textcolor{blue}{End-to-end latency
+includes queueing, transmission, propagation, and processing delays along
+the communication path. Our model focuses on queueing delay at the serving
+BS to assess how HO, BF, and RA jointly affect traffic accumulation through
+the available service rates.} As clarified in Section II-C, $U$
 measures threshold violations of the queueing-delay proxy
 $\tau_v(n)=q_v(n)/\lambda_v$, not a directly measured packet-delay tail probability.
 
@@ -261,6 +255,7 @@ the queue during these slots, so the interruption affects the queue evolution
 underlying $U$. Beam-training overhead is already accounted for through the
 data-transmission fraction $1-\eta_{m,v}^{[x]}(i)$ in the receive rate. Thus,
 both mechanisms affect the latency proxy through the available service rate.
+\textcolor{blue}{Their durations are therefore not added separately to the proxy.}
 
 The revised model distinguishes advance HO preparation from HO execution.
 HO preparation signaling is assumed to finish before the current frame ends without
@@ -276,10 +271,12 @@ constraint to account for the slots lost to HO interruption. OTR-RA allocates
 no RBs to vehicles during the interruption.}
 \end{authorresponse}
 \begin{manuscriptchanges}
-The sentence added before the queueing-delay proxy definition in Section II-C reads:
+\textcolor{blue}{The explanation added before the queueing-delay proxy definition in Section II-C reads:}
 
-\emph{Queueing delay is an important component of end-to-end latency and is
-jointly affected by HO, BF, and RA.}
+\textcolor{blue}{\emph{Queueing delay is an important component of end-to-end
+latency, alongside transmission, propagation, and processing delays.
+We focus on queueing delay to assess how HO, BF, and RA jointly affect
+traffic accumulation through the available service rates.}}
 
 The HO assumptions added to Section II read:
 
@@ -308,10 +305,10 @@ proxy and $U$ remain as defined in Section II-C.
 \end{manuscriptchanges}
 \revisionlocation{Page 3, Section II, HO assumptions and Eq.~(3);
 Page 4, Section II-B, Eq.~(12) and receive-rate model;
-\textcolor{red}{Page 4}, Section II-C, paragraph preceding Eq.~(24);
+\textcolor{blue}{Pages 4--5}, Section II-C, paragraph preceding Eq.~(24);
 Page 5, Section III, constraint C4 of \textbf{P1};
 \textcolor{blue}{Page 8, Section IV-B, HO-aware RB-capacity constraint;
-\textcolor{red}{Pages 8--9}, Section IV-D, resource allocation during HO interruption.}}
+\textcolor{blue}{Pages 8--9}, Section IV-D, resource allocation during HO interruption.}}
 \end{reviewedit}
 
 \commentheading{Terminology in Fig. 1}
@@ -341,8 +338,8 @@ The opening sentence of Section IV-A now identifies the prediction targets as
 \emph{best beam-pair indices, their corresponding desired-link gains}, and
 \textcolor{blue}{interfering-link} gains.
 \end{manuscriptchanges}
-\revisionlocation{Page 6, Fig.~1 caption; Page \textcolor{red}{5}, opening sentence of Section IV-A;
-\textcolor{blue}{\textcolor{red}{Pages 6--7}, Section IV-A, Output Prediction}.}
+\revisionlocation{Page 6, Fig.~1 caption; Page \textcolor{blue}{5}, opening sentence of Section IV-A;
+\textcolor{blue}{\textcolor{blue}{Pages 6--7}, Section IV-A, Output Prediction}.}
 \end{reviewedit}
 
 \commentheading{Propagation of prediction errors}
@@ -395,8 +392,9 @@ raises $U$ from $1.15\%$ to $3.84\%$ for desired-link gain errors and
 $3.13\%$ for interfering-link gain errors. Figure~11 reports the
 corresponding power results. Larger errors generally increase power at
 lower loads, whereas power remains close to the full-load level at
-$35$~Mbps as $U$ increases. Thus, the experiments demonstrate tolerance
-to moderate additional gain-prediction errors at light and medium loads.
+$35$~Mbps as $U$ increases. \textcolor{blue}{These results show that MEET-COBRA
+maintains low violation probabilities under moderate additional prediction
+errors at light and medium loads, although HO and beam-search overhead can increase.}
 \end{authorresponse}
 \begin{manuscriptchanges}
 Section IV-E adds a paragraph tracing prediction errors through GAP-HO,
@@ -405,12 +403,13 @@ The new Section V-E, \emph{Impact of Gain-Prediction Errors}, describes the
 noise-injection experiment and presents $U$ and average system transmit
 power in Figs.~10 and 11, respectively. It also reports the changes in HO
 counts and probes per beam search and explains their effect on the time
-available for data transmission. The Conclusion summarizes the observed
-error tolerance at light and medium loads.
+available for data transmission. \textcolor{blue}{The Conclusion summarizes the
+low violation probabilities maintained at light and medium loads under
+moderate additional gain-prediction errors.}
 \end{manuscriptchanges}
 \revisionlocation{Page 10, Section IV-E, final paragraph;
-\textcolor{red}{Page 15}, Section V-E and Figs.~10--11;
-Page \textcolor{red}{15}, Section VI (Conclusion).}
+\textcolor{blue}{Page 15}, Section V-E and Figs.~10--11;
+\textcolor{blue}{Pages 15--16}, Section VI (Conclusion).}
 \end{reviewedit}
 
 \commentheading{Notation table}
@@ -502,18 +501,21 @@ Section IV-B specifies ``a fixed-point iteration over $N_{\rm iter}$ rounds.''
 Table~II lists the number of GAP-HO iterations $N_{\rm iter}=2$, the RB
 capacity relaxation factor $\zeta=1.1$, and the number of candidate beam
 pairs $M_{\rm P}=5$, consistent with the definition of $M_{\rm P}$ in Table~I.
+\textcolor{blue}{It also specifies the HO interruption duration
+$\tau_{\rm HO}=10$~ms, PET-BF gain margin $G_{\rm th}=5$~dB, and system
+simulation duration of $30$~s per run.}
 The parameter discussion at the end of Section V-A reads:
 \begin{quote}
 We set $N_{\rm iter}=2$ to balance performance and computational cost, and
 $\zeta=1.1$ for 10\% increments in the RB capacity bounds when the continuous
-relaxation of \textbf{P2} is infeasible. We use $M_{\rm P}=5$ to balance
+relaxation of \textbf{P2} is infeasible. We use $M_{\rm P}=5$ \textcolor{blue}{and $G_{\rm th}=5$~dB} to balance
 coverage of the optimal beam pair against beam search overhead, which
 occupies at most $\eta M_{\rm P}=8.93\%$ of each slot.
 Unless otherwise stated, the simulations use the parameter values listed in Table~II.
 \end{quote}
 \end{manuscriptchanges}
-\revisionlocation{\textcolor{red}{Pages 7--8}, Section IV-B and Algorithm~1;
-\textcolor{red}{Page 11}, Section V-A, Table~II and the discussion of parameter settings.}
+\revisionlocation{\textcolor{blue}{Pages 7--8}, Section IV-B and Algorithm~1;
+\textcolor{blue}{Page 11}, Section V-A, Table~II and the discussion of parameter settings.}
 \end{reviewedit}
 
 \commentheading{Neural-network complexity and inference overhead}
@@ -608,74 +610,41 @@ computation from Sionna RT, or justify why the bias is negligible at the reporte
 \end{quotedcomment}
 \begin{reviewedit}{blue}
 \begin{authorresponse}
-We thank the Reviewer for raising this concern. All revised system-level
-simulation results in Figs.~\textcolor{blue}{6--11} \textcolor{blue}{are obtained} using explicit RB assignments
-and the actual transmit and receive beams. The receive rates computed in this way
-are used to update the queues. The Frobenius-norm-based interfering-link gain predictions and the expected
-number of overlapping RBs guide MEET-COBRA's decisions, but are not used to compute the
-realized receive rates in simulations. We have also quantified the combined effect of
-these two averaging approximations on receive-rate estimates in
-Fig.~\ref{fig:response-interference-validation}.
+We thank the Reviewer for raising this concern. \textcolor{blue}{All revised
+system-level simulations use explicit RB assignments and the actual
+transmit and receive beams to compute receive rates and update queues.
+The Frobenius-norm-based gain predictions and expected RB overlaps guide
+online decisions, but are not used to compute the realized receive rates in the
+simulator. We have clarified the two averaging operations and quantified
+their combined effect on receive-rate estimates.}
 
-Section II-A defines the directional interfering-link gain
-$g_{{\rm I},m',v,v'}^{[x]}(i)$ in Eq.~(11), using the receive beam of
-link $(m,v)$ and the transmit beam of link $(m',v')$.
-Section IV-A separately introduces the beam-averaged surrogate
-$\tilde{g}_{{\rm I},m',v}^{[x]}(i)$ in Eq.~(33), whose frame average
-serves as the NN prediction target. For the complete, normalized DFT
-codebooks, orthonormality gives
-\[
-\frac{1}{M_{\rm T}M_{\rm R}}
-\sum_{\boldsymbol w_{\rm T}\in\mathcal C_{\rm T}}
-\sum_{\boldsymbol w_{\rm R}\in\mathcal C_{\rm R}}
-\left|\boldsymbol w_{\rm R}^{\dagger}\boldsymbol H\boldsymbol w_{\rm T}\right|^2
-=\frac{\|\boldsymbol H\|_F^2}{M_{\rm T}M_{\rm R}}.
-\]
-This identity does not assume random beam selection by PET-BF. The
-approximation is to use this uniform average to represent the gain under
-the beams selected for data transmission.
+\textcolor{blue}{The directional interfering-link gain in Eq.~(11) depends on
+the receive beam of the desired link and the transmit beam of the
+interfering link. For the complete, normalized DFT codebooks,
+$\|\boldsymbol H\|_F^2/(M_{\rm T}M_{\rm R})$ equals the gain uniformly averaged
+over all beam pairs. Using this average to represent the gain under the
+selected beams is an approximation; it does not assume random beam
+selection by PET-BF. Separately, OTR-RA determines RB counts, whereas each
+micro BS maps those counts to disjoint RB sets uniformly at random,
+independently of other micro BSs. Thus, deterministic RB counts are compatible with the
+expected overlap $k_{m,v}k_{m',v'}/K_\mu$ in Eq.~(17), which averages over RB
+indices. Using the resulting mean
+interference in the rate expression remains an approximation.}
 
-For RB overlap issues, OTR-RA determines user priorities and their allocated RB counts, while
-Section II-B specifies how these counts are mapped to RB indices. Specifically, each
-micro BS assigns mutually disjoint RB sets to its associated vehicles uniformly at random,
-independently of the other BSs. This mapping is compatible with
-deterministic allocation of RB counts. Let $\mathcal S_{m,v}$ denote the
-RBs assigned to vehicle-$v$ by BS-$m$ and $\mathcal S_{m'}$ those used by
-an interfering BS-$m'$, with sizes $k_{m,v}$ and $k_{m'}$, respectively.
-Suppressing the time indices, the conditional expected number of overlapping RBs is
-\[
-\mathbb E\!\left[|\mathcal S_{m,v}\cap\mathcal S_{m'}|
-\mid k_{m,v},k_{m'}\right]
-=\sum_{r=1}^{K_\mu}\frac{k_{m,v}}{K_\mu}\frac{k_{m'}}{K_\mu}
-=\frac{k_{m,v}k_{m'}}{K_\mu}.
-\]
-Equation~(17) sums the contributions of the individual interfering links,
-retaining their directional gains and averaging only over RB assignments.
-Using this mean interference in the rate expression remains an approximation.
+\textcolor{blue}{For online OTR-RA decisions, Eq.~(46) uses the desired-link
+gain measured after PET-BF, the predicted frame-averaged interfering-link
+gain, and RB usage estimates from GAP-HO; instantaneous interfering-link
+gains are not required.}
 
-For online OTR-RA decisions, Eq.~(46) combines the desired-link gain
-measured after PET-BF in each slot with the predicted frame-averaged
-interfering-link gain $\Tilde{G}_{{\rm I},m',v}^{[x]}$ and the RB usage
-estimates from GAP-HO. The gain prediction is generated in frame~$(x-1)$
-and reused throughout frame-$x$, so instantaneous interfering-link gains
-are not required. Section IV-E specifies that the macro BS forwards these
-predictions and RB usage estimates to the serving BSs before the frame begins.
-
-\textbf{Fixed-decision comparison of approximation error.}
-
-Along each revised MEET-COBRA run, we compare receive rates calculated using
-Eq.~(33) and the expected RB overlap with those obtained from directional
-per-RB evaluation under identical
-BS-vehicle associations, beam pairs, RB counts, and Sionna RT channels.
-The latter calculation uses the actual beams and explicitly assigned RBs.
-Both calculations account for beam-search overhead and HO interruption.
-Using the channel-derived beam average in the diagnostic isolates the
-combined averaging approximation from NN prediction error. The approximate
-receive rates are recorded for comparison only and do not alter the queues.
-
-We evaluate all arrival rates $\{1,3,\ldots,35\}$~Mbps using three random seeds, with each run lasting $30$~s.
-Figure~\ref{fig:response-interference-validation} shows the resulting
-receive-rate underestimation at each load.
+\textcolor{blue}{To quantify the combined approximation error, we compare the
+two receive-rate calculations under identical associations, beam pairs, RB
+counts, and Sionna RT channels along each revised MEET-COBRA run. The
+diagnostic uses channel-derived beam averages from Eq.~(33), rather than
+NN predictions, to isolate the averaging approximations from prediction
+errors. Both calculations include beam-search overhead and HO interruption;
+the approximate rates are recorded only for comparison and do not alter
+the queues. The comparison covers all 18 arrival rates
+$\{1,3,\ldots,35\}$~Mbps, with $30$~s per run.}
 
 \begin{center}
 \begin{minipage}{\linewidth}
@@ -689,59 +658,25 @@ over three random seeds.}
 \end{minipage}
 \end{center}
 
-For this comparison, we sum the receive rates over vehicles served by micro
-BSs and average over slots. The plotted percentages are means of the per-seed
-statistics in the same propagation scenario. Across the evaluated loads, the
-two averaging approximations underestimate this total receive rate by
+\textcolor{blue}{For each run, we sum receive rates over micro-BS users and
+average over slots. Figure~\ref{fig:response-interference-validation}
+reports the mean underestimation across seeds at each load. The
+approximations underestimate this total receive rate by
 $6.5\%$--$19.5\%$ relative to directional per-RB evaluation under identical
-decisions. These results indicate that the approximations provide an
-empirically conservative estimate of the total receive rate under the
-considered experimental settings.
+decisions, providing an empirically conservative aggregate rate estimate
+in the evaluated scenario.}
 \end{authorresponse}
 \begin{manuscriptchanges}
-Section II-A now defines the actual directional gain in Eq.~(11):
+\textcolor{blue}{Sections II-A and II-B define the directional interfering-link
+gain in Eq.~(11) and distinguish RB-count allocation from the random mapping
+to RB indices in Eqs.~(17)--(18). Section IV-A defines the interfering-link
+gain prediction target as the frame average of the beam-averaged surrogate in Eq.~(33).}
 
-\emph{When another micro BS-$m'$ serves vehicle-$v'$, the interfering-link gain from BS-$m'$ to vehicle-$v$ is}
-\[
-    g_{{\rm I},m',v,v'}^{[x]}(i)
-    = \left|\left({\boldsymbol{w}_{\rm R}}_{m,v}^{[x]}(i)\right)^{\dagger}
-    \boldsymbol{H}_{m',v}^{[x]}(i){\boldsymbol{w}_{\rm T}}_{m',v'}^{[x]}(i)\right|^2.
-\]
-
-The explanation preceding Eq.~(17) now reads:
-
-\emph{Given the allocated RB counts, each micro BS assigns mutually disjoint RB sets to its associated vehicles uniformly at random, independently of the other micro BSs. The expected number of overlapping RBs between links $(m,v)$ and $(m',v')$, with $m'\ne m$, is therefore $k_{m,v}^{[x]}(i)k_{m',v'}^{[x]}(i)/K_\mu$. Accordingly, the interference power averaged over the random RB assignments is given by}
-
-Equations~(17)--(18) now sum the directional gains over the vehicles
-served by each interfering BS, weighted by their allocated RB counts.
-Section IV-A now defines the interfering-link gain prediction target as
-the frame average of the beam-averaged surrogate in Eq.~(33):
-
-\emph{The interfering-link gain in (11) depends on the receive beam of the desired link and the transmit beam used by the interfering BS. To obtain a prediction target independent of these beam selections, we adopt the beam-averaged surrogate}
-\[
-    \tilde{g}_{{\rm I},m',v}^{[x]}(i)
-    \triangleq \frac{1}{M_{\rm T}M_{\rm R}}
-    \bigl\|\boldsymbol{H}_{m',v}^{[x]}(i)\bigr\|_F^2,
-\]
-\emph{which equals the effective gain uniformly averaged over all beam pairs in the transmit and receive DFT codebooks. Each head of the interfering-link gain model outputs $\Tilde{G}_{{\rm I},m',v}^{[x+1]}$, with training label $G_{{\rm I},m',v}^{[x+1]}$ defined as the frame average of $\tilde{g}_{{\rm I},m',v}^{[x+1]}(i)$.}
-
-Section IV-B identifies the predicted interfering-link quantities as
-frame-averaged surrogates. In Section IV-D, the OTR-RA SINR estimate
-in Eq.~(46) and the input to Algorithm 3 use the predicted frame average
-$\Tilde{G}_{{\rm I},m',v}^{[x]}$. The revised text and equation read:
-
-\emph{BS-$m$ estimates the slot-level SINR using the measured desired-link gain, the predicted frame-averaged interfering-link gain, and the estimated RB usages obtained from GAP-HO:}
-\[
-    \widetilde{\mathrm{SINR}}_{m,v}^{[x]}(i)
-    = \frac{p_m g_{m,v}^{[x]}(i)}
-    {F_m N_0 B_m + \sum\limits_{m'\neq 0,m}
-    \frac{\Tilde{k}_{m'}^{[x]}}{K_\mu}\,p_{m'}\Tilde{G}_{{\rm I},m',v}^{[x]}}.
-\]
-\emph{Here, $\Tilde{G}_{{\rm I},m',v}^{[x]}$ is predicted in frame~$(x-1)$ and used throughout frame-$x$.}
-
-Section IV-E specifies how these estimates reach the serving BSs:
-
-\emph{The macro BS also forwards the interfering-link gain predictions and estimated RB usages required by OTR-RA to the corresponding serving BSs before frame-$(x+1)$ begins.}
+\textcolor{blue}{Sections IV-B and IV-D specify the predicted surrogates used
+by GAP-HO and OTR-RA. Equation~(46) and Algorithm~3 use measured desired-link
+gains, predicted frame-averaged interfering-link gains, and estimated RB
+usages. Section IV-E explains that the macro BS forwards the latter two
+quantities to the serving BSs before the frame begins.}
 
 Section V-A clarifies how receive rates are evaluated for all schemes:
 
@@ -753,10 +688,10 @@ comparisons. The Abstract and Conclusion have been updated accordingly.
 \revisionlocation{Page 4, Section II-A, actual interfering-link gain and Eq.~(11);
 Page 4, Section II-B, expected RB overlap and Eqs.~(17)--(18);
 Page 7, Section IV-A, average gain approximation in Eq.~(33);
-\textcolor{red}{Page 7}, Section IV-B, predicted frame-averaged gain surrogates;
-\textcolor{red}{Pages 8--9}, Section IV-D, OTR-RA SINR estimate and Algorithm 3;
+\textcolor{blue}{Page 7}, Section IV-B, predicted frame-averaged gain surrogates;
+\textcolor{blue}{Page 9}, Section IV-D, OTR-RA SINR estimate and Algorithm 3;
 Page 10, Section IV-E, prediction forwarding to the serving BSs;
-\textcolor{red}{Page 11}, Section V-A, receive-rate evaluation.}
+\textcolor{blue}{Page 11}, Section V-A, receive-rate evaluation.}
 
 % Final evidence: experiment/results/revision_directional_20260922/grid.
 % All 432 results, raw metrics, paired traffic and diagnostics have been audited.
@@ -815,9 +750,9 @@ The explicit uRLLC framing in the Introduction has also been removed.
 \textcolor{blue}{Section V-D now states the percentile calculation, and Fig.~\textcolor{blue}{8} separates $L_{90}$ and $L_{99}$.}
 \end{manuscriptchanges}
 \revisionlocation{Page 1, opening paragraph of Section I;
-\textcolor{red}{Pages 4--5}, Section II-C, interpretation of Eqs.~(24)--(25);
+\textcolor{blue}{Pages 4--5}, Section II-C, interpretation of Eqs.~(24)--(25);
 \textcolor{blue}{Pages \textcolor{blue}{13--15}, Section V-D and Fig.~\textcolor{blue}{8}, percentile calculation and results;}
-\textcolor{blue}{Page \textcolor{red}{15}, Section VI (Conclusion).}}
+\textcolor{blue}{Pages 15--16, Section VI (Conclusion).}}
 \end{reviewedit}
 
 \commentheading{Impact of gain-prediction error}
@@ -880,13 +815,14 @@ Fig.~11 plots average system transmit power $\bar{P}$, against the
 standard deviation of the additional gain-prediction noise. The accompanying
 discussion compares the sensitivity across loads and relates it to
 HO interruption, beam-search overhead, and remaining RB resources.
-The Conclusion summarizes the observed error tolerance at light and medium
-loads.
+\textcolor{blue}{The Conclusion summarizes the low violation probabilities
+maintained at light and medium loads under moderate additional
+gain-prediction errors.}
 \end{manuscriptchanges}
 \revisionlocation{Page 10, Section IV-E, final paragraph;
-\textcolor{red}{Pages 11--12}, Section V-B and Fig.~5(b), updated gain-prediction MAEs;
-\textcolor{red}{Page 15}, Section V-E and Figs.~10--11;
-Page \textcolor{red}{15}, Section VI (Conclusion).}
+\textcolor{blue}{Pages 11--12}, Section V-B and Fig.~5(b), updated gain-prediction MAEs;
+\textcolor{blue}{Page 15}, Section V-E and Figs.~10--11;
+\textcolor{blue}{Pages 15--16}, Section VI (Conclusion).}
 \end{reviewedit}
 
 \commentheading{Generalization of the learned models}
@@ -903,7 +839,9 @@ and must be retrained per deployment.
 \begin{authorresponse}
 We thank the Reviewer for highlighting this limitation. We agree that results
 from a single map and fixed BS layout do not establish generalization to
-other deployments. Following the Reviewer's suggested alternative, Section IV-A
+other deployments. \textcolor{blue}{The revised NN training and validation
+sets contain disjoint vehicles from this same scenario.}
+Following the Reviewer's suggested alternative, Section IV-A
 now explicitly states that deployment in a different propagation environment
 or BS layout requires retraining the site-specific prediction models using
 channel data from the target site.
@@ -915,7 +853,8 @@ of the site-specific model:
 
 \emph{Deployment in a different propagation environment or BS layout requires retraining the prediction models using channel data from the target site.}
 \end{manuscriptchanges}
-\revisionlocation{\textcolor{red}{Pages 5--6}, Section IV-A, opening paragraph.}
+\revisionlocation{\textcolor{blue}{Pages 5--6}, Section IV-A, opening paragraph;
+\textcolor{blue}{Page 11, Section V-B, vehicle-level training and validation split.}}
 \end{reviewedit}
 
 \commentheading{Learning-based or optimization-based comparator}
@@ -938,7 +877,9 @@ framework of Wang et al. [22]. A shared MAPPO actor evaluates whether each
 vehicle should trigger HO after every $10$~m of travel. The actor and critic
 are initialized from models pretrained using ground-truth channel information.
 They are then fine-tuned using predicted channel gains across all evaluated
-loads to adapt the HO policy to prediction errors. A single checkpoint is
+loads to adapt the HO policy to prediction errors. \textcolor{blue}{Fine-tuning,
+validation-based checkpoint selection, and final testing use non-overlapping
+time intervals of the same scenario.} A single checkpoint is
 selected based on validation performance and used at all test loads.
 For vehicles with active HO triggers, a mixed-integer
 optimizer then selects target BSs using estimated RB demands, BS loads,
@@ -1007,8 +948,8 @@ and macro-BS association ratios across all evaluated loads.
 The discussion relates these results to association decisions, RB utilization,
 and beam-search overhead.
 \end{manuscriptchanges}
-\revisionlocation{\textcolor{red}{Page 12}, Section V-C, benchmark descriptions;
-Pages \textcolor{red}{12--15}, Section V-D and Figs.~\textcolor{blue}{6--9}, comparisons across all evaluated loads and discussion.}
+\revisionlocation{\textcolor{blue}{Page 12}, Section V-C, benchmark descriptions;
+Pages \textcolor{blue}{12--15}, Section V-D and Figs.~\textcolor{blue}{6--9}, comparisons across all evaluated loads and discussion.}
 \end{reviewedit}
 
 \commentheading{Inference, control-plane, and handover overhead}
@@ -1044,7 +985,7 @@ Timing includes tensor conversion, the three forward passes, state retention,
 top-5 index selection, and gain denormalization. To measure NN inference
 separately, the timed interval starts with preprocessed CSI and ends with
 the prediction outputs, excluding CSI acquisition, input preprocessing, and
-report transmission. The reporting payload is quantified below.
+report transmission. The reporting \textcolor{blue}{overhead} is quantified below.
 
 \textbf{2) Control-plane reporting budget.}
 
@@ -1056,8 +997,8 @@ $M_{\rm T}M_{\rm R}=256$, each index requires 8 bits, giving
 $4(5\times8+2\times32)=416$ bits per vehicle per frame, or 4.16~kbps for
 100~ms frames.
 
-To assess the reporting budget savings, we compare this payload with two alternative
-schemes that upload CSI instead of prediction results, not in addition to them.
+\textcolor{blue}{To compare reporting overhead, we consider two alternative
+schemes that upload CSI instead of prediction results.}
 At the same reporting interval and 32 bits per real CSI component, uploading
 all complex MIMO channel matrices requires
 $2MM_{\rm R}M_{\rm T}\times32=65{,}536$ bits per vehicle per frame
@@ -1066,8 +1007,8 @@ the current-frame superposed-pilot observations for centralized NN inference
 requires $2M_{\rm R}N_{\rm P}\times32=4{,}096$ bits per vehicle per frame
 (40.96~kbps) with $N_{\rm P}=8$. In this second alternative, the macro BS
 retains recurrent states, so previous observations need not be uploaded again.
-\textcolor{blue}{The two reference payloads are 157.5 and 9.85 times the
-prediction-reporting payload, respectively.}
+\textcolor{blue}{The reporting overheads of the two reference schemes are
+157.5 and 9.85 times that of prediction reporting, respectively.}
 
 \textbf{3) HO interruption model.}
 
@@ -1102,9 +1043,9 @@ and reports the parameter storage and measured inference latency:
 
 Section IV-E specifies that only the ranked top-$M_{\rm P}$ beam-pair indices
 and two gain predictions per micro BS are uploaded. Section V-B quantifies
-this payload and compares it with the two alternative CSI-reporting schemes:
+this \textcolor{blue}{reporting overhead} and compares it with the two alternative CSI-reporting schemes:
 
-\emph{\textcolor{blue}{With $M=4$, $M_{\rm P}=5$, and $M_{\rm T}M_{\rm R}=256$, each vehicle reports, for each micro-BS link, $M_{\rm P}$ beam-pair indices in descending order of predicted probability, using 8 bits per index, together with one FP32 desired-link gain and one FP32 interfering-link gain.} The resulting payload is $M(8M_{\rm P}+2\times32)=416$ bits per vehicle per frame (4.16~kbps). At the same reporting interval and 32-bit precision per real CSI component, this reduces the uplink payload by factors of 157.5 and 9.85 relative to full MIMO-CSI reporting and centralized inference using current-frame superposed-pilot observations, respectively.}
+\emph{\textcolor{blue}{With $M=4$, $M_{\rm P}=5$, and $M_{\rm T}M_{\rm R}=256$, each vehicle reports, for each micro-BS link, $M_{\rm P}$ beam-pair indices in descending order of predicted probability, using 8 bits per index, together with one FP32 desired-link gain and one FP32 interfering-link gain.} The \textcolor{blue}{reporting overhead} is $M(8M_{\rm P}+2\times32)=416$ bits per vehicle per frame (4.16~kbps). At the same reporting interval and 32-bit precision per real CSI component, this reduces \textcolor{blue}{reporting overhead} by factors of 157.5 and 9.85 relative to full MIMO-CSI reporting and centralized inference using current-frame superposed-pilot observations, respectively.}
 
 Section II introduces the first-order HO interruption model, distinguishing
 advance HO preparation from the data-service interruption during execution.
@@ -1144,18 +1085,21 @@ Consequently, interrupted vehicles receive no data service in Eq.~(20),
 while arrivals continue to accumulate through the queue update in Eq.~(23).
 The resulting backlog affects the queueing-delay proxy and $U$ defined in
 Section II-C. Table~I includes the HO-related symbols.
+\textcolor{blue}{Table~II specifies the HO interruption duration used in the
+simulations, $\tau_{\rm HO}=10$~ms.}
 \end{manuscriptchanges}
 \revisionlocation{Page 2, Table I;
 Page 3, Section II, HO assumptions and Eq.~(3);
 Page 4, Section II-B, Eqs.~(12) and (20);
-\textcolor{red}{Pages 4--5}, Section II-C, queue evolution and latency metric;
+\textcolor{blue}{Pages 4--5}, Section II-C, queue evolution and latency metric;
 Page 5, Section III, constraint C4 of \textbf{P1};
 Page 6, Section IV-A, stateful inference;
 Page 8, Section IV-B, Eqs.~\textcolor{blue}{(42)} and \textcolor{blue}{(45)}, and Algorithm 1;
-\textcolor{red}{Pages 8--9}, Section IV-D and Algorithm 3;
-\textcolor{red}{Pages 9--10}, Section IV-E, prediction reporting;
-\textcolor{red}{Page 12}, Section V-B, Table~III, inference latency, and reporting budget;
-\textcolor{blue}{Pages \textcolor{red}{12--15}, Section V-D and Figs.~\textcolor{blue}{6--9}, system results with HO interruption.}}
+\textcolor{blue}{Pages 8--9}, Section IV-D and Algorithm 3;
+\textcolor{blue}{Pages 9--10}, Section IV-E, prediction reporting;
+\textcolor{blue}{Page 11, Section V-A, Table~II, HO interruption duration;}
+\textcolor{blue}{Pages 11--12}, Section V-B, Table~III, inference latency, and reporting budget;
+\textcolor{blue}{Pages \textcolor{blue}{12--15}, Section V-D and Figs.~\textcolor{blue}{6--9}, system results with HO interruption.}}
 
 % The full directional-service grid now includes the 10-ms HO interruption.
 \end{reviewedit}
@@ -1173,6 +1117,8 @@ Please specify the arrival process and either add a second QoS class or narrow t
 \begin{authorresponse}
 We thank the Reviewer for this comment. Section II-C now specifies Poisson
 arrivals with mean $\lambda_v\Delta t$, independent across vehicles and slots.
+\textcolor{blue}{This provides a reference model of independent random arrivals
+for comparing coordination schemes under controlled mean traffic loads.}
 \textcolor{blue}{This arrival model was already used in the original simulations;
 the revision makes that existing assumption explicit.} We also state that it does not capture temporally correlated
 traffic bursts. Although the algorithms do not require Poisson arrivals,
@@ -1232,11 +1178,11 @@ the following HetNet paragraph.
 \end{manuscriptchanges}
 \revisionlocation{Page 1, Section I (Introduction), opening two paragraphs;
 Page 2, Table I;
-\textcolor{red}{Pages 4--5}, Section II-C (Traffic Model), arrival-process description and interpretation of Eqs.~\textcolor{blue}{(24)--(25)};
+\textcolor{blue}{Pages 4--5}, Section II-C (Traffic Model), arrival-process description and interpretation of Eqs.~\textcolor{blue}{(24)--(25)};
 Page 5, Section III, constraint C1 of \textbf{P1};
 Page 9, Section IV-D, Algorithm 3 and Eq.~\textcolor{blue}{(49)};
 \textcolor{blue}{Pages 10--11, Section V-A, traffic configuration and Table II;
-Pages \textcolor{red}{12--15}, Section V-D, latency-result descriptions.}}
+Pages \textcolor{blue}{12--15}, Section V-D, latency-result descriptions.}}
 \end{reviewedit}
 
 \commentheading{OTR-RA acronym in Fig. 2}
@@ -1249,7 +1195,7 @@ OTR-RA. Please fix the acronym.
 Thank you for pointing out this typographical error. We have corrected
 \emph{OUR-RA} to \emph{OTR-RA} in Fig.~2.
 \end{authorresponse}
-\revisionlocation{Page \textcolor{red}{9}, Fig.~2, resource-allocation block.}
+\revisionlocation{Page \textcolor{blue}{9}, Fig.~2, resource-allocation block.}
 \end{reviewedit}
 
 \clearpage
@@ -1307,8 +1253,10 @@ beam-pair selection, and beam-training overhead into the joint optimization.
 We also change the ML prediction targets from vehicle positions to beam-pair indices and link gains.
 \textcolor{blue}{Moreover, the simulation dataset uses ray-traced microcell MIMO channels instead of the statistical channel model adopted in the conference version.}}\par}
 \end{manuscriptchanges}
+\begin{samepage}
 \revisionlocation{Page 2, Section I (Introduction), paragraph beginning
 \emph{This paper extends}.}
+\end{samepage}
 \end{reviewedit}
 
 \commentheading{ML computation and reporting overhead versus CSI overhead}
@@ -1350,7 +1298,7 @@ rounds by a factor of $MM_{\rm T}/N_{\rm P}=16$.
 For reporting, each vehicle sends, for each micro-BS link, the top-$M_{\rm P}$ beam-pair
 indices in descending order of predicted probability and two FP32 gains. 
 The full probability distribution is not uploaded. With $M=4$, $M_{\rm P}=5$, and
-$M_{\rm T}M_{\rm R}=256$, the payload is
+$M_{\rm T}M_{\rm R}=256$, the \textcolor{blue}{reporting overhead} is
 $M(8M_{\rm P}+2\times32)=416$ bits per vehicle per frame, or 4.16~kbps.
 For comparison, two alternatives upload CSI instead of predictions.
 At the same reporting interval and 32 bits per real CSI component,
@@ -1358,8 +1306,9 @@ full MIMO-CSI reporting requires $2MM_{\rm R}M_{\rm T}\times32=65{,}536$
 bits, whereas current-frame superposed-pilot observations for centralized
 inference require $2M_{\rm R}N_{\rm P}\times32=4{,}096$ bits per vehicle
 per frame. In the latter case, the macro BS retains recurrent states, so
-past observations need not be uploaded again. The two reference payloads
-are 157.5 and 9.85 times the prediction-reporting payload, respectively.
+past observations need not be uploaded again. \textcolor{blue}{The reporting
+overheads of the two reference schemes are 157.5 and 9.85 times that of
+prediction reporting, respectively.}
 
 Overall, MEET-COBRA reduces the overhead of frame-level CSI probing and uplink reporting at the cost of modest local computation per vehicle.
 
@@ -1375,12 +1324,12 @@ Section IV-E specifies that only the ranked candidate beam-pair indices and two 
 predictions per micro BS are uploaded. Section V-B adds the reporting-budget
 comparison:
 
-\emph{With $M=4$, $M_{\rm P}=5$, and $M_{\rm T}M_{\rm R}=256$, each vehicle reports, for each micro-BS link, $M_{\rm P}$ beam-pair indices in descending order of predicted probability, using 8 bits per index, together with one FP32 desired-link gain and one FP32 interfering-link gain. The resulting payload is $M(8M_{\rm P}+2\times32)=416$ bits per vehicle per frame (4.16~kbps). At the same reporting interval and 32-bit precision per real CSI component, this reduces the uplink payload by factors of 157.5 and 9.85 relative to full MIMO-CSI reporting and centralized inference using current-frame superposed-pilot observations, respectively.}
+\emph{With $M=4$, $M_{\rm P}=5$, and $M_{\rm T}M_{\rm R}=256$, each vehicle reports, for each micro-BS link, $M_{\rm P}$ beam-pair indices in descending order of predicted probability, using 8 bits per index, together with one FP32 desired-link gain and one FP32 interfering-link gain. The \textcolor{blue}{reporting overhead} is $M(8M_{\rm P}+2\times32)=416$ bits per vehicle per frame (4.16~kbps). At the same reporting interval and 32-bit precision per real CSI component, this reduces \textcolor{blue}{reporting overhead} by factors of 157.5 and 9.85 relative to full MIMO-CSI reporting and centralized inference using current-frame superposed-pilot observations, respectively.}
 \end{manuscriptchanges}
 \revisionlocation{Page 6, Section IV-A, Input Layer and Shared Backbone;
-\textcolor{red}{Pages 9--10}, Section IV-E, prediction reporting;
+\textcolor{blue}{Pages 9--10}, Section IV-E, prediction reporting;
 Page 11, Table II, pilot and antenna configuration;
-\textcolor{red}{Page 12}, Section V-B, Table~III, inference latency, and reporting budget.}
+\textcolor{blue}{Pages 11--12}, Section V-B, Table~III, inference latency, and reporting budget.}
 \end{reviewedit}
 
 \commentheading{Coordinated handover and beamforming baseline}
@@ -1406,7 +1355,9 @@ whether each vehicle should trigger HO after every $10$~m of travel.
 \textcolor{blue}{The actor and critic are initialized from models pretrained
 using ground-truth channel information. They are then fine-tuned using
 predicted channel gains across all evaluated loads to adapt the HO policy
-to prediction errors. A single checkpoint is selected based on validation
+to prediction errors. \textcolor{blue}{Fine-tuning, validation-based checkpoint
+selection, and final testing use non-overlapping time intervals of the same
+scenario.} A single checkpoint is selected based on validation
 performance and used at all test loads.}
 For vehicles with active HO triggers, a mixed-integer
 optimizer then selects target BSs using estimated RB demands, BS loads,
@@ -1470,8 +1421,8 @@ and macro-BS association ratios across all evaluated loads.
 The discussion relates these results to association decisions, RB utilization,
 and beam-search overhead.
 \end{manuscriptchanges}
-\revisionlocation{\textcolor{red}{Page 12}, Section V-C, O-MAPPO-adapted and MTS-GS-HBF-adapted;
-Pages \textcolor{red}{12--15}, Section V-D and Figs.~\textcolor{blue}{6--9}, multi-seed performance comparisons.}
+\revisionlocation{\textcolor{blue}{Page 12}, Section V-C, O-MAPPO-adapted and MTS-GS-HBF-adapted;
+Pages \textcolor{blue}{12--15}, Section V-D and Figs.~\textcolor{blue}{6--9}, multi-seed performance comparisons.}
 \end{reviewedit}
 
 \commentheading{Vehicle-speed distribution and mobility sensitivity}
@@ -1596,9 +1547,9 @@ MEET-COBRA maintains low latency across the observed speed groups over
 most evaluated loads, while larger delays arise in the higher-speed groups
 at the highest load.}
 \end{manuscriptchanges}
-\revisionlocation{Page \textcolor{red}{10}, Section V-A and Fig.~4, speed distributions;
-Page 12, Section V-B, prediction performance by speed group;
-Page \textcolor{red}{13}, Section V-D, latency performance by speed group.}
+\revisionlocation{\textcolor{blue}{Pages 10--11}, Section V-A and Fig.~4, speed distributions;
+\textcolor{blue}{Page 11}, Section V-B, prediction performance by speed group;
+Page \textcolor{blue}{14}, Section V-D, latency performance by speed group.}
 \end{reviewedit}
 
 \subsection*{Minor Comments}
@@ -1613,7 +1564,7 @@ Algorithm 3 consistently use ``OTR-RA.''
 Thank you for pointing out this typographical error. We have corrected
 \emph{OUR-RA} to \emph{OTR-RA} in Fig.~2.
 \end{authorresponse}
-\revisionlocation{Page \textcolor{red}{9}, Fig.~2, resource-allocation block.}
+\revisionlocation{Page \textcolor{blue}{9}, Fig.~2, resource-allocation block.}
 \end{reviewedit}
 
 \commentheading{Handover-algorithm parameters in the simulation table}
@@ -1639,8 +1590,8 @@ $N_{\rm iter}$ rounds and remove the convergence test and its parameter
 $\epsilon$. Section V-A explains the parameter choices and states that
 Table~II gives the default simulation settings.\par}
 \end{manuscriptchanges}
-\revisionlocation{\textcolor{red}{Pages 7--8}, Section IV-B and Algorithm~1;
-\textcolor{red}{Page 11}, Section V-A, Table~II and the discussion of parameter settings.}
+\revisionlocation{\textcolor{blue}{Pages 7--8}, Section IV-B and Algorithm~1;
+\textcolor{blue}{Page 11}, Section V-A, Table~II and the discussion of parameter settings.}
 \end{reviewedit}
 
 \commentheading{Related work on joint optimization}
@@ -1694,20 +1645,9 @@ in \emph{Proc. IEEE Wireless Commun. Netw. Conf. (WCNC)}, 2023, pp.~1--6.
 \emph{EURASIP J. Wireless Commun. Netw.}, vol.~2025, Art.~no.~55, 2025.
 \end{description}
 \end{manuscriptchanges}
-\revisionlocation{\textcolor{red}{Page 1}, Section I (Introduction), paragraph beginning
+\revisionlocation{\textcolor{blue}{Page 1}, Section I (Introduction), paragraph beginning
 \emph{Several studies also coordinate}; Page 1, HetNet paragraph beginning
 \emph{In practice}; references [21]--[23].}
-\end{reviewedit}
-
-\commentheading{Writing quality}
-\begin{quotedcomment}
-Overall the writing is clear and well organized, no major language concerns.
-\end{quotedcomment}
-\begin{reviewedit}{blue}
-\begin{authorresponse}
-We thank the Reviewer for the positive assessment of the clarity and
-organization of the manuscript.
-\end{authorresponse}
 \end{reviewedit}
 
 \vfill

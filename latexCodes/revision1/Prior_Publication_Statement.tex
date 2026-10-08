@@ -1,0 +1,82 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newtxtext}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\hypersetup{
+  pdftitle={Prior Publication Statement -- MEET-COBRA},
+  pdfauthor={Bowen Xie, Sheng Zhou, and Zhisheng Niu},
+  pdfsubject={Relationship to the AEPHORA conference paper presented at IEEE ICC 2025}
+}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+
+\begin{document}
+
+\begin{center}
+  {\Large\bfseries Prior Publication Statement}\par
+  \vspace{0.4em}
+  {\bfseries MEET-COBRA: Machine-learning-based Energy-Efficient proacTive
+  Coordination of handOver, Beamforming and Resource Allocation}\par
+  Bowen Xie, Sheng Zhou, and Zhisheng Niu\par
+  Manuscript ID: Paper-TW-Feb-26-0360\par
+  Submitted to \emph{IEEE Transactions on Wireless Communications}
+\end{center}
+
+\textbf{Earlier publication}
+
+Bowen Xie, Sheng Zhou, Zhisheng Niu, Hao Wu, and Cong Shi,
+``AEPHORA: AI/ML-Based Energy-Efficient Proactive Handover and Resource Allocation,''
+in \emph{ICC 2025 -- IEEE International Conference on Communications},
+Montreal, Canada, June 8--12, 2025, pp.~6297--6303.\\
+DOI: \href{https://doi.org/10.1109/ICC52391.2025.11161541}{10.1109/ICC52391.2025.11161541}.
+The conference was sponsored by the IEEE Communications Society
+(\href{https://icc2025.ieee-icc.org/}{conference website}).
+
+\textbf{Relationship and main extensions}
+
+The journal manuscript extends the above conference paper. Both works consider
+a two-tier vehicular heterogeneous network and use prediction-assisted proactive
+handover (PHO) and queue-aware resource allocation (RA) to reduce system transmit
+power under latency constraints. The main extensions are as follows.
+
+\begin{enumerate}[leftmargin=*,itemsep=0.55em,parsep=0pt,topsep=0.2em]
+  \item \textbf{Joint coordination of PHO, beamforming, and RA.}
+  The conference paper uses a scalar channel model with a prescribed beamforming
+  gain and does not optimize beam selection. The journal manuscript introduces
+  microcell multiple-input multiple-output (MIMO) channels, transmit and receive
+  beam-pair selection, and beam-training overhead into the joint optimization.
+  It develops prediction-guided beam search with early termination and coordinates
+  it with frame-level PHO and slot-level RA. It also accounts for inter-cell
+  interference and handover interruption when estimating resource demands and allocating
+  resources.
+
+  \item \textbf{Prediction of beam pairs and channel gains.}
+  The conference paper predicts vehicle positions from historical channel gains
+  and estimates future link gains from the predicted positions. The journal
+  manuscript instead uses historical superposed-pilot observations to predict
+  next-frame beam-pair candidates, desired-link gains, and beam-averaged
+  interfering-link gains. These predictions guide association decisions, beam
+  search, and resource allocation without requiring full MIMO channel reporting.
+
+  \item \textbf{Ray-traced channels and broader evaluation.}
+  The conference evaluation combines SUMO vehicle trajectories with statistically
+  generated scalar channels. The journal evaluation uses SUMO mobility traces and
+  Sionna Ray Tracing to generate microcell MIMO channels, and computes receive
+  rates using the selected beams and explicit resource block assignments. It
+  includes comparisons with two adapted joint handover and beamforming methods from
+  the literature, module ablations, multiple random seeds, analyses of mobility
+  and prediction errors, and measurements of neural-network complexity,
+  inference latency, and reporting overhead.
+\end{enumerate}
+
+The conference paper is cited as reference~[13] in the journal manuscript.
+Section~I, page~2, explicitly identifies the manuscript as an extension and
+summarizes the principal differences. A copy of the conference paper is provided
+separately with this statement.
+
+\end{document}

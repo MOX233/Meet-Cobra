@@ -240,7 +240,7 @@ def replace_mts(root, protocol, rows, curves):
 
 def base_axes(figsize=(3.65, 3.4)):
     fig, ax = plt.subplots(figsize=figsize)
-    fig.subplots_adjust(left=.145, right=.98, bottom=.14, top=.72)
+    fig.subplots_adjust(left=.16, right=.98, bottom=.15, top=.72)
     ax.set_xlim(.5, 35.5)
     ax.set_xticks([1, 5, 9, 13, 17, 21, 25, 29, 33, 35])
     ax.set_xlabel(r'Mean arrival rate $\lambda$ (Mbps)')
@@ -273,9 +273,9 @@ def save(fig, stem, output):
 
 def plots(curves, summary, rates, output, *, power_only=False, include_oracle_cr_lb=False):
     plt.rcParams.update({'font.family': 'serif', 'font.serif': ['Times New Roman', 'STIXGeneral'],
-                         'mathtext.fontset': 'stix', 'font.size': 8, 'axes.labelsize': 8.5,
-                         'xtick.labelsize': 7.5, 'ytick.labelsize': 7.5,
-                         'legend.fontsize': 7, 'pdf.fonttype': 42, 'axes.linewidth': .6})
+                         'mathtext.fontset': 'stix', 'font.size': 9.5, 'axes.labelsize': 9.5,
+                         'xtick.labelsize': 9.5, 'ytick.labelsize': 9.5,
+                         'legend.fontsize': 9.5, 'pdf.fonttype': 42, 'axes.linewidth': .6})
     specifications = (
         ('power_w', 'power_comparison_curves', r'Average transmit power $\bar P$ (W)'),
         ('violation_percent', 'violation_prob_comparison_curves', r'Latency constraint violation probability $U$ (%)'),
@@ -315,13 +315,14 @@ def plots(curves, summary, rates, output, *, power_only=False, include_oracle_cr
             ax.set_yticks([1, 10, 100, 1000, 10000], ['1', '10', r'$10^2$', r'$10^3$', r'$10^4$'])
             ax.axhline(20, color='#555555', linewidth=.9, linestyle=(0, (4, 3)), zorder=1)
             ax.text(.37, 20, '20 ms', transform=ax.get_yaxis_transform(), ha='center', va='bottom',
-                    fontsize=7, color='#444444', bbox=dict(facecolor='white', edgecolor='none', pad=.5))
+                    fontsize=9.5, color='#444444', bbox=dict(facecolor='white', edgecolor='none', pad=.5))
             ax.minorticks_off()
         else:
             ax.set_ylim(-.6, 40)
             ax.set_yticks([0, 10, 20, 30, 40])
         fig.legend(handles=handles, loc='upper center', bbox_to_anchor=(.52, .99),
-                   ncol=2, frameon=False, handlelength=2.4, columnspacing=1.1, labelspacing=.45)
+                   ncol=2, frameon=False, handlelength=1.8, handletextpad=.45,
+                   columnspacing=.75, labelspacing=.35)
         save(fig, stem, output)
 
 

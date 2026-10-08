@@ -111,10 +111,10 @@ Wang et al.~\cite{wang2024joint} combine multi-agent reinforcement learning for 
 Heydarian et al.~\cite{heydarian2025multitimescale} coordinate user association, hybrid BF, and queue-aware user scheduling on multiple timescales. 
 However, these studies primarily target throughput and delay performance, and do not explicitly address the joint coordination of PHO, BF, and RA for reducing the system transmit power while meeting latency requirements.}
 
-\currentdel{Fundamentally, PHO, BF and RA are coupled through the realized link service capability.}\rev{The energy cost of serving traffic depends on the coupling between PHO, BF, and RA.\space}\currentdel{A PHO decision changes not only the serving BS but also the selected beam-pair and the resulting channel gain, which determine the realized link efficiency and the required radio resources, such as resource blocks (RBs).}\rev{The serving BS and selected beam pair jointly determine the link gain and, consequently, the number of resource blocks (RBs) required to meet the traffic demand.
-In HetNets, cross-tier differences in RB bandwidths, transmit powers, and resource budgets further complicate this coupling by changing the power cost and feasibility of serving a given traffic demand.
-Meanwhile, differences in carrier frequencies, antenna configurations, and propagation conditions result in tier-dependent beamforming gains, beam-training overhead, and channel dynamics, thereby affecting post-handover service rates.
-Moreover, handover redistributes traffic and resource usage across cells, potentially changing intra-tier co-channel interference and, consequently, the resource demands of other links.}
+\currentdel{Fundamentally, PHO, BF and RA are coupled through the realized link service capability.}\currentdel{A PHO decision changes not only the serving BS but also the selected beam-pair and the resulting channel gain, which determine the realized link efficiency and the required radio resources, such as resource blocks (RBs).}\rev{PHO and BF jointly determine the serving link gain and beam-training overhead.
+In HetNets, these quantities also depend on cross-tier differences in carrier frequencies, antenna configurations, and propagation conditions.
+Together with differences in bandwidth and transmit power across tiers, these factors affect the number of resource blocks (RBs) required to serve a given traffic demand and the resulting power consumption, while the available RB budgets constrain service feasibility.}
+\rev{Moreover, HO changes the traffic loads of the source and target BSs, which can alter their resource usage and intra-tier co-channel interference, thereby affecting the resource demands of other links.}
 \currentdel{Without COBRA, PHO may rely on inaccurate link-quality estimates, leading inefficient resource usage, higher transmit power, and degraded latency reliability. Therefore, this paper aims to design a joint optimization framework for PHO, BF and RA in HetNets.}\rev{This motivates energy-efficient {C}oordination of hand{O}ver, {B}eamforming and {R}esource {A}llocation (COBRA) in vehicular HetNets.}
 
 
@@ -413,7 +413,7 @@ This model assumes that the existing backlog $q_v(n)$ is served first at a rate 
 We denote the average data arrival rate for vehicle-$v$ as $\lambda_v$, thus we have $\mathbb{E}\left[ a_v(n) \right] = \lambda_v \Delta t$.
 \rev{We consider Poisson arrivals that are independent across vehicles and slots, with $a_v(n)\sim\mathrm{Poisson} (\lambda_v\Delta t)$. This model does not capture temporally correlated traffic bursts.}
 
-\currentdel{According to}\rev{Queueing delay is an important component of end-to-end latency and is jointly affected by HO, BF, and RA. Motivated by} \textit{Little's law} \cite{little1961proof}, \currentdel{the queuing latency $\tau_v(n)\approx \lambda_v^{-1}q_v(n)$}\rev{we define $\tau_v(n)\triangleq\lambda_v^{-1}q_v(n)$ as a queueing-delay proxy}. \currentdel{To keep $\tau_v(n)$ no more than a latency threshold $\tau_{\rm th}$, the queue length should satisfy the following latency constraint}\rev{Requiring this proxy not to exceed the latency threshold $\tau_v^{\rm th}$ of  vehicle-$v$  gives the queue-length-based latency constraint}:
+\currentdel{According to}\rev{\rev{Queueing delay is an important component of end-to-end latency, alongside transmission, propagation, and processing delays. We focus on queueing delay to assess how HO, BF, and RA jointly affect traffic accumulation through the available service rates.} Motivated by} \textit{Little's law} \cite{little1961proof}, \currentdel{the queuing latency $\tau_v(n)\approx \lambda_v^{-1}q_v(n)$}\rev{we define $\tau_v(n)\triangleq\lambda_v^{-1}q_v(n)$ as a queueing-delay proxy}. \currentdel{To keep $\tau_v(n)$ no more than a latency threshold $\tau_{\rm th}$, the queue length should satisfy the following latency constraint}\rev{Requiring this proxy not to exceed the latency threshold $\tau_v^{\rm th}$ of  vehicle-$v$  gives the queue-length-based latency constraint}:
 \begin{equation}
     q_v(n) \leq \lambda_v \text{\currentdel{$\tau^{{\rm th}}$}}\rev{\tau_v^{\rm th}}.
     \label{eq:queue length cons}
@@ -965,7 +965,8 @@ We first describe the simulation setup and parameter configuration, and then pre
     \centering
     \caption{Simulation Parameters}
     \label{tab:sim-params}
-    \begin{tabular}{l c | l c c}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c | l c c}
         \hline
         \multicolumn{2}{c|}{\textbf{Global simulation parameters}}
         & \multicolumn{3}{c}{\textbf{Macro- and micro-BS parameters}} \\
@@ -992,23 +993,22 @@ We first describe the simulation setup and parameter configuration, and then pre
         & Channel simulation &
         3GPP TR~38.901 UMa & Ray-tracing by Sionna RT~\cite{sionnaRT} \\
 
-        Noise power spectral density $N_0$ & $-174$~dBm/Hz
-        & \rev{Transmit antennas per BS} & \rev{$1$} & \rev{$32$} \\
-
-        \ifshowdeletions
-        & & \currentdel{Antenna number (Tx\&Rx)} & \currentdel{1\&1} & \currentdel{32\&8} \\
-        \fi
+        \rev{HO interruption duration $\tau_{\rm HO}$} & \rev{$10$~ms}
+        & Antenna number (Tx\&Rx) & 1\&1 & 32\&8 \\
 
         \rev{Number of GAP-HO iterations $N_{\rm iter}$} & \rev{$2$}
-        & \rev{Receive antennas per vehicle} & \rev{$1$} & \rev{$8$} \\
+        & \rev{Number of BSs} & \rev{$1$} & \rev{$4$}\\
 
         \rev{RB capacity relaxation factor $\zeta$} & \rev{$1.1$}
-        & \rev{Number of BSs} & \rev{$1$} & \rev{$4$} \\
-
-        \rev{Number of candidate beam pairs $M_{\rm P}$} & \rev{$5$}
         & \rev{Beamforming codebooks} & \rev{Not applicable} & \rev{DFT} \\
+
+        Noise power spectral density $N_0$ & $-174$~dBm/Hz
+        & \rev{Number of candidate beam pairs $M_{\rm P}$} & \rev{Not applicable} & \rev{$5$} \\
+
+        \rev{System simulation duration per run} & \rev{$30$~s}
+        & \rev{PET-BF gain margin $G_{\rm th}$} & \rev{Not applicable} & \rev{$5$~dB} \\
         \hline
-    \end{tabular}
+    \end{tabular*}
 \end{table*}
 
 \begin{figure}
@@ -1031,7 +1031,7 @@ We consider a $1000~\text{m} \times 1000~\text{m}$ urban HetNet scenario shown i
 
 \rev{For the system-level performance comparisons in Section~V-D, we vary the traffic arrival rate $\lambda_v=\lambda$ over $\{1,3,\ldots,35\}$~Mbps and set $\tau_v^{\rm th}=20$~ms for all vehicles.}
 \rev{For all schemes, receive rates are evaluated using actual RB overlaps and the selected transmit and receive beams.}
-\rev{We set $N_{\rm iter}=2$ to balance performance and computational cost, and $\zeta=1.1$ for 10\% increments in the RB capacity bounds when the continuous relaxation of \textbf{P2} is infeasible. We use $M_{\rm P}=5$ to balance coverage of the optimal beam pair against beam search overhead, which occupies at most $\eta M_{\rm P}=8.93\%$ of each slot.}
+\rev{We set $N_{\rm iter}=2$ to balance performance and computational cost, and $\zeta=1.1$ for 10\% increments in the RB capacity bounds when the continuous relaxation of \textbf{P2} is infeasible. We use $M_{\rm P}=5$ and $G_{\rm th}=5$~dB to balance coverage of the optimal beam pair against beam search overhead, which occupies at most $\eta M_{\rm P}=8.93\%$ of each slot.}
 \rev{Unless otherwise stated, the simulations use the parameter values listed in Table~\ref{tab:sim-params}.}
 
 \subsection{Performance of ML-Based Prediction}
@@ -1096,7 +1096,7 @@ From the lowest to the highest speed group, the desired-link gain MAEs are $1.13
 \end{table}
 
 \rev{Table~\ref{tab:nn-overhead} summarizes the NN parameter counts and matrix FLOPs for single-vehicle stateful inference using the current-frame CSI and recurrent states. The three models require 8.51~MB of 32-bit floating-point (FP32) parameter storage. With FP32 inference on an AMD EPYC 
-7742 CPU using one thread, their combined inference latency has a median of \rev{5.38} ms and a 95th percentile of \rev{5.72} ms. With $M=4$, $M_{\rm P}=5$, and $M_{\rm T}M_{\rm R}=256$, each vehicle reports, for each micro-BS link, $M_{\rm P}$ beam-pair indices in descending order of predicted probability, using 8 bits per index, together with one FP32 desired-link gain and one FP32 interfering-link gain. The resulting payload is $M(8M_{\rm P}+2\times32)=416$ bits per vehicle per frame (4.16~kbps). At the same reporting interval and 32-bit precision per real CSI component, this reduces the uplink payload by factors of 157.5 and 9.85 relative to full MIMO-CSI reporting and centralized inference using current-frame superposed-pilot observations, respectively.}
+7742 CPU using one thread, their combined inference latency has a median of \rev{5.38} ms and a 95th percentile of \rev{5.72} ms. With $M=4$, $M_{\rm P}=5$, and $M_{\rm T}M_{\rm R}=256$, each vehicle reports, for each micro-BS link, $M_{\rm P}$ beam-pair indices in descending order of predicted probability, using 8 bits per index, together with one FP32 desired-link gain and one FP32 interfering-link gain. The \rev{reporting overhead} is $M(8M_{\rm P}+2\times32)=416$ bits per vehicle per frame (4.16~kbps). At the same reporting interval and 32-bit precision per real CSI component, this reduces \rev{reporting overhead} by factors of 157.5 and 9.85 relative to full MIMO-CSI reporting and centralized inference using current-frame superposed-pilot observations, respectively.}
 
 % TODO 暂时不讲，视篇幅情况看是否加入
 %To examine the impact of model input design, Fig.~\ref{fig:nn-design} depicts the validation performance versus the number of pilots $N_{\rm P}$ and the CSI input length $N_{\rm L}$. Increasing $N_{\rm P}$ from $2$ to $8$ significantly improves beam prediction accuracy and reduces gain-prediction MAE, whereas further enlarging $N_{\rm P}$ yields only marginal gains, demonstrating a clear diminishing-returns effect. A similar trend is observed when increasing $N_{\rm L}$: performance improves rapidly for short histories and then saturates when $N_{\rm L} \gtrsim 10$. Unless otherwise stated, we therefore adopt $N_{\rm P}=8$ and $N_{\rm L}=10$ in the subsequent simulations as a good tradeoff between prediction accuracy and pilot/feedback overhead.
